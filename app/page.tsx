@@ -51,14 +51,8 @@ export default function HomePage() {
     setHasGenerated(false)
 
     try {
-      // Call webhook to generate articles
-      const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL
-      
-      if (!webhookUrl) {
-        throw new Error('Webhook URL niet geconfigureerd. Voeg NEXT_PUBLIC_WEBHOOK_URL toe aan je environment variables.')
-      }
-      
-      const response = await fetch(webhookUrl, {
+      // Call our API route which handles the webhook call server-side
+      const response = await fetch('/api/generate-articles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
