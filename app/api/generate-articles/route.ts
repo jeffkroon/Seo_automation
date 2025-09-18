@@ -12,8 +12,13 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload),
     });
 
-    const data = await r.json(); // { jobId, status: 'queued' }
+    const rawData = await r.json(); // [{ jobId, status: 'queued' }]
+    
+    // n8n geeft een array terug, pak het eerste element
+    const data = Array.isArray(rawData) ? rawData[0] : rawData;
+    
     if (!data?.jobId) {
+      console.error('Invalid response from n8n:', rawData);
       return NextResponse.json(
         { error: 'Geen jobId ontvangen van n8n ACK.' },
         { status: 500 }
