@@ -51,7 +51,7 @@ export default function HomePage() {
     setHasGenerated(false)
 
     try {
-      // Call our API route which handles the webhook call server-side
+      // Start the workflow and get jobId
       const response = await fetch('/api/generate-articles', {
         method: 'POST',
         headers: {
@@ -70,22 +70,15 @@ export default function HomePage() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data: WebhookResponse[] = await response.json()
+      const { jobId } = await response.json()
       
-      // Ensure we have articles in the response
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid response format: expected array of articles')
+      if (!jobId) {
+        throw new Error('Geen jobId ontvangen')
       }
 
-      // Convert webhook response to Article format
-      const convertedArticles: Article[] = data.map((item, index) => ({
-        id: `article-${index + 1}`,
-        html: item.output,
-        title: extractTitleFromContent(item.output)
-      }))
-
-      setArticles(convertedArticles)
-      setHasGenerated(true)
+      // Start polling for results
+      await pollForResults(jobId)
+      
     } catch (error) {
       console.error("Error generating articles:", error)
       
@@ -100,9 +93,62 @@ export default function HomePage() {
       }
       
       alert(errorMessage)
-    } finally {
       setIsLoading(false)
     }
+  }
+
+  const pollForResults = async (jobId: string) => {
+    const maxAttempts = 60 // 5 minuten met 5 seconden intervals
+    let attempts = 0
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`)
+        
+        if (!response.ok) {
+          throw new Error(`Status check failed: ${response.status}`)
+        }
+
+        const job = await response.json()
+        
+        if (job.status === 'done' && job.html) {
+          // Convert HTML to articles (assuming it contains multiple articles separated by <hr />)
+          const articleHtmls = job.html.split('<hr />').filter((html: string) => html.trim())
+          
+          const convertedArticles: Article[] = articleHtmls.map((html: string, index: number) => ({
+            id: `article-${index + 1}`,
+            html: html.trim(),
+            title: extractTitleFromContent(html)
+          }))
+
+          setArticles(convertedArticles)
+          setHasGenerated(true)
+          setIsLoading(false)
+          return
+        }
+        
+        if (job.status === 'error') {
+          throw new Error(job.error || 'Workflow error')
+        }
+
+        // Still processing, continue polling
+        attempts++
+        if (attempts >= maxAttempts) {
+          throw new Error('Timeout: workflow duurt langer dan verwacht')
+        }
+
+        // Poll again in 5 seconds
+        setTimeout(poll, 5000)
+        
+      } catch (error) {
+        console.error("Error polling for results:", error)
+        alert(`Error: ${error instanceof Error ? error.message : 'Onbekende fout'}`)
+        setIsLoading(false)
+      }
+    }
+
+    // Start polling
+    poll()
   }
 
   return (

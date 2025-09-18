@@ -1,49 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server'
+// app/api/generate-articles/route.ts
+import { NextResponse } from 'next/server';
+import { createJob } from '@/lib/jobs';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json()
-    
-    const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL
-    
-    if (!webhookUrl) {
-      return NextResponse.json(
-        { error: 'Webhook URL niet geconfigureerd' },
-        { status: 500 }
-      )
-    }
+    const payload = await req.json();
 
-    console.log('Server-side webhook call to:', webhookUrl)
-    console.log('Payload:', body)
-
-    // Server-side fetch with no timeout
-    const response = await fetch(webhookUrl, {
+    const r = await fetch(process.env.N8N_WEBHOOK_URL!, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-    console.log('Response status:', response.status)
-
-    if (!response.ok) {
+    const data = await r.json(); // { jobId, status: 'queued' }
+    if (!data?.jobId) {
       return NextResponse.json(
-        { error: `Webhook error: ${response.status}` },
-        { status: response.status }
-      )
+        { error: 'Geen jobId ontvangen van n8n ACK.' },
+        { status: 500 }
+      );
     }
 
-    const data = await response.json()
-    console.log('Response data:', data)
-
-    return NextResponse.json(data)
-    
-  } catch (error) {
-    console.error('Server-side error:', error)
+    createJob(data.jobId);
     return NextResponse.json(
-      { error: 'Server error: ' + (error instanceof Error ? error.message : 'Unknown error') },
+      { jobId: data.jobId, status: 'queued' },
+      { status: 202 }
+    );
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err?.message || 'Onbekende fout' },
       { status: 500 }
-    )
+    );
   }
 }
