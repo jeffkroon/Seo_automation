@@ -46,6 +46,8 @@ export default function HomePage() {
     language: string
     webpageLink: string
     company: string
+    additionalKeywords?: string
+    articleType?: string
   }) => {
     setIsLoading(true)
     setHasGenerated(false)
@@ -63,6 +65,8 @@ export default function HomePage() {
           "taal": formData.language,
           "Link webpagina": formData.webpageLink,
           "bedrijf": formData.company,
+          "Aanvullende Zoekwoorden": formData.additionalKeywords || "",
+          "Soort Artikel": formData.articleType || "",
         }),
       })
 

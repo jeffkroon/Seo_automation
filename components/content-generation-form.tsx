@@ -17,6 +17,8 @@ interface ContentGenerationFormProps {
     language: string
     webpageLink: string
     company: string
+    additionalKeywords?: string
+    articleType?: string
   }) => void
   isLoading: boolean
 }
@@ -28,6 +30,8 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
     language: "",
     webpageLink: "",
     company: "",
+    additionalKeywords: "",
+    articleType: "",
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,7 +39,14 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
     onGenerate(formData)
   }
 
-  const isFormValid = Object.values(formData).every((value) => value.trim() !== "")
+  const requiredFields = {
+    focusKeyword: formData.focusKeyword,
+    country: formData.country,
+    language: formData.language,
+    webpageLink: formData.webpageLink,
+    company: formData.company,
+  }
+  const isFormValid = Object.values(requiredFields).every((value) => value.trim() !== "")
 
   return (
     <Card className="w-full shadow-lg border-0 bg-card/80 backdrop-blur-sm">
@@ -139,6 +150,47 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
               className="h-11"
               disabled={isLoading}
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="additionalKeywords" className="text-sm font-medium">
+                Aanvullende Zoekwoorden (optioneel)
+              </Label>
+              <Input
+                id="additionalKeywords"
+                placeholder="bijv. SEO tips, marketing strategie, content"
+                value={formData.additionalKeywords}
+                onChange={(e) => setFormData((prev) => ({ ...prev, additionalKeywords: e.target.value }))}
+                className="h-11"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Scheid meerdere zoekwoorden met komma's
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="articleType" className="text-sm font-medium">
+                Soort Artikel (optioneel)
+              </Label>
+              <Select
+                value={formData.articleType}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, articleType: value }))}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Selecteer artikel type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="informatief">Informatief</SelectItem>
+                  <SelectItem value="transactioneel">Transactioneel</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Informatief: educatief en informatief. Transactioneel: verkoopgericht
+              </p>
+            </div>
           </div>
 
           <Button
