@@ -98,9 +98,6 @@ export default function HomePage() {
   }
 
   const pollForResults = async (jobId: string) => {
-    const maxAttempts = 60 // 5 minuten met 5 seconden intervals
-    let attempts = 0
-
     const poll = async () => {
       try {
         const response = await fetch(`/api/jobs/${jobId}`)
@@ -131,12 +128,9 @@ export default function HomePage() {
           throw new Error(job.error || 'Workflow error')
         }
 
-        // Still processing, continue polling
-        attempts++
-        if (attempts >= maxAttempts) {
-          throw new Error('Timeout: workflow duurt langer dan verwacht')
-        }
-
+        // Still processing, continue polling (no timeout)
+        console.log(`Polling attempt for job ${jobId}, status: ${job.status}`)
+        
         // Poll again in 5 seconds
         setTimeout(poll, 5000)
         
