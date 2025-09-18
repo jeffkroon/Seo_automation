@@ -5,17 +5,43 @@ import { createJob } from '@/lib/jobs';
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
+    console.log('Payload:', payload);
+    console.log('N8N_WEBHOOK_URL:', process.env.N8N_WEBHOOK_URL);
 
-    const r = await fetch(process.env.N8N_WEBHOOK_URL!, {
+    if (!process.env.N8N_WEBHOOK_URL) {
+      console.error('N8N_WEBHOOK_URL is not set!');
+      return NextResponse.json(
+        { error: 'N8N_WEBHOOK_URL is not configured' },
+        { status: 500 }
+      );
+    }
+
+    const r = await fetch(process.env.N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
-    const rawData = await r.json(); // [{ jobId, status: 'queued' }]
+    const rawData = await r.json();
+    console.log('Raw response from n8n:', rawData);
     
-    // n8n geeft een array terug, pak het eerste element
-    const data = Array.isArray(rawData) ? rawData[0] : rawData;
+    // n8n geeft { data: { jobId: "=123", status: "queued" } } terug
+    let data;
+    if (rawData.data) {
+      // Response heeft data wrapper
+      data = rawData.data;
+    } else if (Array.isArray(rawData)) {
+      // Response is array
+      data = rawData[0];
+    } else {
+      // Response is direct object
+      data = rawData;
+    }
+    
+    // Clean jobId (remove = prefix if present)
+    if (data.jobId && data.jobId.startsWith('=')) {
+      data.jobId = data.jobId.substring(1);
+    }
     
     if (!data?.jobId) {
       console.error('Invalid response from n8n:', rawData);
