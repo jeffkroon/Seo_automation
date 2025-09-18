@@ -155,7 +155,7 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="additionalKeywords" className="text-sm font-medium">
-                Aanvullende Zoekwoorden (optioneel)
+                Aanvullende Zoekwoorden
               </Label>
               <Input
                 id="additionalKeywords"
@@ -172,7 +172,7 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
 
             <div className="space-y-2">
               <Label htmlFor="articleType" className="text-sm font-medium">
-                Soort Artikel (optioneel)
+                Soort Artikel
               </Label>
               <Select
                 value={formData.articleType}
