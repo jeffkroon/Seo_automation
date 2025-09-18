@@ -59,14 +59,18 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center space-x-2">
           <CheckCircle className="w-6 h-6 text-green-500" />
-          <h2 className="text-2xl font-bold">Articles Generated Successfully!</h2>
+          <h2 className="text-2xl font-bold">Artikelen Succesvol Gegenereerd!</h2>
         </div>
         <p className="text-muted-foreground">
-          Your AI-powered content is ready. Each article is optimized for SEO and tailored to your specifications.
+          Je AI-gestuurde content is klaar. {articles.length} artikel{articles.length !== 1 ? 'en' : ''} geoptimaliseerd voor SEO en afgestemd op jouw specificaties.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid gap-6 ${
+        articles.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
+        articles.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
+        'grid-cols-1 lg:grid-cols-3'
+      }`}>
         {articles.map((article, index) => {
           const title = article.title || extractTitle(article.html)
           const preview = extractPreview(article.html)
@@ -81,7 +85,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                   <div className="flex items-center space-x-2">
                     <FileText className="w-5 h-5 text-primary" />
                     <Badge variant="secondary" className="text-xs">
-                      Article {index + 1}
+                      Artikel {index + 1}
                     </Badge>
                   </div>
                 </div>
@@ -106,7 +110,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     ) : (
                       <>
                         <Copy className="w-4 h-4 mr-2" />
-                        Copy HTML
+                        Kopieer HTML
                       </>
                     )}
                   </Button>
@@ -118,7 +122,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     onClick={() => downloadArticle(article.html, title)}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download
+                    Downloaden
                   </Button>
                 </div>
               </CardContent>
@@ -129,13 +133,12 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
 
       <Card className="bg-primary/5 border-primary/20">
         <CardContent className="p-6 text-center">
-          <h3 className="text-lg font-semibold mb-2">Ready to integrate?</h3>
+          <h3 className="text-lg font-semibold mb-2">Klaar voor integratie?</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Replace the mock data in the form handler with your actual webhook endpoint to start generating real
-            content.
+            Vervang de mock data in de form handler met je echte webhook endpoint om echte content te genereren.
           </p>
           <Badge variant="outline" className="text-xs">
-            Webhook Integration Ready
+            Webhook Integratie Klaar
           </Badge>
         </CardContent>
       </Card>

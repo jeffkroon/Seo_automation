@@ -12,6 +12,29 @@ interface Article {
   id: string
 }
 
+interface WebhookResponse {
+  output: string
+}
+
+// Function to extract title from markdown content
+function extractTitleFromContent(content: string): string {
+  // Look for markdown heading (# Title)
+  const titleMatch = content.match(/^#\s*(.+)$/m)
+  if (titleMatch) {
+    return titleMatch[1].trim()
+  }
+  
+  // Look for HTML h1 tag
+  const h1Match = content.match(/<h1[^>]*>(.*?)<\/h1>/i)
+  if (h1Match) {
+    return h1Match[1].replace(/<[^>]*>/g, '').trim()
+  }
+  
+  // Fallback to first line or default
+  const firstLine = content.split('\n')[0].trim()
+  return firstLine.length > 0 ? firstLine.substring(0, 50) + '...' : 'Artikel'
+}
+
 export default function HomePage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -49,14 +72,21 @@ export default function HomePage() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data: WebhookResponse[] = await response.json()
       
       // Ensure we have articles in the response
-      if (!data.articles || !Array.isArray(data.articles)) {
-        throw new Error('Invalid response format: articles array not found')
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid response format: expected array of articles')
       }
 
-      setArticles(data.articles)
+      // Convert webhook response to Article format
+      const convertedArticles: Article[] = data.map((item, index) => ({
+        id: `article-${index + 1}`,
+        html: item.output,
+        title: extractTitleFromContent(item.output)
+      }))
+
+      setArticles(convertedArticles)
       setHasGenerated(true)
     } catch (error) {
       console.error("Error generating articles:", error)
@@ -67,18 +97,18 @@ export default function HomePage() {
         const mockArticles: Article[] = [
           {
             id: "1",
-            title: `${formData.focusKeyword} Guide for ${formData.company}`,
-            html: `<h1>Complete ${formData.focusKeyword} Guide</h1><p>This comprehensive guide covers everything you need to know about <strong>${formData.focusKeyword}</strong> in ${formData.country}. Our expert team at ${formData.company} has compiled the most up-to-date information to help you succeed.</p><h2>Key Benefits</h2><ul><li>Improved search rankings</li><li>Better user engagement</li><li>Increased conversion rates</li></ul><p>Learn more at <a href="${formData.webpageLink}" target="_blank">${formData.webpageLink}</a></p>`,
+            title: `${formData.focusKeyword} Gids voor ${formData.company}`,
+            html: `<h1>Complete ${formData.focusKeyword} Gids</h1><p>Deze uitgebreide gids behandelt alles wat je moet weten over <strong>${formData.focusKeyword}</strong> in ${formData.country}. Ons expert team bij ${formData.company} heeft de meest actuele informatie samengesteld om je te helpen slagen.</p><h2>Belangrijkste Voordelen</h2><ul><li>Verbeterde zoekmachine rankings</li><li>Betere gebruikersbetrokkenheid</li><li>Verhoogde conversiepercentages</li></ul><p>Lees meer op <a href="${formData.webpageLink}" target="_blank">${formData.webpageLink}</a></p>`,
           },
           {
             id: "2",
-            title: `${formData.focusKeyword} Best Practices`,
-            html: `<h1>Best Practices for ${formData.focusKeyword}</h1><p>Discover the most effective strategies for implementing <strong>${formData.focusKeyword}</strong> in your business. This article is specifically tailored for companies operating in ${formData.country}.</p><h2>Implementation Steps</h2><ol><li>Research your target audience</li><li>Optimize your content strategy</li><li>Monitor performance metrics</li></ol><blockquote>Success in ${formData.focusKeyword} requires consistent effort and strategic planning.</blockquote>`,
+            title: `${formData.focusKeyword} Beste Praktijken`,
+            html: `<h1>Beste Praktijken voor ${formData.focusKeyword}</h1><p>Ontdek de meest effectieve strategieën voor het implementeren van <strong>${formData.focusKeyword}</strong> in je bedrijf. Dit artikel is specifiek afgestemd op bedrijven die opereren in ${formData.country}.</p><h2>Implementatie Stappen</h2><ol><li>Onderzoek je doelgroep</li><li>Optimaliseer je content strategie</li><li>Monitor prestatie-indicatoren</li></ol><blockquote>Succes in ${formData.focusKeyword} vereist consistente inspanning en strategische planning.</blockquote>`,
           },
           {
             id: "3",
-            title: `Advanced ${formData.focusKeyword} Techniques`,
-            html: `<h1>Advanced ${formData.focusKeyword} Techniques</h1><p>Take your <strong>${formData.focusKeyword}</strong> strategy to the next level with these advanced techniques. Perfect for businesses in ${formData.country} looking to gain a competitive edge.</p><h2>Advanced Strategies</h2><ul><li>Data-driven optimization</li><li>AI-powered content creation</li><li>Cross-platform integration</li></ul><p>Contact ${formData.company} for personalized consultation and implementation support.</p>`,
+            title: `Geavanceerde ${formData.focusKeyword} Technieken`,
+            html: `<h1>Geavanceerde ${formData.focusKeyword} Technieken</h1><p>Breng je <strong>${formData.focusKeyword}</strong> strategie naar het volgende niveau met deze geavanceerde technieken. Perfect voor bedrijven in ${formData.country} die een concurrentievoordeel willen behalen.</p><h2>Geavanceerde Strategieën</h2><ul><li>Data-gedreven optimalisatie</li><li>AI-gestuurde content creatie</li><li>Cross-platform integratie</li></ul><p>Neem contact op met ${formData.company} voor persoonlijke consultatie en implementatie ondersteuning.</p>`,
           },
         ]
         setArticles(mockArticles)

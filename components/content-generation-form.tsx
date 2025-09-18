@@ -45,7 +45,7 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
           SEO Content Parameters
         </CardTitle>
         <CardDescription className="text-base">
-          Vul de onderstaande gegevens in om drie SEO-geoptimaliseerde artikelen te genereren
+          Vul de onderstaande gegevens in om SEO-geoptimaliseerde artikelen te genereren
         </CardDescription>
       </CardHeader>
 
@@ -154,7 +154,7 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
             ) : (
               <>
                 <Wand2 className="w-5 h-5 mr-2" />
-                Genereer 3 SEO Artikelen
+                Genereer SEO Artikelen
               </>
             )}
           </Button>
