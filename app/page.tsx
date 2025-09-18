@@ -95,8 +95,17 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error generating articles:", error)
       
-      // Show error to user - no mock data fallback
-      alert('Er is een fout opgetreden bij het genereren van artikelen. Controleer je webhook URL en probeer het later opnieuw.')
+      let errorMessage = 'Er is een fout opgetreden bij het genereren van artikelen.'
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Kan geen verbinding maken met de webhook. Controleer je internetverbinding en webhook URL.'
+        } else if (error.message.includes('HTTP error')) {
+          errorMessage = `Webhook error: ${error.message}. Controleer je n8n workflow.`
+        }
+      }
+      
+      alert(errorMessage)
     } finally {
       setIsLoading(false)
     }
