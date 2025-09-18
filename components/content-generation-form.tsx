@@ -79,12 +79,12 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
                   <SelectValue placeholder="Selecteer land" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="netherlands">Netherlands</SelectItem>
-                  <SelectItem value="belgium">Belgium</SelectItem>
-                  <SelectItem value="germany">Germany</SelectItem>
-                  <SelectItem value="france">France</SelectItem>
-                  <SelectItem value="uk">United Kingdom</SelectItem>
-                  <SelectItem value="usa">United States</SelectItem>
+                  <SelectItem value="nl">Netherlands</SelectItem>
+                  <SelectItem value="be">Belgium</SelectItem>
+                  <SelectItem value="de">Germany</SelectItem>
+                  <SelectItem value="fr">France</SelectItem>
+                  <SelectItem value="gb">United Kingdom</SelectItem>
+                  <SelectItem value="us">United States</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -102,11 +102,11 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
                   <SelectValue placeholder="Selecteer taal" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dutch">Dutch</SelectItem>
-                  <SelectItem value="english">English</SelectItem>
-                  <SelectItem value="german">German</SelectItem>
-                  <SelectItem value="french">French</SelectItem>
-                  <SelectItem value="spanish">Spanish</SelectItem>
+                  <SelectItem value="nl">Dutch</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="de">German</SelectItem>
+                  <SelectItem value="fr">French</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
                 </SelectContent>
               </Select>
             </div>
