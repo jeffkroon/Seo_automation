@@ -52,7 +52,11 @@ export default function HomePage() {
 
     try {
       // Call webhook to generate articles
-      const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL || '/api/generate-articles'
+      const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL
+      
+      if (!webhookUrl) {
+        throw new Error('Webhook URL niet geconfigureerd. Voeg NEXT_PUBLIC_WEBHOOK_URL toe aan je environment variables.')
+      }
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -60,11 +64,11 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          focusKeyword: formData.focusKeyword,
-          country: formData.country,
-          language: formData.language,
-          webpageLink: formData.webpageLink,
-          company: formData.company,
+          "Focus Keyword": formData.focusKeyword,
+          "Country": formData.country,
+          "taal": formData.language,
+          "Link webpagina": formData.webpageLink,
+          "bedrijf": formData.company,
         }),
       })
 
@@ -91,32 +95,8 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error generating articles:", error)
       
-      // Fallback to mock data if webhook fails (for development/testing)
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("Using mock data as fallback")
-        const mockArticles: Article[] = [
-          {
-            id: "1",
-            title: `${formData.focusKeyword} Gids voor ${formData.company}`,
-            html: `<h1>Complete ${formData.focusKeyword} Gids</h1><p>Deze uitgebreide gids behandelt alles wat je moet weten over <strong>${formData.focusKeyword}</strong> in ${formData.country}. Ons expert team bij ${formData.company} heeft de meest actuele informatie samengesteld om je te helpen slagen.</p><h2>Belangrijkste Voordelen</h2><ul><li>Verbeterde zoekmachine rankings</li><li>Betere gebruikersbetrokkenheid</li><li>Verhoogde conversiepercentages</li></ul><p>Lees meer op <a href="${formData.webpageLink}" target="_blank">${formData.webpageLink}</a></p>`,
-          },
-          {
-            id: "2",
-            title: `${formData.focusKeyword} Beste Praktijken`,
-            html: `<h1>Beste Praktijken voor ${formData.focusKeyword}</h1><p>Ontdek de meest effectieve strategieën voor het implementeren van <strong>${formData.focusKeyword}</strong> in je bedrijf. Dit artikel is specifiek afgestemd op bedrijven die opereren in ${formData.country}.</p><h2>Implementatie Stappen</h2><ol><li>Onderzoek je doelgroep</li><li>Optimaliseer je content strategie</li><li>Monitor prestatie-indicatoren</li></ol><blockquote>Succes in ${formData.focusKeyword} vereist consistente inspanning en strategische planning.</blockquote>`,
-          },
-          {
-            id: "3",
-            title: `Geavanceerde ${formData.focusKeyword} Technieken`,
-            html: `<h1>Geavanceerde ${formData.focusKeyword} Technieken</h1><p>Breng je <strong>${formData.focusKeyword}</strong> strategie naar het volgende niveau met deze geavanceerde technieken. Perfect voor bedrijven in ${formData.country} die een concurrentievoordeel willen behalen.</p><h2>Geavanceerde Strategieën</h2><ul><li>Data-gedreven optimalisatie</li><li>AI-gestuurde content creatie</li><li>Cross-platform integratie</li></ul><p>Neem contact op met ${formData.company} voor persoonlijke consultatie en implementatie ondersteuning.</p>`,
-          },
-        ]
-        setArticles(mockArticles)
-        setHasGenerated(true)
-      } else {
-        // In production, show error to user
-        alert('Er is een fout opgetreden bij het genereren van artikelen. Probeer het later opnieuw.')
-      }
+      // Show error to user - no mock data fallback
+      alert('Er is een fout opgetreden bij het genereren van artikelen. Controleer je webhook URL en probeer het later opnieuw.')
     } finally {
       setIsLoading(false)
     }
