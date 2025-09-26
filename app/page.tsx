@@ -120,13 +120,22 @@ export default function HomePage() {
           if (job.articles && job.articles.length > 0 && job.articles[0]) {
             const articleContent = job.articles[0];
             
-            // Parse the new structure
+            // Parse the new structure - the content is now the full webhook body
             let parsedArticle;
             try {
               parsedArticle = typeof articleContent === 'string' ? JSON.parse(articleContent) : articleContent;
             } catch (e) {
-              // If it's not JSON, treat as plain HTML
-              parsedArticle = { article: articleContent };
+              console.error('Failed to parse article content:', e);
+              // Fallback to raw data
+              const rawDataArticle: Article = {
+                id: `raw-data-${jobId}`,
+                html: `<pre>${JSON.stringify(job, null, 2)}</pre>`,
+                title: `Raw Data - Job ${jobId}`
+              }
+              setArticles([rawDataArticle])
+              setHasGenerated(true)
+              setIsLoading(false)
+              return
             }
             
             if (parsedArticle.article) {

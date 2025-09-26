@@ -35,10 +35,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Try to find content in various possible fields
-    const content = html || output || body.content || body.data || body.result || body.article || body.text || '';
+    // The n8n webhook sends the full article object in the body
+    // We need to store the entire body as the content
+    const content = JSON.stringify(body);
     console.log('Completing job:', jobId, 'Content length:', content?.length);
     console.log('Content preview:', content?.substring(0, 200) + '...');
+    console.log('Body keys:', Object.keys(body));
+    console.log('Article field exists:', !!body.article);
+    console.log('Article length:', body.article?.length);
+    console.log('Full body structure:', {
+      jobId: body.jobId,
+      status: body.status,
+      hasArticle: !!body.article,
+      hasFaqs: !!body.faqs,
+      hasMeta: !!body.meta,
+      generatedAt: body.generatedAt
+    });
     
     if (!content || content.trim() === '') {
       console.warn(`No content found for job ${jobId}. Available fields:`, Object.keys(body));
