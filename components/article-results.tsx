@@ -107,25 +107,36 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
 
               <CardContent className="space-y-4">
                 {expandedArticles.has(article.id) ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-foreground">{children}</h1>,
-                        h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-foreground">{children}</h2>,
-                        h3: ({children}) => <h3 className="text-base font-semibold mb-2 text-foreground">{children}</h3>,
-                        p: ({children}) => <p className="mb-3 text-foreground leading-relaxed">{children}</p>,
-                        ul: ({children}) => <ul className="mb-3 ml-4 list-disc text-foreground">{children}</ul>,
-                        ol: ({children}) => <ol className="mb-3 ml-4 list-decimal text-foreground">{children}</ol>,
-                        li: ({children}) => <li className="mb-1 text-foreground">{children}</li>,
-                        blockquote: ({children}) => <blockquote className="border-l-4 border-primary pl-4 italic mb-3 text-muted-foreground">{children}</blockquote>,
-                        a: ({children, href}) => <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                        strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                        em: ({children}) => <em className="italic text-foreground">{children}</em>,
-                      }}
-                    >
-                      {article.html}
-                    </ReactMarkdown>
+                  <div className="max-w-none">
+                    {article.html.includes('<pre>') ? (
+                      // Raw JSON data
+                      <div 
+                        className="bg-muted p-4 rounded-lg overflow-auto text-sm font-mono"
+                        dangerouslySetInnerHTML={{ __html: article.html }}
+                      />
+                    ) : (
+                      // Regular markdown content
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-foreground">{children}</h1>,
+                            h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-foreground">{children}</h2>,
+                            h3: ({children}) => <h3 className="text-base font-semibold mb-2 text-foreground">{children}</h3>,
+                            p: ({children}) => <p className="mb-3 text-foreground leading-relaxed">{children}</p>,
+                            ul: ({children}) => <ul className="mb-3 ml-4 list-disc text-foreground">{children}</ul>,
+                            ol: ({children}) => <ol className="mb-3 ml-4 list-decimal text-foreground">{children}</ol>,
+                            li: ({children}) => <li className="mb-1 text-foreground">{children}</li>,
+                            blockquote: ({children}) => <blockquote className="border-l-4 border-primary pl-4 italic mb-3 text-muted-foreground">{children}</blockquote>,
+                            a: ({children, href}) => <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                            strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+                            em: ({children}) => <em className="italic text-foreground">{children}</em>,
+                          }}
+                        >
+                          {article.html}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-pretty leading-relaxed">{preview}</p>

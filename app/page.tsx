@@ -113,18 +113,18 @@ export default function HomePage() {
         const job = await response.json()
         console.log(`Polling job ${jobId}:`, job)
         
-        if (job.status === 'done' && job.html) {
-          // Convert HTML to articles (assuming it contains multiple articles separated by <hr />)
-          const articleHtmls = job.html.split('<hr />').filter((html: string) => html.trim())
+        if (job.status === 'done') {
+          // Show raw data instead of parsing
+          console.log(`Job ${jobId} completed, raw data:`, job)
           
-          const convertedArticles: Article[] = articleHtmls.map((html: string, index: number) => ({
-            id: `article-${index + 1}`,
-            html: html.trim(),
-            title: extractTitleFromContent(html)
-          }))
+          // Create a single article with the raw job data
+          const rawDataArticle: Article = {
+            id: `raw-data-${jobId}`,
+            html: `<pre>${JSON.stringify(job, null, 2)}</pre>`,
+            title: `Raw Data - Job ${jobId}`
+          }
 
-          console.log(`Job ${jobId} completed, found ${convertedArticles.length} articles`)
-          setArticles(convertedArticles)
+          setArticles([rawDataArticle])
           setHasGenerated(true)
           setIsLoading(false)
           return
