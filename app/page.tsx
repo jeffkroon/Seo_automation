@@ -114,10 +114,48 @@ export default function HomePage() {
         console.log(`Polling job ${jobId}:`, job)
         
         if (job.status === 'done') {
-          // Show raw data instead of parsing
           console.log(`Job ${jobId} completed, raw data:`, job)
           
-          // Create a single article with the raw job data
+          // Check if we have the new n8n structure with article field
+          if (job.articles && job.articles.length > 0 && job.articles[0]) {
+            const articleContent = job.articles[0];
+            
+            // Parse the new structure
+            let parsedArticle;
+            try {
+              parsedArticle = typeof articleContent === 'string' ? JSON.parse(articleContent) : articleContent;
+            } catch (e) {
+              // If it's not JSON, treat as plain HTML
+              parsedArticle = { article: articleContent };
+            }
+            
+            if (parsedArticle.article) {
+              // Create article with the new structure
+              const newArticle: Article = {
+                id: `article-${jobId}`,
+                html: parsedArticle.article,
+                title: parsedArticle.meta?.title || extractTitleFromContent(parsedArticle.article)
+              }
+              
+              // Add FAQs if available
+              let fullContent = parsedArticle.article;
+              if (parsedArticle.faqs && parsedArticle.faqs.length > 0) {
+                fullContent += '\n\n<h2>Veelgestelde Vragen</h2>\n';
+                parsedArticle.faqs.forEach((faq: any) => {
+                  fullContent += `\n<h3>${faq.q}</h3>\n<p>${faq.a_brief}</p>\n`;
+                });
+              }
+              
+              newArticle.html = fullContent;
+              
+              setArticles([newArticle])
+              setHasGenerated(true)
+              setIsLoading(false)
+              return
+            }
+          }
+          
+          // Fallback: show raw data if parsing fails
           const rawDataArticle: Article = {
             id: `raw-data-${jobId}`,
             html: `<pre>${JSON.stringify(job, null, 2)}</pre>`,

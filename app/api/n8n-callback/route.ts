@@ -11,11 +11,21 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    console.log('Raw callback body:', body);
+    console.log('=== RAW CALLBACK BODY ===');
+    console.log(JSON.stringify(body, null, 2));
+    console.log('=== END RAW BODY ===');
     
     // Handle different response formats
     const { jobId, status, html, generatedAt, error, output } = body;
-    console.log('Parsed callback data:', { jobId, status, htmlLength: html?.length, outputLength: output?.length, generatedAt, error });
+    console.log('Parsed callback data:', { 
+      jobId, 
+      status, 
+      htmlLength: html?.length, 
+      outputLength: output?.length, 
+      generatedAt, 
+      error,
+      allKeys: Object.keys(body)
+    });
     
     if (!jobId) return NextResponse.json({ error: 'jobId ontbreekt' }, { status: 400 });
 
@@ -25,9 +35,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Use output if html is not available
-    const content = html || output || '';
+    // Try to find content in various possible fields
+    const content = html || output || body.content || body.data || body.result || body.article || body.text || '';
     console.log('Completing job:', jobId, 'Content length:', content?.length);
+    console.log('Content preview:', content?.substring(0, 200) + '...');
+    
+    if (!content || content.trim() === '') {
+      console.warn(`No content found for job ${jobId}. Available fields:`, Object.keys(body));
+    }
+    
     completeJob(jobId, content, generatedAt || new Date().toISOString());
     return NextResponse.json({ ok: true });
   } catch (err: any) {
