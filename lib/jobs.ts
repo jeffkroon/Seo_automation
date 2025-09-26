@@ -23,12 +23,21 @@ export function completeJob(id: string, html: string, t: string) {
     // Combine all articles with <hr /> separator
     const combinedHtml = articles.join('\n<hr />\n');
     
-    jobs.set(id, { 
-      status: 'done', 
+    const updatedJob = { 
+      status: 'done' as const, 
       html: combinedHtml,
       articles: articles,
       generatedAt: t 
+    };
+    
+    jobs.set(id, updatedJob);
+    console.log(`Job ${id} completed:`, { 
+      status: updatedJob.status, 
+      articlesCount: articles.length, 
+      htmlLength: combinedHtml.length 
     });
+  } else {
+    console.warn(`Job ${id} not found when trying to complete`);
   }
 }
 

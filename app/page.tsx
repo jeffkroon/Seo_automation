@@ -111,6 +111,7 @@ export default function HomePage() {
         }
 
         const job = await response.json()
+        console.log(`Polling job ${jobId}:`, job)
         
         if (job.status === 'done' && job.html) {
           // Convert HTML to articles (assuming it contains multiple articles separated by <hr />)
@@ -122,6 +123,7 @@ export default function HomePage() {
             title: extractTitleFromContent(html)
           }))
 
+          console.log(`Job ${jobId} completed, found ${convertedArticles.length} articles`)
           setArticles(convertedArticles)
           setHasGenerated(true)
           setIsLoading(false)
@@ -135,8 +137,8 @@ export default function HomePage() {
         // Still processing, continue polling (no timeout)
         console.log(`Polling attempt for job ${jobId}, status: ${job.status}`)
         
-        // Poll again in 5 seconds
-        setTimeout(poll, 5000)
+        // Poll again in 3 seconds (reduced from 5 seconds for faster response)
+        setTimeout(poll, 3000)
         
       } catch (error) {
         console.error("Error polling for results:", error)

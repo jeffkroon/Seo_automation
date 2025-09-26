@@ -10,8 +10,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { jobId, status, html, generatedAt, error } = await req.json();
-    console.log('Callback data:', { jobId, status, htmlLength: html?.length, generatedAt, error });
+    const body = await req.json();
+    console.log('Raw callback body:', body);
+    
+    // Handle different response formats
+    const { jobId, status, html, generatedAt, error, output } = body;
+    console.log('Parsed callback data:', { jobId, status, htmlLength: html?.length, outputLength: output?.length, generatedAt, error });
     
     if (!jobId) return NextResponse.json({ error: 'jobId ontbreekt' }, { status: 400 });
 
@@ -21,10 +25,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    console.log('Completing job:', jobId, 'HTML length:', html?.length);
-    completeJob(jobId, html || '', generatedAt || new Date().toISOString());
+    // Use output if html is not available
+    const content = html || output || '';
+    console.log('Completing job:', jobId, 'Content length:', content?.length);
+    completeJob(jobId, content, generatedAt || new Date().toISOString());
     return NextResponse.json({ ok: true });
   } catch (err: any) {
+    console.error('Callback error:', err);
     return NextResponse.json(
       { error: err?.message || 'Onbekende fout' },
       { status: 500 }
