@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Extract article content and combine with FAQs if available
+    // Combine article and FAQs with separator
     let content = '';
     
     if (body.article) {
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
     }
     
     console.log('Completing job:', jobId, 'Final content length:', content?.length);
+    console.log('Content preview (first 300 chars):', content.substring(0, 300));
     completeJob(jobId, content, generatedAt || new Date().toISOString());
     return NextResponse.json({ ok: true });
   } catch (err: any) {

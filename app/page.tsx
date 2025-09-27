@@ -115,8 +115,23 @@ export default function HomePage() {
         console.log(`Polling job ${jobId}:`, job)
         
         if (job.status === 'done' && job.html) {
+          console.log(`Job ${jobId} completed, HTML length: ${job.html.length}`);
+          console.log(`HTML content preview (first 500 chars):`, job.html.substring(0, 500));
+          
           // Convert HTML to articles (assuming it contains multiple articles separated by <hr />)
           const articleHtmls = job.html.split('<hr />').filter((html: string) => html.trim())
+          
+          console.log(`Split into ${articleHtmls.length} articles`);
+          articleHtmls.forEach((html: string, index: number) => {
+            console.log(`Article ${index + 1} length: ${html.length}, contains HTML:`, {
+              hasH1: html.includes('<h1>'),
+              hasH2: html.includes('<h2>'),
+              hasP: html.includes('<p>'),
+              hasUL: html.includes('<ul>'),
+              hasLI: html.includes('<li>'),
+              hasDiv: html.includes('<div')
+            });
+          });
           
           const convertedArticles: Article[] = articleHtmls.map((html: string, index: number) => ({
             id: `article-${index + 1}`,
@@ -124,7 +139,7 @@ export default function HomePage() {
             title: extractTitleFromContent(html)
           }))
 
-          console.log(`Job ${jobId} completed, found ${convertedArticles.length} articles`)
+          console.log(`Created ${convertedArticles.length} articles with titles:`, convertedArticles.map(a => a.title));
           setArticles(convertedArticles)
           setHasGenerated(true)
           setIsLoading(false)
