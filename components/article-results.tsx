@@ -115,27 +115,11 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                         dangerouslySetInnerHTML={{ __html: article.html }}
                       />
                     ) : (
-                      // Regular markdown content
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-foreground">{children}</h1>,
-                            h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-foreground">{children}</h2>,
-                            h3: ({children}) => <h3 className="text-base font-semibold mb-2 text-foreground">{children}</h3>,
-                            p: ({children}) => <p className="mb-3 text-foreground leading-relaxed">{children}</p>,
-                            ul: ({children}) => <ul className="mb-3 ml-4 list-disc text-foreground">{children}</ul>,
-                            ol: ({children}) => <ol className="mb-3 ml-4 list-decimal text-foreground">{children}</ol>,
-                            li: ({children}) => <li className="mb-1 text-foreground">{children}</li>,
-                            blockquote: ({children}) => <blockquote className="border-l-4 border-primary pl-4 italic mb-3 text-muted-foreground">{children}</blockquote>,
-                            a: ({children, href}) => <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                            strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                            em: ({children}) => <em className="italic text-foreground">{children}</em>,
-                          }}
-                        >
-                          {article.html}
-                        </ReactMarkdown>
-                      </div>
+                      // Render HTML directly
+                      <div 
+                        className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary"
+                        dangerouslySetInnerHTML={{ __html: article.html }}
+                      />
                     )}
                   </div>
                 ) : (

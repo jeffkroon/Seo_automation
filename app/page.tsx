@@ -172,15 +172,18 @@ export default function HomePage() {
                 
                 console.log(`Cleaned article HTML for article ${i}, length: ${cleanArticleHtml.length}`);
                 
-                // Create article with the new structure
-                const newArticle: Article = {
+                // Create separate articles for content and FAQs
+                const articles: Article[] = [];
+                
+                // 1. Main article
+                const mainArticle: Article = {
                   id: `article-${jobId}-${i}`,
                   html: cleanArticleHtml,
                   title: title
-                }
+                };
+                articles.push(mainArticle);
                 
-                // Add FAQs if available (now as HTML)
-                let fullContent = cleanArticleHtml;
+                // 2. FAQ article (if available)
                 if (parsedArticle.faqs && typeof parsedArticle.faqs === 'string') {
                   console.log(`Extracting FAQs from HTML for article ${i}`);
                   
@@ -217,30 +220,60 @@ export default function HomePage() {
                     }
                   }
                   
+                  // Pattern 4: Extract title and meta from FAQ HTML
+                  let faqTitle = `FAQs - ${title}`;
+                  let faqDescription = '';
+                  
+                  const faqTitleMatch = parsedArticle.faqs.match(/<title>(.*?)<\/title>/i);
+                  if (faqTitleMatch) {
+                    faqTitle = faqTitleMatch[1].trim();
+                  }
+                  
+                  const faqDescMatch = parsedArticle.faqs.match(/<meta name="description" content="(.*?)"/i);
+                  if (faqDescMatch) {
+                    faqDescription = faqDescMatch[1].trim();
+                  }
+                  
                   if (faqContent) {
-                    fullContent += '\n\n<h2>Veelgestelde Vragen</h2>\n';
-                    fullContent += faqContent;
-                    console.log(`Added FAQ content, total length: ${fullContent.length}`);
+                    // Add meta description to FAQ content if available
+                    let faqHtmlContent = `<h2>Veelgestelde Vragen</h2>\n${faqContent}`;
+                    if (faqDescription) {
+                      faqHtmlContent = `<div class="meta-description"><p><strong>Meta Description:</strong> ${faqDescription}</p></div>\n${faqHtmlContent}`;
+                    }
+                    
+                    const faqArticle: Article = {
+                      id: `faqs-${jobId}-${i}`,
+                      html: faqHtmlContent,
+                      title: faqTitle
+                    };
+                    articles.push(faqArticle);
+                    console.log(`Created FAQ article with title: ${faqTitle} and description: ${faqDescription}`);
                   } else {
                     console.log('No FAQ content found in HTML');
                   }
                 } else if (parsedArticle.faqs && Array.isArray(parsedArticle.faqs)) {
                   // Handle array format
-                  fullContent += '\n\n<h2>Veelgestelde Vragen</h2>\n';
+                  let faqContent = '<h2>Veelgestelde Vragen</h2>\n';
                   parsedArticle.faqs.forEach((faq: any) => {
-                    fullContent += `\n<h3>${faq.q || faq.question}</h3>\n<p>${faq.a_brief || faq.answer}</p>\n`;
+                    faqContent += `\n<h3>${faq.q || faq.question}</h3>\n<p>${faq.a_brief || faq.answer}</p>\n`;
                   });
+                  
+                  const faqArticle: Article = {
+                    id: `faqs-${jobId}-${i}`,
+                    html: faqContent,
+                    title: `FAQs - ${title}`
+                  };
+                  articles.push(faqArticle);
                 }
                 
-                newArticle.html = fullContent;
+                // Add all articles to the processed list
+                processedArticles.push(...articles);
                 
-                console.log(`Created article ${i}:`, {
-                  title: newArticle.title,
-                  contentLength: newArticle.html.length,
-                  hasFaqs: !!parsedArticle.faqs
+                console.log(`Created ${articles.length} articles for item ${i}:`, {
+                  mainArticle: articles[0]?.title,
+                  faqArticle: articles[1]?.title,
+                  totalArticles: processedArticles.length
                 });
-                
-                processedArticles.push(newArticle);
               }
             }
             
