@@ -114,32 +114,32 @@ export default function HomePage() {
         const job = await response.json()
         console.log(`Polling job ${jobId}:`, job)
         
-        if (job.status === 'done' && job.html) {
-          console.log(`Job ${jobId} completed, HTML length: ${job.html.length}`);
-          console.log(`HTML content preview (first 500 chars):`, job.html.substring(0, 500));
+        if (job.status === 'done' && (job.article || job.faqs)) {
+          console.log(`Job ${jobId} completed`);
+          console.log(`Article length: ${job.article?.length || 0}`);
+          console.log(`FAQs length: ${job.faqs?.length || 0}`);
           
-          // Convert HTML to articles (assuming it contains multiple articles separated by <hr />)
-          const articleHtmls = job.html.split('<hr />').filter((html: string) => html.trim())
+          const convertedArticles: Article[] = []
           
-          console.log(`Split into ${articleHtmls.length} articles`);
-          articleHtmls.forEach((html: string, index: number) => {
-            console.log(`Article ${index + 1} length: ${html.length}, contains HTML:`, {
-              hasH1: html.includes('<h1>'),
-              hasH2: html.includes('<h2>'),
-              hasP: html.includes('<p>'),
-              hasUL: html.includes('<ul>'),
-              hasLI: html.includes('<li>'),
-              hasDiv: html.includes('<div')
-            });
-          });
+          // Add article if present
+          if (job.article) {
+            convertedArticles.push({
+              id: 'article',
+              html: job.article.trim(),
+              title: 'Artikel'
+            })
+          }
           
-          const convertedArticles: Article[] = articleHtmls.map((html: string, index: number) => ({
-            id: `article-${index + 1}`,
-            html: html.trim(),
-            title: extractTitleFromContent(html)
-          }))
+          // Add FAQs if present
+          if (job.faqs) {
+            convertedArticles.push({
+              id: 'faqs',
+              html: job.faqs.trim(),
+              title: 'Veelgestelde Vragen'
+            })
+          }
 
-          console.log(`Created ${convertedArticles.length} articles with titles:`, convertedArticles.map(a => a.title));
+          console.log(`Created ${convertedArticles.length} sections:`, convertedArticles.map(a => a.title));
           setArticles(convertedArticles)
           setHasGenerated(true)
           setIsLoading(false)

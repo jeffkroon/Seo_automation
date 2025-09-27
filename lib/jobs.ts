@@ -3,6 +3,8 @@ type JobRecord = {
   status: 'queued' | 'done' | 'error';
   html?: string;
   articles?: string[]; // Store multiple articles
+  article?: string; // Store article content
+  faqs?: string; // Store FAQs content
   generatedAt?: string;
   error?: string;
 };
@@ -13,7 +15,7 @@ export function createJob(id: string) {
   jobs.set(id, { status: 'queued', articles: [] }); 
 }
 
-export function completeJob(id: string, html: string, t: string) { 
+export function completeJob(id: string, html: string, t: string, article?: string, faqs?: string) { 
   const job = jobs.get(id);
   if (job) {
     // Add new article to the list
@@ -27,6 +29,8 @@ export function completeJob(id: string, html: string, t: string) {
       status: 'done' as const, 
       html: combinedHtml,
       articles: articles,
+      article: article,
+      faqs: faqs,
       generatedAt: t 
     };
     
@@ -34,7 +38,9 @@ export function completeJob(id: string, html: string, t: string) {
     console.log(`Job ${id} completed:`, { 
       status: updatedJob.status, 
       articlesCount: articles.length, 
-      htmlLength: combinedHtml.length 
+      htmlLength: combinedHtml.length,
+      hasArticle: !!article,
+      hasFaqs: !!faqs
     });
   } else {
     console.warn(`Job ${id} not found when trying to complete`);

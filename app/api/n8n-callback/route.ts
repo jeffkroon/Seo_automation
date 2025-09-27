@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     
     console.log('Completing job:', jobId, 'Final content length:', content?.length);
     console.log('Content preview (first 300 chars):', content.substring(0, 300));
-    completeJob(jobId, content, generatedAt || new Date().toISOString());
+    completeJob(jobId, content, generatedAt || new Date().toISOString(), body.article, body.faqs);
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('Callback error:', err);
