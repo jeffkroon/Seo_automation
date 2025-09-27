@@ -22,7 +22,7 @@ type Props = {
 
 const DEFAULT_CLASSNAME = "prose prose-neutral max-w-none prose-h1:mt-0 prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary";
 
-function sanitizeHtml(html: string): string {
+export function sanitizeHtml(html: string): string {
   // Basic sanitization - remove script tags and dangerous attributes
   return html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')

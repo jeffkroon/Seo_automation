@@ -7,8 +7,9 @@ import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import HtmlSection from "@/components/HtmlSection"
+import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
 import { cn } from "@/lib/utils"
+import { createRoot } from "react-dom/client"
 
 interface Article {
   html: string
@@ -57,9 +58,37 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     return cleaned
   }
 
-  const copyToClipboard = async (content: string, id: string) => {
+  const convertContentToHtml = async (content: string, containsHtml: boolean): Promise<string> => {
+    if (containsHtml) {
+      return sanitizeHtml(content)
+    }
+
+    const container = document.createElement("div")
+    container.style.position = "absolute"
+    container.style.left = "-9999px"
+    document.body.appendChild(container)
+
+    const root = createRoot(container)
+
+    await new Promise<void>((resolve) => {
+      root.render(
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {content}
+        </ReactMarkdown>
+      )
+      requestAnimationFrame(() => resolve())
+    })
+
+    const html = container.innerHTML
+    root.unmount()
+    document.body.removeChild(container)
+    return html
+  }
+
+  const copyToClipboard = async (content: string, id: string, containsHtml: boolean) => {
     try {
-      await navigator.clipboard.writeText(content)
+      const htmlString = await convertContentToHtml(content, containsHtml)
+      await navigator.clipboard.writeText(htmlString)
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 2000)
     } catch (err) {
@@ -67,12 +96,13 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     }
   }
 
-  const downloadArticle = (content: string, title: string) => {
-    const blob = new Blob([content], { type: "text/markdown" })
+  const downloadArticle = async (content: string, title: string, containsHtml: boolean) => {
+    const htmlString = await convertContentToHtml(content, containsHtml)
+    const blob = new Blob([htmlString], { type: "text/html" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`
+    a.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.html`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -259,7 +289,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     variant="outline"
                     size="sm"
                     className="w-full justify-start bg-transparent"
-                    onClick={() => copyToClipboard(preparedMarkdown, article.id)}
+                    onClick={() => copyToClipboard(preparedMarkdown, article.id, containsHtml)}
                   >
                     {copiedId === article.id ? (
                       <>
@@ -278,7 +308,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     variant="outline"
                     size="sm"
                     className="w-full justify-start bg-transparent"
-                    onClick={() => downloadArticle(preparedMarkdown, title)}
+                    onClick={() => downloadArticle(preparedMarkdown, title, containsHtml)}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Downloaden
