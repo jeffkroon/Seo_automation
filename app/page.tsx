@@ -152,105 +152,39 @@ export default function HomePage() {
                   title = extractTitleFromContent(parsedArticle.article);
                 }
                 
-                // Clean the article HTML - extract only body content
-                let cleanArticleHtml = parsedArticle.article;
-                
-                // Remove HTML document structure
-                if (cleanArticleHtml.includes('<body>')) {
-                  const bodyMatch = cleanArticleHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-                  if (bodyMatch) {
-                    cleanArticleHtml = bodyMatch[1].trim();
-                  }
-                }
-                
-                // Remove any remaining html/head tags if they exist
-                cleanArticleHtml = cleanArticleHtml
-                  .replace(/<\/?html[^>]*>/gi, '')
-                  .replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, '')
-                  .replace(/<\/?body[^>]*>/gi, '')
-                  .trim();
-                
-                console.log(`Cleaned article HTML for article ${i}, length: ${cleanArticleHtml.length}`);
+                // Use raw article content directly - no filtering
+                console.log(`Using raw article content for article ${i}, length: ${parsedArticle.article.length}`);
                 
                 // Create separate articles for content and FAQs
                 const articles: Article[] = [];
                 
-                // 1. Main article
+                // 1. Main article - raw HTML content
                 const mainArticle: Article = {
                   id: `article-${jobId}-${i}`,
-                  html: cleanArticleHtml,
+                  html: parsedArticle.article,
                   title: title
                 };
                 articles.push(mainArticle);
                 
-                // 2. FAQ article (if available)
+                // 2. FAQ article (if available) - raw HTML content
                 if (parsedArticle.faqs && typeof parsedArticle.faqs === 'string') {
-                  console.log(`Extracting FAQs from HTML for article ${i}`);
+                  console.log(`Using raw FAQ content for article ${i}, length: ${parsedArticle.faqs.length}`);
                   
-                  // Extract FAQ content from HTML - try multiple patterns
-                  let faqContent = '';
-                  
-                  // Pattern 1: faq-section div
-                  let faqMatch = parsedArticle.faqs.match(/<div class="faq-section">([\s\S]*?)<\/div>/i);
-                  if (faqMatch) {
-                    faqContent = faqMatch[1].replace(/<div class="faq-item">/g, '').replace(/<\/div>/g, '');
-                    console.log('Found FAQ content with faq-section pattern');
-                  }
-                  
-                  // Pattern 2: faq-item divs
-                  if (!faqContent) {
-                    const faqItems = parsedArticle.faqs.match(/<div class="faq-item">([\s\S]*?)<\/div>/gi);
-                    if (faqItems) {
-                      faqContent = faqItems.map((item: string) => 
-                        item.replace(/<div class="faq-item">/g, '').replace(/<\/div>/g, '')
-                      ).join('\n');
-                      console.log(`Found ${faqItems.length} FAQ items with faq-item pattern`);
-                    }
-                  }
-                  
-                  // Pattern 3: h3 + p combinations (fallback)
-                  if (!faqContent) {
-                    const h3Matches = parsedArticle.faqs.match(/<h3[^>]*>(.*?)<\/h3>/gi);
-                    const pMatches = parsedArticle.faqs.match(/<p[^>]*>(.*?)<\/p>/gi);
-                    if (h3Matches && pMatches && h3Matches.length === pMatches.length) {
-                      faqContent = h3Matches.map((h3: string, idx: number) => 
-                        `${h3}\n${pMatches[idx] || ''}`
-                      ).join('\n');
-                      console.log(`Found ${h3Matches.length} FAQ items with h3/p pattern`);
-                    }
-                  }
-                  
-                  // Pattern 4: Extract title and meta from FAQ HTML
+                  // Extract title from FAQ HTML
                   let faqTitle = `FAQs - ${title}`;
-                  let faqDescription = '';
-                  
                   const faqTitleMatch = parsedArticle.faqs.match(/<title>(.*?)<\/title>/i);
                   if (faqTitleMatch) {
                     faqTitle = faqTitleMatch[1].trim();
                   }
                   
-                  const faqDescMatch = parsedArticle.faqs.match(/<meta name="description" content="(.*?)"/i);
-                  if (faqDescMatch) {
-                    faqDescription = faqDescMatch[1].trim();
-                  }
-                  
-                  if (faqContent) {
-                    // Add meta description to FAQ content if available
-                    let faqHtmlContent = `<h2>Veelgestelde Vragen</h2>\n${faqContent}`;
-                    if (faqDescription) {
-                      faqHtmlContent = `<div class="meta-description"><p><strong>Meta Description:</strong> ${faqDescription}</p></div>\n${faqHtmlContent}`;
-                    }
-                    
-                    const faqArticle: Article = {
-                      id: `faqs-${jobId}-${i}`,
-                      html: faqHtmlContent,
-                      title: faqTitle
-                    };
-                    articles.push(faqArticle);
-                    console.log(`Created FAQ article with title: ${faqTitle} and description: ${faqDescription}`);
-                  } else {
-                    console.log('No FAQ content found in HTML');
-                  }
+                  // Use raw FAQ HTML content directly
+                  const faqArticle: Article = {
+                    id: `faqs-${jobId}-${i}`,
+                    html: parsedArticle.faqs,
+                    title: faqTitle
+                  };
+                  articles.push(faqArticle);
+                  console.log(`Created FAQ article with title: ${faqTitle}`);
                 } else if (parsedArticle.faqs && Array.isArray(parsedArticle.faqs)) {
                   // Handle array format
                   let faqContent = '<h2>Veelgestelde Vragen</h2>\n';
