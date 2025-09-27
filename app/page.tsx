@@ -114,74 +114,18 @@ export default function HomePage() {
         const job = await response.json()
         console.log(`Polling job ${jobId}:`, job)
         
-        if (job.status === 'done') {
-          console.log(`Job ${jobId} completed, raw data:`, job)
+        if (job.status === 'done' && job.html) {
+          // Convert HTML to articles (assuming it contains multiple articles separated by <hr />)
+          const articleHtmls = job.html.split('<hr />').filter((html: string) => html.trim())
           
-          // Check if we have articles in the job
-          if (job.articles && job.articles.length > 0) {
-            console.log(`Processing ${job.articles.length} articles from job ${jobId}`);
-            
-            const processedArticles: Article[] = [];
-            
-            // Process each article in the array
-            for (let i = 0; i < job.articles.length; i++) {
-              const articleContent = job.articles[i];
-              
-              // Parse the content
-              let parsedArticle;
-              try {
-                parsedArticle = typeof articleContent === 'string' ? JSON.parse(articleContent) : articleContent;
-              } catch (e) {
-                console.error(`Failed to parse article ${i}:`, e);
-                continue;
-              }
-              
-              // Create article from parsed content - use article field directly
-              if (parsedArticle.article) {
-                console.log(`Article ${i} HTML content (first 200 chars):`, parsedArticle.article.substring(0, 200));
-                console.log(`Article ${i} contains HTML tags:`, {
-                  hasH1: parsedArticle.article.includes('<h1>'),
-                  hasP: parsedArticle.article.includes('<p>'),
-                  hasUL: parsedArticle.article.includes('<ul>'),
-                  hasLI: parsedArticle.article.includes('<li>'),
-                  hasA: parsedArticle.article.includes('<a>')
-                });
-                
-                const mainArticle: Article = {
-                  id: `article-${jobId}-${i}`,
-                  html: parsedArticle.article,
-                  title: extractTitleFromContent(parsedArticle.article)
-                };
-                processedArticles.push(mainArticle);
-              }
-              
-              // Create FAQ article if available
-              if (parsedArticle.faqs) {
-                const faqArticle: Article = {
-                  id: `faqs-${jobId}-${i}`,
-                  html: parsedArticle.faqs,
-                  title: `FAQs - ${extractTitleFromContent(parsedArticle.article || '')}`
-                };
-                processedArticles.push(faqArticle);
-              }
-            }
-            
-            if (processedArticles.length > 0) {
-              setArticles(processedArticles)
-              setHasGenerated(true)
-              setIsLoading(false)
-              return
-            }
-          }
-          
-          // Fallback: show raw data if parsing fails
-          const rawDataArticle: Article = {
-            id: `raw-data-${jobId}`,
-            html: `<pre>${JSON.stringify(job, null, 2)}</pre>`,
-            title: `Raw Data - Job ${jobId}`
-          }
+          const convertedArticles: Article[] = articleHtmls.map((html: string, index: number) => ({
+            id: `article-${index + 1}`,
+            html: html.trim(),
+            title: extractTitleFromContent(html)
+          }))
 
-          setArticles([rawDataArticle])
+          console.log(`Job ${jobId} completed, found ${convertedArticles.length} articles`)
+          setArticles(convertedArticles)
           setHasGenerated(true)
           setIsLoading(false)
           return

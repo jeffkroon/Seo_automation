@@ -35,27 +35,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // The n8n webhook sends the full article object in the body
-    // We need to store the entire body as the content
-    const content = JSON.stringify(body);
-    console.log('Completing job:', jobId, 'Content length:', content?.length);
-    console.log('Content preview:', content?.substring(0, 200) + '...');
-    console.log('Body keys:', Object.keys(body));
-    console.log('Article field exists:', !!body.article);
-    console.log('Article length:', body.article?.length);
-    console.log('Full body structure:', {
-      jobId: body.jobId,
-      status: body.status,
-      hasArticle: !!body.article,
-      hasFaqs: !!body.faqs,
-      hasMeta: !!body.meta,
-      generatedAt: body.generatedAt
-    });
+    // Extract article content and combine with FAQs if available
+    let content = '';
     
-    if (!content || content.trim() === '') {
-      console.warn(`No content found for job ${jobId}. Available fields:`, Object.keys(body));
+    if (body.article) {
+      content = body.article;
+      console.log('Article content length:', content.length);
     }
     
+    if (body.faqs) {
+      if (content) {
+        content += '\n<hr />\n'; // Separator between article and FAQs
+      }
+      content += body.faqs;
+      console.log('FAQ content added, total length:', content.length);
+    }
+    
+    if (!content) {
+      console.warn(`No content found for job ${jobId}. Available fields:`, Object.keys(body));
+      content = JSON.stringify(body); // Fallback to raw data
+    }
+    
+    console.log('Completing job:', jobId, 'Final content length:', content?.length);
     completeJob(jobId, content, generatedAt || new Date().toISOString());
     return NextResponse.json({ ok: true });
   } catch (err: any) {
