@@ -106,8 +106,27 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
 
               <CardContent className="space-y-4">
                 {expandedArticles.has(article.id) ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary">
-                    <div dangerouslySetInnerHTML={{ __html: article.html }} />
+                  <div className="prose prose-sm max-w-none dark:prose-invert 
+                    prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight
+                    prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-0
+                    prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-6
+                    prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-4
+                    prose-li:text-foreground prose-li:mb-1
+                    prose-ul:mb-4 prose-ul:pl-6
+                    prose-strong:text-foreground prose-strong:font-semibold
+                    prose-em:text-foreground
+                    prose-a:text-primary prose-a:underline prose-a:decoration-primary/50 prose-a:underline-offset-2
+                    prose-a:hover:text-primary/80 prose-a:hover:decoration-primary
+                    prose-blockquote:text-muted-foreground prose-blockquote:border-primary
+                    prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic">
+                    <div 
+                      dangerouslySetInnerHTML={{ 
+                        __html: article.html.replace(
+                          /<a\s+href="([^"]*)"[^>]*>/g, 
+                          '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary">'
+                        )
+                      }} 
+                    />
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-pretty leading-relaxed">{preview}</p>
