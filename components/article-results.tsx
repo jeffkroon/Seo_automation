@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
+import HtmlSection from "@/components/HtmlSection"
+import { cn } from "@/lib/utils"
 
 interface Article {
   html: string
@@ -25,12 +27,22 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     return titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "") : "Generated Article"
   }
 
-  const extractPreview = (html: string): string => {
-    const textContent = html
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
+  const transformHtml = (html: string): string => {
+    return html
+      .replace(/^\s*DO NOT wrap in ```html```\s*/i, "")
+      .replace(/^\s*```(?:html)?\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .replace(/<a\b[^>]*>/gi, (anchor) => {
+        let updated = anchor
+        if (!/target=/i.test(updated)) {
+          updated = updated.replace(/>$/, ' target="_blank">')
+        }
+        if (!/rel=/i.test(updated)) {
+          updated = updated.replace(/>$/, ' rel="noopener noreferrer">')
+        }
+        return updated
+      })
       .trim()
-    return textContent.length > 150 ? textContent.substring(0, 150) + "..." : textContent
   }
 
   const copyToClipboard = async (html: string, id: string) => {
@@ -85,7 +97,22 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
       }`}>
         {articles.map((article, index) => {
           const title = article.title || extractTitle(article.html)
-          const preview = extractPreview(article.html)
+          const preparedHtml = transformHtml(article.html)
+          const proseClass = cn(
+            "prose prose-sm max-w-none dark:prose-invert",
+            "prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight",
+            "prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-0",
+            "prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-6",
+            "prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-4",
+            "prose-li:text-foreground prose-li:mb-1",
+            "prose-ul:mb-4 prose-ul:pl-6",
+            "prose-strong:text-foreground prose-strong:font-semibold",
+            "prose-em:text-foreground",
+            "prose-a:text-primary prose-a:underline prose-a:decoration-primary/50 prose-a:underline-offset-2",
+            "prose-a:hover:text-primary/80 prose-a:hover:decoration-primary",
+            "prose-blockquote:text-muted-foreground prose-blockquote:border-primary",
+            "prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic"
+          )
 
           return (
             <Card
@@ -106,30 +133,14 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
 
               <CardContent className="space-y-4">
                 {expandedArticles.has(article.id) ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert 
-                    prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight
-                    prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-0
-                    prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-6
-                    prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-4
-                    prose-li:text-foreground prose-li:mb-1
-                    prose-ul:mb-4 prose-ul:pl-6
-                    prose-strong:text-foreground prose-strong:font-semibold
-                    prose-em:text-foreground
-                    prose-a:text-primary prose-a:underline prose-a:decoration-primary/50 prose-a:underline-offset-2
-                    prose-a:hover:text-primary/80 prose-a:hover:decoration-primary
-                    prose-blockquote:text-muted-foreground prose-blockquote:border-primary
-                    prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic">
-                    <div 
-                      dangerouslySetInnerHTML={{ 
-                        __html: article.html.replace(
-                          /<a\s+href="([^"]*)"[^>]*>/g, 
-                          '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary">'
-                        )
-                      }} 
-                    />
-                  </div>
+                  <HtmlSection html={preparedHtml} className={proseClass} />
                 ) : (
-                  <p className="text-sm text-muted-foreground text-pretty leading-relaxed">{preview}</p>
+                  <div className="relative">
+                    <div className="max-h-64 overflow-hidden">
+                      <HtmlSection html={preparedHtml} className={proseClass} />
+                    </div>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
+                  </div>
                 )}
 
                 <div className="pt-2 space-y-2">
@@ -156,7 +167,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     variant="outline"
                     size="sm"
                     className="w-full justify-start bg-transparent"
-                    onClick={() => copyToClipboard(article.html, article.id)}
+                    onClick={() => copyToClipboard(preparedHtml, article.id)}
                   >
                     {copiedId === article.id ? (
                       <>
@@ -175,7 +186,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     variant="outline"
                     size="sm"
                     className="w-full justify-start bg-transparent"
-                    onClick={() => downloadArticle(article.html, title)}
+                    onClick={() => downloadArticle(preparedHtml, title)}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Downloaden
