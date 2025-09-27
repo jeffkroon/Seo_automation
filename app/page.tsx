@@ -16,34 +16,6 @@ interface WebhookResponse {
   output: string
 }
 
-function decodeHtmlEntities(raw: string): string {
-  if (!raw) return ''
-  return raw
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-}
-
-function normalizeHtmlContent(content: string): string {
-  if (!content) return ''
-
-  const withoutCodeFences = content
-    .replace(/```html/gi, '')
-    .replace(/```/g, '')
-
-  const withoutDoctype = withoutCodeFences.replace(/<!DOCTYPE[^>]*>/gi, '')
-
-  const decoded = decodeHtmlEntities(withoutDoctype)
-
-  return decoded
-    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<\/?(html|body)[^>]*>/gi, '')
-    .trim()
-}
 
 // Function to extract title from markdown content
 function extractTitleFromContent(content: string): string {
@@ -145,7 +117,7 @@ export default function HomePage() {
         if (job.status === 'done') {
           console.log(`Job ${jobId} completed, raw data:`, job)
           
-          // Check if we have the new n8n structure with article and faqs fields
+          // Check if we have articles in the job
           if (job.articles && job.articles.length > 0) {
             console.log(`Processing ${job.articles.length} articles from job ${jobId}`);
             
@@ -155,101 +127,33 @@ export default function HomePage() {
             for (let i = 0; i < job.articles.length; i++) {
               const articleContent = job.articles[i];
               
-              // Parse the new structure - the content is now the full webhook body
+              // Parse the content
               let parsedArticle;
               try {
                 parsedArticle = typeof articleContent === 'string' ? JSON.parse(articleContent) : articleContent;
               } catch (e) {
                 console.error(`Failed to parse article ${i}:`, e);
-                continue; // Skip this article and continue with others
+                continue;
               }
               
-              console.log(`Parsed article ${i} structure:`, {
-                hasArticle: !!parsedArticle.article,
-                hasFaqs: !!parsedArticle.faqs,
-                articleType: typeof parsedArticle.article,
-                faqsType: typeof parsedArticle.faqs
-              });
-              
+              // Create article from parsed content - use article field directly
               if (parsedArticle.article) {
-                // Extract title from HTML head or content
-                let title = `Generated Article ${i + 1}`;
-                const rawArticleHtml = parsedArticle.article as string;
-                const titleMatch = rawArticleHtml.match(/<title[^>]*>(.*?)<\/title>/i);
-                const normalizedArticle = normalizeHtmlContent(rawArticleHtml);
-                if (titleMatch) {
-                  title = titleMatch[1].trim();
-                } else {
-                  title = extractTitleFromContent(normalizedArticle);
-                }
-                
-                // Remove code blocks from article content so HTML can be rendered
-                const cleanArticleHtml = normalizedArticle;
-                
-                console.log(`Original article content (first 200 chars):`, parsedArticle.article.substring(0, 200));
-                console.log(`Cleaned article HTML (first 200 chars):`, cleanArticleHtml.substring(0, 200));
-                console.log(`Cleaned article HTML for article ${i}, length: ${cleanArticleHtml.length}`);
-                console.log(`Contains H1 tag:`, cleanArticleHtml.includes('<h1>'));
-                console.log(`Contains UL tag:`, cleanArticleHtml.includes('<ul>'));
-                console.log(`Contains LI tag:`, cleanArticleHtml.includes('<li>'));
-                
-                // Create separate articles for content and FAQs
-                const articles: Article[] = [];
-                
-                // 1. Main article - clean HTML content
                 const mainArticle: Article = {
                   id: `article-${jobId}-${i}`,
-                  html: cleanArticleHtml,
-                  title: title
+                  html: parsedArticle.article,
+                  title: extractTitleFromContent(parsedArticle.article)
                 };
-                articles.push(mainArticle);
-                
-                // 2. FAQ article (if available) - clean HTML content
-                if (parsedArticle.faqs && typeof parsedArticle.faqs === 'string') {
-                  // Remove code blocks from FAQ content so HTML can be rendered
-                  const rawFaqHtml = parsedArticle.faqs as string;
-                  const cleanFaqHtml = normalizeHtmlContent(rawFaqHtml);
-
-                  console.log(`Cleaned FAQ HTML for article ${i}, length: ${cleanFaqHtml.length}`);
-                  
-                  // Extract title from FAQ HTML
-                  let faqTitle = `FAQs - ${title}`;
-                  const faqTitleMatch = rawFaqHtml.match(/<title[^>]*>(.*?)<\/title>/i);
-                  if (faqTitleMatch) {
-                    faqTitle = faqTitleMatch[1].trim();
-                  }
-                  
-                  // Use clean FAQ HTML content
-                  const faqArticle: Article = {
-                    id: `faqs-${jobId}-${i}`,
-                    html: cleanFaqHtml,
-                    title: faqTitle
-                  };
-                  articles.push(faqArticle);
-                  console.log(`Created FAQ article with title: ${faqTitle}`);
-                } else if (parsedArticle.faqs && Array.isArray(parsedArticle.faqs)) {
-                  // Handle array format
-                  let faqContent = '<h2>Veelgestelde Vragen</h2>\n';
-                  parsedArticle.faqs.forEach((faq: any) => {
-                    faqContent += `\n<h3>${faq.q || faq.question}</h3>\n<p>${faq.a_brief || faq.answer}</p>\n`;
-                  });
-                  
-                  const faqArticle: Article = {
-                    id: `faqs-${jobId}-${i}`,
-                    html: faqContent,
-                    title: `FAQs - ${title}`
-                  };
-                  articles.push(faqArticle);
-                }
-                
-                // Add all articles to the processed list
-                processedArticles.push(...articles);
-                
-                console.log(`Created ${articles.length} articles for item ${i}:`, {
-                  mainArticle: articles[0]?.title,
-                  faqArticle: articles[1]?.title,
-                  totalArticles: processedArticles.length
-                });
+                processedArticles.push(mainArticle);
+              }
+              
+              // Create FAQ article if available
+              if (parsedArticle.faqs) {
+                const faqArticle: Article = {
+                  id: `faqs-${jobId}-${i}`,
+                  html: parsedArticle.faqs,
+                  title: `FAQs - ${extractTitleFromContent(parsedArticle.article || '')}`
+                };
+                processedArticles.push(faqArticle);
               }
             }
             
