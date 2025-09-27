@@ -16,6 +16,35 @@ interface WebhookResponse {
   output: string
 }
 
+function decodeHtmlEntities(raw: string): string {
+  if (!raw) return ''
+  return raw
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
+function normalizeHtmlContent(content: string): string {
+  if (!content) return ''
+
+  const withoutCodeFences = content
+    .replace(/```html/gi, '')
+    .replace(/```/g, '')
+
+  const withoutDoctype = withoutCodeFences.replace(/<!DOCTYPE[^>]*>/gi, '')
+
+  const decoded = decodeHtmlEntities(withoutDoctype)
+
+  return decoded
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<\/?(html|body)[^>]*>/gi, '')
+    .trim()
+}
+
 // Function to extract title from markdown content
 function extractTitleFromContent(content: string): string {
   // Look for markdown heading (# Title)
@@ -145,20 +174,17 @@ export default function HomePage() {
               if (parsedArticle.article) {
                 // Extract title from HTML head or content
                 let title = `Generated Article ${i + 1}`;
-                const titleMatch = parsedArticle.article.match(/<title>(.*?)<\/title>/i);
+                const rawArticleHtml = parsedArticle.article as string;
+                const titleMatch = rawArticleHtml.match(/<title[^>]*>(.*?)<\/title>/i);
+                const normalizedArticle = normalizeHtmlContent(rawArticleHtml);
                 if (titleMatch) {
                   title = titleMatch[1].trim();
                 } else {
-                  title = extractTitleFromContent(parsedArticle.article);
+                  title = extractTitleFromContent(normalizedArticle);
                 }
                 
                 // Remove code blocks from article content so HTML can be rendered
-                let cleanArticleHtml = parsedArticle.article
-                  .replace(/^```html\s*/i, '')
-                  .replace(/^```\s*/i, '')
-                  .replace(/```\s*$/i, '')
-                  .replace(/```$/i, '')
-                  .trim();
+                const cleanArticleHtml = normalizedArticle;
                 
                 console.log(`Original article content (first 200 chars):`, parsedArticle.article.substring(0, 200));
                 console.log(`Cleaned article HTML (first 200 chars):`, cleanArticleHtml.substring(0, 200));
@@ -181,16 +207,14 @@ export default function HomePage() {
                 // 2. FAQ article (if available) - clean HTML content
                 if (parsedArticle.faqs && typeof parsedArticle.faqs === 'string') {
                   // Remove code blocks from FAQ content so HTML can be rendered
-                  let cleanFaqHtml = parsedArticle.faqs
-                    .replace(/^```html\s*/i, '')
-                    .replace(/```\s*$/i, '')
-                    .trim();
-                  
+                  const rawFaqHtml = parsedArticle.faqs as string;
+                  const cleanFaqHtml = normalizeHtmlContent(rawFaqHtml);
+
                   console.log(`Cleaned FAQ HTML for article ${i}, length: ${cleanFaqHtml.length}`);
                   
                   // Extract title from FAQ HTML
                   let faqTitle = `FAQs - ${title}`;
-                  const faqTitleMatch = cleanFaqHtml.match(/<title>(.*?)<\/title>/i);
+                  const faqTitleMatch = rawFaqHtml.match(/<title[^>]*>(.*?)<\/title>/i);
                   if (faqTitleMatch) {
                     faqTitle = faqTitleMatch[1].trim();
                   }
