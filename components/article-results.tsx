@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { FileText, Download, Copy, CheckCircle } from "lucide-react"
 import { useState } from "react"
 
 interface Article {
@@ -18,7 +18,6 @@ interface ArticleResultsProps {
 
 export function ArticleResults({ articles }: ArticleResultsProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
 
   const extractTitle = (html: string): string => {
     const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
@@ -55,15 +54,6 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const toggleExpanded = (articleId: string) => {
-    const newExpanded = new Set(expandedArticles)
-    if (newExpanded.has(articleId)) {
-      newExpanded.delete(articleId)
-    } else {
-      newExpanded.add(articleId)
-    }
-    setExpandedArticles(newExpanded)
-  }
 
   return (
     <div className="space-y-6 fade-in-up">
@@ -104,45 +94,15 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {expandedArticles.has(article.id) ? (
-                  <div className="max-w-none">
-                    {article.html.includes('<pre>') ? (
-                      // Raw JSON data
-                      <div 
-                        className="bg-muted p-4 rounded-lg overflow-auto text-sm font-mono"
-                        dangerouslySetInnerHTML={{ __html: article.html }}
-                      />
-                    ) : (
-                      // Render HTML directly with proper styling
-                      <div 
-                        className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary"
-                        dangerouslySetInnerHTML={{ __html: article.html }}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-pretty leading-relaxed">{preview}</p>
-                )}
+                {/* Always show full HTML content */}
+                <div className="max-w-none">
+                  <div 
+                    className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary"
+                    dangerouslySetInnerHTML={{ __html: article.html }}
+                  />
+                </div>
 
                 <div className="pt-2 space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start bg-transparent"
-                    onClick={() => toggleExpanded(article.id)}
-                  >
-                    {expandedArticles.has(article.id) ? (
-                      <>
-                        <EyeOff className="w-4 h-4 mr-2" />
-                        Verberg Volledig Artikel
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-4 h-4 mr-2" />
-                        Bekijk Volledig Artikel
-                      </>
-                    )}
-                  </Button>
 
                   <Button
                     variant="outline"
