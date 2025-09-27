@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import HtmlSection from "@/components/HtmlSection"
 import { cn } from "@/lib/utils"
 
@@ -22,13 +22,17 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
 
+  useEffect(() => {
+    setExpandedArticles(new Set(articles.map((article) => article.id)))
+  }, [articles])
+
   const extractTitle = (html: string): string => {
     const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
     return titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "") : "Generated Article"
   }
 
   const transformHtml = (html: string): string => {
-    return html
+    let processed = html
       .replace(/^\s*DO NOT wrap in ```html```\s*/i, "")
       .replace(/^\s*```(?:html)?\s*/i, "")
       .replace(/\s*```\s*$/i, "")
@@ -43,6 +47,19 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         return updated
       })
       .trim()
+
+    if (!/<\/?[a-z][\s\S]*>/i.test(processed)) {
+      const paragraphs = processed
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean)
+        .map((block) => `<p>${block.replace(/\n/g, '<br />')}</p>`)
+        .join("\n")
+
+      processed = paragraphs || processed
+    }
+
+    return processed
   }
 
   const copyToClipboard = async (html: string, id: string) => {
