@@ -138,6 +138,15 @@ export default function HomePage() {
               
               // Create article from parsed content - use article field directly
               if (parsedArticle.article) {
+                console.log(`Article ${i} HTML content (first 200 chars):`, parsedArticle.article.substring(0, 200));
+                console.log(`Article ${i} contains HTML tags:`, {
+                  hasH1: parsedArticle.article.includes('<h1>'),
+                  hasP: parsedArticle.article.includes('<p>'),
+                  hasUL: parsedArticle.article.includes('<ul>'),
+                  hasLI: parsedArticle.article.includes('<li>'),
+                  hasA: parsedArticle.article.includes('<a>')
+                });
+                
                 const mainArticle: Article = {
                   id: `article-${jobId}-${i}`,
                   html: parsedArticle.article,

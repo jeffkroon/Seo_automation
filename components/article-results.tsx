@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
-import HtmlSection from "@/components/HtmlSection"
 
 interface Article {
   html: string
@@ -114,10 +113,10 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                         dangerouslySetInnerHTML={{ __html: article.html }}
                       />
                     ) : (
-                      // Render HTML using HtmlSection component
-                      <HtmlSection 
-                        html={article.html}
-                        className="prose prose-sm max-w-none dark:prose-invert"
+                      // Render HTML directly with proper styling
+                      <div 
+                        className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary"
+                        dangerouslySetInnerHTML={{ __html: article.html }}
                       />
                     )}
                   </div>
