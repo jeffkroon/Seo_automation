@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import HtmlSection from "@/components/HtmlSection"
 import { cn } from "@/lib/utils"
 
@@ -26,45 +28,38 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     setExpandedArticles(new Set(articles.map((article) => article.id)))
   }, [articles])
 
-  const extractTitle = (html: string): string => {
-    const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
-    return titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "") : "Generated Article"
-  }
-
-  const transformHtml = (html: string): string => {
-    let processed = html
-      .replace(/^\s*DO NOT wrap in ```html```\s*/i, "")
-      .replace(/^\s*```(?:html)?\s*/i, "")
-      .replace(/\s*```\s*$/i, "")
-      .replace(/<a\b[^>]*>/gi, (anchor) => {
-        let updated = anchor
-        if (!/target=/i.test(updated)) {
-          updated = updated.replace(/>$/, ' target="_blank">')
-        }
-        if (!/rel=/i.test(updated)) {
-          updated = updated.replace(/>$/, ' rel="noopener noreferrer">')
-        }
-        return updated
-      })
-      .trim()
-
-    if (!/<\/?[a-z][\s\S]*>/i.test(processed)) {
-      const paragraphs = processed
-        .split(/\n{2,}/)
-        .map((block) => block.trim())
-        .filter(Boolean)
-        .map((block) => `<p>${block.replace(/\n/g, '<br />')}</p>`)
-        .join("\n")
-
-      processed = paragraphs || processed
+  const extractTitle = (markdown: string): string => {
+    const headingMatch = markdown.match(/^#\s+(.+)$/m)
+    if (headingMatch) {
+      return headingMatch[1].trim()
     }
 
-    return processed
+    const htmlMatch = markdown.match(/<h1[^>]*>(.*?)<\/h1>/i)
+    if (htmlMatch) {
+      return htmlMatch[1].replace(/<[^>]*>/g, "").trim()
+    }
+
+    const firstLine = markdown.split("\n").find((line) => line.trim().length > 0)
+    return firstLine ? firstLine.trim() : "Generated Article"
   }
 
-  const copyToClipboard = async (html: string, id: string) => {
+  const transformMarkdown = (markdown: string): string => {
+    let cleaned = markdown.replace(/^\s*DO NOT wrap in ```html```\s*/i, "").trim()
+
+    const fenceMatch = cleaned.match(/^```(\w+)?\n([\s\S]*)\n```$/)
+    if (fenceMatch) {
+      const language = fenceMatch[1]?.toLowerCase()
+      if (!language || ["markdown", "md", "html"].includes(language)) {
+        cleaned = fenceMatch[2].trim()
+      }
+    }
+
+    return cleaned
+  }
+
+  const copyToClipboard = async (content: string, id: string) => {
     try {
-      await navigator.clipboard.writeText(html)
+      await navigator.clipboard.writeText(content)
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 2000)
     } catch (err) {
@@ -72,17 +67,76 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     }
   }
 
-  const downloadArticle = (html: string, title: string) => {
-    const blob = new Blob([html], { type: "text/html" })
+  const downloadArticle = (content: string, title: string) => {
+    const blob = new Blob([content], { type: "text/markdown" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.html`
+    a.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
+
+  const markdownComponents = useMemo(() => ({
+    h1: ({ children }: { children: ReactNode }) => (
+      <h1 className="text-2xl font-bold mb-4 text-foreground">{children}</h1>
+    ),
+    h2: ({ children }: { children: ReactNode }) => (
+      <h2 className="text-xl font-semibold mb-3 mt-6 text-foreground">{children}</h2>
+    ),
+    h3: ({ children }: { children: ReactNode }) => (
+      <h3 className="text-lg font-semibold mb-2 mt-4 text-foreground">{children}</h3>
+    ),
+    h4: ({ children }: { children: ReactNode }) => (
+      <h4 className="text-base font-semibold mb-2 mt-4 text-foreground">{children}</h4>
+    ),
+    p: ({ children }: { children: ReactNode }) => (
+      <p className="mb-4 leading-relaxed text-foreground">{children}</p>
+    ),
+    ul: ({ children }: { children: ReactNode }) => (
+      <ul className="mb-4 ml-6 list-disc space-y-2 text-foreground">{children}</ul>
+    ),
+    ol: ({ children }: { children: ReactNode }) => (
+      <ol className="mb-4 ml-6 list-decimal space-y-2 text-foreground">{children}</ol>
+    ),
+    li: ({ children }: { children: ReactNode }) => (
+      <li className="leading-relaxed text-foreground">{children}</li>
+    ),
+    blockquote: ({ children }: { children: ReactNode }) => (
+      <blockquote className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground mb-4">
+        {children}
+      </blockquote>
+    ),
+    strong: ({ children }: { children: ReactNode }) => (
+      <strong className="font-semibold text-foreground">{children}</strong>
+    ),
+    em: ({ children }: { children: ReactNode }) => (
+      <em className="italic text-foreground">{children}</em>
+    ),
+    a: ({ node, href, children, ...props }: any) => (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary"
+        {...props}
+      >
+        {children}
+      </a>
+    ),
+    code: ({ inline, children }: { inline?: boolean; children: ReactNode }) => {
+      const content = String(children).replace(/\n$/, "")
+      return inline ? (
+        <code className="rounded bg-muted px-1.5 py-0.5 text-sm text-foreground">{content}</code>
+      ) : (
+        <pre className="rounded-lg bg-muted px-4 py-3 text-sm text-foreground overflow-x-auto">
+          <code>{content}</code>
+        </pre>
+      )
+    },
+  }), [])
 
   const toggleExpanded = (articleId: string) => {
     const newExpanded = new Set(expandedArticles)
@@ -113,9 +167,10 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         'grid-cols-1 lg:grid-cols-3'
       }`}>
         {articles.map((article, index) => {
-          const title = article.title || extractTitle(article.html)
-          const preparedHtml = transformHtml(article.html)
-          const proseClass = cn(
+          const preparedMarkdown = transformMarkdown(article.html)
+          const title = article.title || extractTitle(preparedMarkdown)
+          const containsHtml = /<\/?[a-z][\s\S]*>/i.test(preparedMarkdown)
+          const markdownClass = cn(
             "prose prose-sm max-w-none dark:prose-invert",
             "prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight",
             "prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-0",
@@ -125,8 +180,6 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
             "prose-ul:mb-4 prose-ul:pl-6",
             "prose-strong:text-foreground prose-strong:font-semibold",
             "prose-em:text-foreground",
-            "prose-a:text-primary prose-a:underline prose-a:decoration-primary/50 prose-a:underline-offset-2",
-            "prose-a:hover:text-primary/80 prose-a:hover:decoration-primary",
             "prose-blockquote:text-muted-foreground prose-blockquote:border-primary",
             "prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic"
           )
@@ -150,11 +203,33 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
 
               <CardContent className="space-y-4">
                 {expandedArticles.has(article.id) ? (
-                  <HtmlSection html={preparedHtml} className={proseClass} />
+                  containsHtml ? (
+                    <HtmlSection html={preparedMarkdown} className={markdownClass} />
+                  ) : (
+                    <div className={markdownClass}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponents}
+                      >
+                        {preparedMarkdown}
+                      </ReactMarkdown>
+                    </div>
+                  )
                 ) : (
                   <div className="relative">
                     <div className="max-h-64 overflow-hidden">
-                      <HtmlSection html={preparedHtml} className={proseClass} />
+                      {containsHtml ? (
+                        <HtmlSection html={preparedMarkdown} className={markdownClass} />
+                      ) : (
+                        <div className={markdownClass}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={markdownComponents}
+                          >
+                            {preparedMarkdown}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
                   </div>
@@ -184,7 +259,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     variant="outline"
                     size="sm"
                     className="w-full justify-start bg-transparent"
-                    onClick={() => copyToClipboard(preparedHtml, article.id)}
+                    onClick={() => copyToClipboard(preparedMarkdown, article.id)}
                   >
                     {copiedId === article.id ? (
                       <>
@@ -203,7 +278,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     variant="outline"
                     size="sm"
                     className="w-full justify-start bg-transparent"
-                    onClick={() => downloadArticle(preparedHtml, title)}
+                    onClick={() => downloadArticle(preparedMarkdown, title)}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Downloaden
