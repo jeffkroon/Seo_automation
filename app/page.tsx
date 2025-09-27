@@ -116,48 +116,80 @@ export default function HomePage() {
         if (job.status === 'done') {
           console.log(`Job ${jobId} completed, raw data:`, job)
           
-          // Check if we have the new n8n structure with article field
-          if (job.articles && job.articles.length > 0 && job.articles[0]) {
-            const articleContent = job.articles[0];
+          // Check if we have the new n8n structure with article and faqs fields
+          if (job.articles && job.articles.length > 0) {
+            console.log(`Processing ${job.articles.length} articles from job ${jobId}`);
             
-            // Parse the new structure - the content is now the full webhook body
-            let parsedArticle;
-            try {
-              parsedArticle = typeof articleContent === 'string' ? JSON.parse(articleContent) : articleContent;
-            } catch (e) {
-              console.error('Failed to parse article content:', e);
-              // Fallback to raw data
-              const rawDataArticle: Article = {
-                id: `raw-data-${jobId}`,
-                html: `<pre>${JSON.stringify(job, null, 2)}</pre>`,
-                title: `Raw Data - Job ${jobId}`
+            const processedArticles: Article[] = [];
+            
+            // Process each article in the array
+            for (let i = 0; i < job.articles.length; i++) {
+              const articleContent = job.articles[i];
+              
+              // Parse the new structure - the content is now the full webhook body
+              let parsedArticle;
+              try {
+                parsedArticle = typeof articleContent === 'string' ? JSON.parse(articleContent) : articleContent;
+              } catch (e) {
+                console.error(`Failed to parse article ${i}:`, e);
+                continue; // Skip this article and continue with others
               }
-              setArticles([rawDataArticle])
-              setHasGenerated(true)
-              setIsLoading(false)
-              return
+              
+              console.log(`Parsed article ${i} structure:`, {
+                hasArticle: !!parsedArticle.article,
+                hasFaqs: !!parsedArticle.faqs,
+                articleType: typeof parsedArticle.article,
+                faqsType: typeof parsedArticle.faqs
+              });
+              
+              if (parsedArticle.article) {
+                // Extract title from HTML head or content
+                let title = `Generated Article ${i + 1}`;
+                const titleMatch = parsedArticle.article.match(/<title>(.*?)<\/title>/i);
+                if (titleMatch) {
+                  title = titleMatch[1].trim();
+                } else {
+                  title = extractTitleFromContent(parsedArticle.article);
+                }
+                
+                // Create article with the new structure
+                const newArticle: Article = {
+                  id: `article-${jobId}-${i}`,
+                  html: parsedArticle.article,
+                  title: title
+                }
+                
+                // Add FAQs if available (now as HTML)
+                let fullContent = parsedArticle.article;
+                if (parsedArticle.faqs && typeof parsedArticle.faqs === 'string') {
+                  // Extract FAQ content from HTML
+                  const faqMatch = parsedArticle.faqs.match(/<div class="faq-section">([\s\S]*?)<\/div>/i);
+                  if (faqMatch) {
+                    fullContent += '\n\n<h2>Veelgestelde Vragen</h2>\n';
+                    fullContent += faqMatch[1].replace(/<div class="faq-item">/g, '').replace(/<\/div>/g, '');
+                  }
+                } else if (parsedArticle.faqs && Array.isArray(parsedArticle.faqs)) {
+                  // Handle array format
+                  fullContent += '\n\n<h2>Veelgestelde Vragen</h2>\n';
+                  parsedArticle.faqs.forEach((faq: any) => {
+                    fullContent += `\n<h3>${faq.q || faq.question}</h3>\n<p>${faq.a_brief || faq.answer}</p>\n`;
+                  });
+                }
+                
+                newArticle.html = fullContent;
+                
+                console.log(`Created article ${i}:`, {
+                  title: newArticle.title,
+                  contentLength: newArticle.html.length,
+                  hasFaqs: !!parsedArticle.faqs
+                });
+                
+                processedArticles.push(newArticle);
+              }
             }
             
-            if (parsedArticle.article) {
-              // Create article with the new structure
-              const newArticle: Article = {
-                id: `article-${jobId}`,
-                html: parsedArticle.article,
-                title: parsedArticle.meta?.title || extractTitleFromContent(parsedArticle.article)
-              }
-              
-              // Add FAQs if available
-              let fullContent = parsedArticle.article;
-              if (parsedArticle.faqs && parsedArticle.faqs.length > 0) {
-                fullContent += '\n\n<h2>Veelgestelde Vragen</h2>\n';
-                parsedArticle.faqs.forEach((faq: any) => {
-                  fullContent += `\n<h3>${faq.q}</h3>\n<p>${faq.a_brief}</p>\n`;
-                });
-              }
-              
-              newArticle.html = fullContent;
-              
-              setArticles([newArticle])
+            if (processedArticles.length > 0) {
+              setArticles(processedArticles)
               setHasGenerated(true)
               setIsLoading(false)
               return
