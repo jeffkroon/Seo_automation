@@ -152,35 +152,53 @@ export default function HomePage() {
                   title = extractTitleFromContent(parsedArticle.article);
                 }
                 
-                // Use raw article content directly - no filtering
-                console.log(`Using raw article content for article ${i}, length: ${parsedArticle.article.length}`);
+                // Remove code blocks from article content so HTML can be rendered
+                let cleanArticleHtml = parsedArticle.article
+                  .replace(/^```html\s*/i, '')
+                  .replace(/^```\s*/i, '')
+                  .replace(/```\s*$/i, '')
+                  .replace(/```$/i, '')
+                  .trim();
+                
+                console.log(`Original article content (first 200 chars):`, parsedArticle.article.substring(0, 200));
+                console.log(`Cleaned article HTML (first 200 chars):`, cleanArticleHtml.substring(0, 200));
+                console.log(`Cleaned article HTML for article ${i}, length: ${cleanArticleHtml.length}`);
+                console.log(`Contains H1 tag:`, cleanArticleHtml.includes('<h1>'));
+                console.log(`Contains UL tag:`, cleanArticleHtml.includes('<ul>'));
+                console.log(`Contains LI tag:`, cleanArticleHtml.includes('<li>'));
                 
                 // Create separate articles for content and FAQs
                 const articles: Article[] = [];
                 
-                // 1. Main article - raw HTML content
+                // 1. Main article - clean HTML content
                 const mainArticle: Article = {
                   id: `article-${jobId}-${i}`,
-                  html: parsedArticle.article,
+                  html: cleanArticleHtml,
                   title: title
                 };
                 articles.push(mainArticle);
                 
-                // 2. FAQ article (if available) - raw HTML content
+                // 2. FAQ article (if available) - clean HTML content
                 if (parsedArticle.faqs && typeof parsedArticle.faqs === 'string') {
-                  console.log(`Using raw FAQ content for article ${i}, length: ${parsedArticle.faqs.length}`);
+                  // Remove code blocks from FAQ content so HTML can be rendered
+                  let cleanFaqHtml = parsedArticle.faqs
+                    .replace(/^```html\s*/i, '')
+                    .replace(/```\s*$/i, '')
+                    .trim();
+                  
+                  console.log(`Cleaned FAQ HTML for article ${i}, length: ${cleanFaqHtml.length}`);
                   
                   // Extract title from FAQ HTML
                   let faqTitle = `FAQs - ${title}`;
-                  const faqTitleMatch = parsedArticle.faqs.match(/<title>(.*?)<\/title>/i);
+                  const faqTitleMatch = cleanFaqHtml.match(/<title>(.*?)<\/title>/i);
                   if (faqTitleMatch) {
                     faqTitle = faqTitleMatch[1].trim();
                   }
                   
-                  // Use raw FAQ HTML content directly
+                  // Use clean FAQ HTML content
                   const faqArticle: Article = {
                     id: `faqs-${jobId}-${i}`,
-                    html: parsedArticle.faqs,
+                    html: cleanFaqHtml,
                     title: faqTitle
                   };
                   articles.push(faqArticle);

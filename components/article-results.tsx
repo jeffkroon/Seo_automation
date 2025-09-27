@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 
 interface Article {
   html: string
@@ -117,7 +115,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     ) : (
                       // Render HTML directly
                       <div 
-                        className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-blockquote:text-muted-foreground prose-blockquote:border-primary"
+                        className="rich-text max-w-none"
                         dangerouslySetInnerHTML={{ __html: article.html }}
                       />
                     )}
