@@ -16,10 +16,19 @@ interface ArticleSection {
   sequence: number
 }
 
+interface JobStatusState {
+  status: string
+  completedPairs: number
+  isComplete: boolean
+  totalPairsHint?: number
+  lastUpdatedAt?: string
+}
+
 export default function HomePage() {
   const [articles, setArticles] = useState<ArticleSection[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
+  const [jobStatus, setJobStatus] = useState<JobStatusState | null>(null)
 
   const handleGenerate = async (formData: {
     focusKeyword: string
@@ -33,6 +42,7 @@ export default function HomePage() {
     setIsLoading(true)
     setHasGenerated(false)
     setArticles([])
+    setJobStatus({ status: 'Workflow gestart', completedPairs: 0, isComplete: false })
 
     try {
       // Start the workflow and get jobId
@@ -99,10 +109,26 @@ export default function HomePage() {
 
         const job = await response.json()
         console.log(`Polling job ${jobId}:`, job)
-        
+
         if (job.status === 'error') {
           throw new Error(job.error || 'Workflow error')
         }
+
+        const sequences = new Set<number>()
+        if (Array.isArray(job.results)) {
+          job.results.forEach((result: any, index: number) => {
+            const sequence = result?.sequence ?? index + 1
+            sequences.add(sequence)
+          })
+        }
+
+        setJobStatus({
+          status: job.status,
+          completedPairs: sequences.size,
+          isComplete: Boolean(job.isComplete),
+          totalPairsHint: job.totalPairs ?? job.expectedResults,
+          lastUpdatedAt: job.updatedAt,
+        })
 
         if (typeof job.resultsVersion === 'number' && job.resultsVersion !== lastVersion) {
           lastVersion = job.resultsVersion
@@ -134,12 +160,15 @@ export default function HomePage() {
             }
 
             return entries
+          }).sort((a, b) => {
+            if (a.sequence !== b.sequence) return a.sequence - b.sequence
+            const kindWeight = { article: 0, faq: 1, meta: 2 } as const
+            return kindWeight[a.kind] - kindWeight[b.kind]
           })
 
           if (sections.length > 0) {
             setArticles(sections)
             setHasGenerated(true)
-            setIsLoading(false)
           }
         } else {
           idleChecks += 1
@@ -149,6 +178,7 @@ export default function HomePage() {
 
         if (shouldStop) {
           setIsLoading(false)
+          setJobStatus((prev) => prev ? { ...prev, isComplete: Boolean(job.isComplete), status: job.status } : null)
           isPolling = false
           return
         }
@@ -160,6 +190,7 @@ export default function HomePage() {
         console.error("Error polling for results:", error)
         alert(`Error: ${error instanceof Error ? error.message : 'Onbekende fout'}`)
         setIsLoading(false)
+        setJobStatus((prev) => prev ? { ...prev, status: 'error', isComplete: true } : { status: 'error', completedPairs: 0, isComplete: true })
         isPolling = false
       }
     }
@@ -186,7 +217,15 @@ export default function HomePage() {
 
           <ContentGenerationForm onGenerate={handleGenerate} isLoading={isLoading} />
 
-          {isLoading && <LoadingState />}
+          {isLoading && (
+            <LoadingState
+              status={jobStatus?.status}
+              completedPairs={jobStatus?.completedPairs}
+              totalPairsHint={jobStatus?.totalPairsHint}
+              isComplete={jobStatus?.isComplete}
+              lastUpdatedAt={jobStatus?.lastUpdatedAt}
+            />
+          )}
 
           {hasGenerated && articles.length > 0 && <ArticleResults articles={articles} />}
         </div>
