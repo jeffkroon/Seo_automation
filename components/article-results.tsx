@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { FileText, Download, Copy, CheckCircle, ChevronDown, ChevronRight } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import type { Components } from "react-markdown"
@@ -29,6 +29,10 @@ interface ArticleResultsProps {
 export function ArticleResults({ articles }: ArticleResultsProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    setExpandedArticles(new Set())
+  }, [articles])
 
   const pairCount = useMemo(() => {
     const sequences = new Set<number>()
@@ -67,6 +71,17 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     }
 
     return cleaned
+  }
+
+  const createPreview = (markdown: string, maxLength = 220): string => {
+    const text = markdown
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/[#*_`~>\-\[\]\(\)!]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+
+    if (text.length <= maxLength) return text
+    return `${text.substring(0, maxLength).trim()}…`
   }
 
   const convertContentToHtml = async (content: string, containsHtml: boolean): Promise<string> => {
@@ -223,13 +238,15 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
   }), [])
 
   const toggleExpanded = (articleId: string) => {
-    const newExpanded = new Set(expandedArticles)
-    if (newExpanded.has(articleId)) {
-      newExpanded.delete(articleId)
-    } else {
-      newExpanded.add(articleId)
-    }
-    setExpandedArticles(newExpanded)
+    setExpandedArticles((prev) => {
+      const next = new Set(prev)
+      if (next.has(articleId)) {
+        next.delete(articleId)
+      } else {
+        next.add(articleId)
+      }
+      return next
+    })
   }
 
 
@@ -254,6 +271,8 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
           const preparedMarkdown = transformMarkdown(article.html)
           const title = article.title || extractTitle(preparedMarkdown)
           const containsHtml = /<\/?[a-z][\s\S]*>/i.test(preparedMarkdown)
+          const previewText = createPreview(preparedMarkdown)
+          const isExpanded = expandedArticles.has(article.id)
           const markdownClass = cn(
             "prose prose-sm max-w-none dark:prose-invert",
             "prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight",
@@ -287,11 +306,29 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     </Badge>
                   </div>
                 </div>
-                <CardTitle className="text-lg text-balance leading-tight">{title}</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-lg text-balance leading-tight flex-1">{title}</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs font-medium flex items-center gap-1"
+                    onClick={() => toggleExpanded(article.id)}
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronDown className="h-4 w-4" /> Inklappen
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight className="h-4 w-4" /> Uitklappen
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {expandedArticles.has(article.id) ? (
+                {isExpanded ? (
                   containsHtml ? (
                     <HtmlSection html={preparedMarkdown} className={markdownClass} />
                   ) : (
@@ -305,45 +342,12 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                     </div>
                   )
                 ) : (
-                  <div className="relative">
-                    <div className="max-h-64 overflow-hidden">
-                      {containsHtml ? (
-                        <HtmlSection html={preparedMarkdown} className={markdownClass} />
-                      ) : (
-                        <div className={markdownClass}>
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={markdownComponents}
-                          >
-                            {preparedMarkdown}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-                    </div>
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
-                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {previewText}
+                  </p>
                 )}
 
                 <div className="pt-2 space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start bg-transparent"
-                    onClick={() => toggleExpanded(article.id)}
-                  >
-                    {expandedArticles.has(article.id) ? (
-                      <>
-                        <EyeOff className="w-4 h-4 mr-2" />
-                        Verberg Volledig Artikel
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-4 h-4 mr-2" />
-                        Bekijk Volledig Artikel
-                      </>
-                    )}
-                  </Button>
-
                   <Button
                     variant="outline"
                     size="sm"
