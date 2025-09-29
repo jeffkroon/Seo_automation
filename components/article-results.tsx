@@ -4,26 +4,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Copy, CheckCircle, Eye, EyeOff } from "lucide-react"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
+import type { Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
 import { cn } from "@/lib/utils"
 import { createRoot } from "react-dom/client"
 
-interface Article {
+type SectionKind = "article" | "faq" | "meta"
+
+interface ArticleSection {
   html: string
-  title?: string
+  title: string
   id: string
+  kind: SectionKind
+  sequence: number
 }
 
 interface ArticleResultsProps {
-  articles: Article[]
+  articles: ArticleSection[]
 }
 
 export function ArticleResults({ articles }: ArticleResultsProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
+
+  const pairCount = useMemo(() => {
+    const sequences = new Set<number>()
+    articles.forEach((section) => sequences.add(section.sequence))
+    return sequences.size
+  }, [articles])
 
   useEffect(() => {
     setExpandedArticles(new Set(articles.map((article) => article.id)))
@@ -109,60 +120,103 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const markdownComponents = useMemo(() => ({
-    h1: ({ children }: { children: ReactNode }) => (
-      <h1 className="text-2xl font-bold mb-4 text-foreground">{children}</h1>
-    ),
-    h2: ({ children }: { children: ReactNode }) => (
-      <h2 className="text-xl font-semibold mb-3 mt-6 text-foreground">{children}</h2>
-    ),
-    h3: ({ children }: { children: ReactNode }) => (
-      <h3 className="text-lg font-semibold mb-2 mt-4 text-foreground">{children}</h3>
-    ),
-    h4: ({ children }: { children: ReactNode }) => (
-      <h4 className="text-base font-semibold mb-2 mt-4 text-foreground">{children}</h4>
-    ),
-    p: ({ children }: { children: ReactNode }) => (
-      <p className="mb-4 leading-relaxed text-foreground">{children}</p>
-    ),
-    ul: ({ children }: { children: ReactNode }) => (
-      <ul className="mb-4 ml-6 list-disc space-y-2 text-foreground">{children}</ul>
-    ),
-    ol: ({ children }: { children: ReactNode }) => (
-      <ol className="mb-4 ml-6 list-decimal space-y-2 text-foreground">{children}</ol>
-    ),
-    li: ({ children }: { children: ReactNode }) => (
-      <li className="leading-relaxed text-foreground">{children}</li>
-    ),
-    blockquote: ({ children }: { children: ReactNode }) => (
-      <blockquote className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground mb-4">
-        {children}
-      </blockquote>
-    ),
-    strong: ({ children }: { children: ReactNode }) => (
-      <strong className="font-semibold text-foreground">{children}</strong>
-    ),
-    em: ({ children }: { children: ReactNode }) => (
-      <em className="italic text-foreground">{children}</em>
-    ),
-    a: ({ node, href, children, ...props }: any) => (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary"
+  const markdownComponents = useMemo<Components>(() => ({
+    h1: ({ node, className, ...props }) => (
+      <h1
         {...props}
-      >
-        {children}
-      </a>
+        className={cn("text-2xl font-bold mb-4 text-foreground", className)}
+      />
     ),
-    code: ({ inline, children }: { inline?: boolean; children: ReactNode }) => {
+    h2: ({ node, className, ...props }) => (
+      <h2
+        {...props}
+        className={cn("text-xl font-semibold mb-3 mt-6 text-foreground", className)}
+      />
+    ),
+    h3: ({ node, className, ...props }) => (
+      <h3
+        {...props}
+        className={cn("text-lg font-semibold mb-2 mt-4 text-foreground", className)}
+      />
+    ),
+    h4: ({ node, className, ...props }) => (
+      <h4
+        {...props}
+        className={cn("text-base font-semibold mb-2 mt-4 text-foreground", className)}
+      />
+    ),
+    p: ({ node, className, ...props }) => (
+      <p
+        {...props}
+        className={cn("mb-4 leading-relaxed text-foreground", className)}
+      />
+    ),
+    ul: ({ node, className, ...props }) => (
+      <ul
+        {...props}
+        className={cn("mb-4 ml-6 list-disc space-y-2 text-foreground", className)}
+      />
+    ),
+    ol: ({ node, className, ...props }) => (
+      <ol
+        {...props}
+        className={cn("mb-4 ml-6 list-decimal space-y-2 text-foreground", className)}
+      />
+    ),
+    li: ({ node, className, ...props }) => (
+      <li
+        {...props}
+        className={cn("leading-relaxed text-foreground", className)}
+      />
+    ),
+    blockquote: ({ node, className, ...props }) => (
+      <blockquote
+        {...props}
+        className={cn(
+          "border-l-4 border-primary/40 pl-4 italic text-muted-foreground mb-4",
+          className,
+        )}
+      />
+    ),
+    strong: ({ node, className, ...props }) => (
+      <strong
+        {...props}
+        className={cn("font-semibold text-foreground", className)}
+      />
+    ),
+    em: ({ node, className, ...props }) => (
+      <em
+        {...props}
+        className={cn("italic text-foreground", className)}
+      />
+    ),
+    a: ({ node, className, ...props }) => (
+      <a
+        {...props}
+        className={cn(
+          "text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary",
+          className,
+        )}
+        target={props.target ?? "_blank"}
+        rel={props.rel ?? "noopener noreferrer"}
+      />
+    ),
+    code: ({ node, inline, className, children, ...props }) => {
       const content = String(children).replace(/\n$/, "")
-      return inline ? (
-        <code className="rounded bg-muted px-1.5 py-0.5 text-sm text-foreground">{content}</code>
-      ) : (
-        <pre className="rounded-lg bg-muted px-4 py-3 text-sm text-foreground overflow-x-auto">
-          <code>{content}</code>
+      if (inline) {
+        return (
+          <code
+            {...props}
+            className={cn("rounded bg-muted px-1.5 py-0.5 text-sm text-foreground", className)}
+          >
+            {content}
+          </code>
+        )
+      }
+
+      return (
+        <pre className={cn("rounded-lg bg-muted px-4 py-3 text-sm text-foreground overflow-x-auto", className)}>
+          <code {...props}>{content}</code>
         </pre>
       )
     },
@@ -187,7 +241,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
           <h2 className="text-2xl font-bold">Artikelen Succesvol Gegenereerd!</h2>
         </div>
         <p className="text-muted-foreground">
-          Je AI-gestuurde content is klaar. {articles.length} artikel{articles.length !== 1 ? 'en' : ''} geoptimaliseerd voor SEO en afgestemd op jouw specificaties.
+          Je AI-gestuurde content is klaar. {pairCount} artikel{pairCount !== 1 ? 'en' : ''} geoptimaliseerd voor SEO en afgestemd op jouw specificaties.
         </p>
       </div>
 
@@ -196,7 +250,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         articles.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
         'grid-cols-1 lg:grid-cols-3'
       }`}>
-        {articles.map((article, index) => {
+        {articles.map((article) => {
           const preparedMarkdown = transformMarkdown(article.html)
           const title = article.title || extractTitle(preparedMarkdown)
           const containsHtml = /<\/?[a-z][\s\S]*>/i.test(preparedMarkdown)
@@ -213,6 +267,11 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
             "prose-blockquote:text-muted-foreground prose-blockquote:border-primary",
             "prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic"
           )
+          const badgeLabel = article.kind === 'faq'
+            ? `FAQ ${article.sequence}`
+            : article.kind === 'meta'
+              ? `Meta ${article.sequence}`
+              : `Artikel ${article.sequence}`
 
           return (
             <Card
@@ -224,7 +283,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                   <div className="flex items-center space-x-2">
                     <FileText className="w-5 h-5 text-primary" />
                     <Badge variant="secondary" className="text-xs">
-                      Artikel {index + 1}
+                      {badgeLabel}
                     </Badge>
                   </div>
                 </div>

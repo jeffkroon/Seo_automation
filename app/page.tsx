@@ -6,38 +6,18 @@ import { ArticleResults } from "@/components/article-results"
 import { Header } from "@/components/header"
 import { LoadingState } from "@/components/loading-state"
 
-interface Article {
-  html: string
-  title?: string
+type SectionKind = 'article' | 'faq' | 'meta'
+
+interface ArticleSection {
   id: string
-}
-
-interface WebhookResponse {
-  output: string
-}
-
-
-// Function to extract title from markdown content
-function extractTitleFromContent(content: string): string {
-  // Look for markdown heading (# Title)
-  const titleMatch = content.match(/^#\s*(.+)$/m)
-  if (titleMatch) {
-    return titleMatch[1].trim()
-  }
-  
-  // Look for HTML h1 tag
-  const h1Match = content.match(/<h1[^>]*>(.*?)<\/h1>/i)
-  if (h1Match) {
-    return h1Match[1].replace(/<[^>]*>/g, '').trim()
-  }
-  
-  // Fallback to first line or default
-  const firstLine = content.split('\n')[0].trim()
-  return firstLine.length > 0 ? firstLine.substring(0, 50) + '...' : 'Artikel'
+  html: string
+  title: string
+  kind: SectionKind
+  sequence: number
 }
 
 export default function HomePage() {
-  const [articles, setArticles] = useState<Article[]>([])
+  const [articles, setArticles] = useState<ArticleSection[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
 
@@ -52,6 +32,7 @@ export default function HomePage() {
   }) => {
     setIsLoading(true)
     setHasGenerated(false)
+    setArticles([])
 
     try {
       // Start the workflow and get jobId
@@ -103,7 +84,12 @@ export default function HomePage() {
   }
 
   const pollForResults = async (jobId: string) => {
+    let lastVersion = -1
+    let idleChecks = 0
+    let isPolling = true
+
     const poll = async () => {
+      if (!isPolling) return
       try {
         const response = await fetch(`/api/jobs/${jobId}`)
         
@@ -114,52 +100,67 @@ export default function HomePage() {
         const job = await response.json()
         console.log(`Polling job ${jobId}:`, job)
         
-        if (job.status === 'done' && (job.article || job.faqs)) {
-          console.log(`Job ${jobId} completed`);
-          console.log(`Article length: ${job.article?.length || 0}`);
-          console.log(`FAQs length: ${job.faqs?.length || 0}`);
-          
-          const convertedArticles: Article[] = []
-          
-          // Add article if present
-          if (job.article) {
-            convertedArticles.push({
-              id: 'article',
-              html: job.article.trim(),
-              title: 'Artikel'
-            })
-          }
-          
-          // Add FAQs if present
-          if (job.faqs) {
-            convertedArticles.push({
-              id: 'faqs',
-              html: job.faqs.trim(),
-              title: 'Veelgestelde Vragen'
-            })
-          }
-
-          console.log(`Created ${convertedArticles.length} sections:`, convertedArticles.map(a => a.title));
-          setArticles(convertedArticles)
-          setHasGenerated(true)
-          setIsLoading(false)
-          return
-        }
-        
         if (job.status === 'error') {
           throw new Error(job.error || 'Workflow error')
         }
 
-        // Still processing, continue polling (no timeout)
+        if (typeof job.resultsVersion === 'number' && job.resultsVersion !== lastVersion) {
+          lastVersion = job.resultsVersion
+          idleChecks = 0
+
+          const sections: ArticleSection[] = (job.results || []).flatMap((result: any, index: number) => {
+            const sequence = result?.sequence ?? index + 1
+            const baseId = result?.id ?? `${jobId}-${sequence}`
+            const entries: ArticleSection[] = []
+
+            if (result?.article) {
+              entries.push({
+                id: `${baseId}-article`,
+                html: String(result.article).trim(),
+                title: result.metaTitle?.trim() || `Artikel ${sequence}`,
+                kind: 'article',
+                sequence,
+              })
+            }
+
+            if (result?.faqs) {
+              entries.push({
+                id: `${baseId}-faq`,
+                html: String(result.faqs).trim(),
+                title: `Veelgestelde Vragen ${sequence}`,
+                kind: 'faq',
+                sequence,
+              })
+            }
+
+            return entries
+          })
+
+          if (sections.length > 0) {
+            setArticles(sections)
+            setHasGenerated(true)
+            setIsLoading(false)
+          }
+        } else {
+          idleChecks += 1
+        }
+
+        const shouldStop = (job.isComplete && idleChecks >= 2) || idleChecks >= 10
+
+        if (shouldStop) {
+          setIsLoading(false)
+          isPolling = false
+          return
+        }
+
         console.log(`Polling attempt for job ${jobId}, status: ${job.status}`)
-        
-        // Poll again in 3 seconds (reduced from 5 seconds for faster response)
         setTimeout(poll, 3000)
         
       } catch (error) {
         console.error("Error polling for results:", error)
         alert(`Error: ${error instanceof Error ? error.message : 'Onbekende fout'}`)
         setIsLoading(false)
+        isPolling = false
       }
     }
 

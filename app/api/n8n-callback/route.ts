@@ -1,6 +1,6 @@
 // app/api/n8n-callback/route.ts
 import { NextResponse } from 'next/server';
-import { completeJob, failJob } from '@/lib/jobs';
+import { storeJobResult, failJob } from '@/lib/jobs';
 
 export async function POST(req: Request) {
   try {
@@ -35,30 +35,58 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Combine article and FAQs with separator
-    let content = '';
-    
-    if (body.article) {
-      content = body.article;
-      console.log('Article content length:', content.length);
+    const entries: Array<{ article?: string; faqs?: string; metaTitle?: string; metaDescription?: string; generatedAt?: string; sequence?: number }> = []
+
+    if (Array.isArray(body.results)) {
+      body.results.forEach((result: any, index: number) => {
+        entries.push({
+          article: result.article ?? result.content ?? result.markdown,
+          faqs: result.faqs ?? result.faq ?? result.faqMarkdown,
+          metaTitle: result.metaTitle ?? result.meta_title,
+          metaDescription: result.metaDescription ?? result.meta_description,
+          generatedAt: result.generatedAt ?? generatedAt,
+          sequence: typeof result.sequence === 'number' ? result.sequence : index + 1,
+        })
+      })
+    } else {
+      entries.push({
+        article: body.article,
+        faqs: body.faqs,
+        metaTitle: body.metaTitle ?? body.meta_title,
+        metaDescription: body.metaDescription ?? body.meta_description,
+        generatedAt: generatedAt || new Date().toISOString(),
+      })
     }
-    
-    if (body.faqs) {
-      if (content) {
-        content += '\n<hr />\n'; // Separator between article and FAQs
+
+    const markComplete =
+      body.isFinal !== undefined
+        ? Boolean(body.isFinal)
+        : body.hasMore !== undefined
+          ? body.hasMore === false
+          : status === 'done'
+
+    entries.forEach((entry, index) => {
+      if (!entry.article && !entry.faqs) {
+        console.warn(`Skipping empty entry for job ${jobId}`)
+        return
       }
-      content += body.faqs;
-      console.log('FAQ content added, total length:', content.length);
-    }
-    
-    if (!content) {
-      console.warn(`No content found for job ${jobId}. Available fields:`, Object.keys(body));
-      content = JSON.stringify(body); // Fallback to raw data
-    }
-    
-    console.log('Completing job:', jobId, 'Final content length:', content?.length);
-    console.log('Content preview (first 300 chars):', content.substring(0, 300));
-    completeJob(jobId, content, generatedAt || new Date().toISOString(), body.article, body.faqs);
+      const isLastEntry = index === entries.length - 1
+      storeJobResult(jobId, {
+        article: entry.article,
+        faqs: entry.faqs,
+        metaTitle: entry.metaTitle,
+        metaDescription: entry.metaDescription,
+        generatedAt: entry.generatedAt,
+        sequence: entry.sequence,
+        markComplete: markComplete && isLastEntry,
+      })
+    })
+
+    console.log('Stored job results:', {
+      jobId,
+      entries: entries.length,
+      markComplete,
+    })
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('Callback error:', err);
