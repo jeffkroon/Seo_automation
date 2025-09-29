@@ -262,11 +262,7 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         </p>
       </div>
 
-      <div className={`grid gap-6 ${
-        articles.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
-        articles.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
-        'grid-cols-1 lg:grid-cols-3'
-      }`}>
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         {articles.map((article) => {
           const preparedMarkdown = transformMarkdown(article.html)
           const title = article.title || extractTitle(preparedMarkdown)
