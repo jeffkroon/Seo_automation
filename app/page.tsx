@@ -95,7 +95,6 @@ export default function HomePage() {
 
   const pollForResults = async (jobId: string) => {
     let lastVersion = -1
-    let idleChecks = 0
     let isPolling = true
 
     const poll = async () => {
@@ -132,7 +131,6 @@ export default function HomePage() {
 
         if (typeof job.resultsVersion === 'number' && job.resultsVersion !== lastVersion) {
           lastVersion = job.resultsVersion
-          idleChecks = 0
 
           const sections: ArticleSection[] = (job.results || []).flatMap((result: any, index: number) => {
             const sequence = result?.sequence ?? index + 1
@@ -170,15 +168,15 @@ export default function HomePage() {
             setArticles(sections)
             setHasGenerated(true)
           }
-        } else {
-          idleChecks += 1
         }
 
-        const shouldStop = (job.isComplete && idleChecks >= 2) || idleChecks >= 10
-
-        if (shouldStop) {
+        if (job.isComplete) {
           setIsLoading(false)
-          setJobStatus((prev) => prev ? { ...prev, isComplete: Boolean(job.isComplete), status: job.status } : null)
+          setJobStatus((prev) => prev ? { ...prev, isComplete: true, status: job.status } : {
+            status: job.status,
+            completedPairs: sequences.size,
+            isComplete: true,
+          })
           isPolling = false
           return
         }
