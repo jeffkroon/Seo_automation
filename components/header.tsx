@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Sparkles, Zap } from "lucide-react"
 
 export function Header() {
@@ -20,12 +21,33 @@ export function Header() {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center space-x-6 text-sm text-muted-foreground">
-            <div className="flex items-center space-x-2">
+          <nav className="hidden md:flex items-center space-x-6 text-sm text-muted-foreground">
+            <Link href="/" className="hover:text-foreground transition-colors">
+              Generator
+            </Link>
+            <Link href="/schedules" className="hover:text-foreground transition-colors">
+              Schedules
+            </Link>
+
+            <div className="flex items-center space-x-2 text-xs uppercase tracking-wide text-green-500/90">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>AI Engine Actief</span>
             </div>
-            <div>SEO Platform</div>
+          </nav>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 md:hidden text-sm text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-foreground transition-colors">
+              Generator
+            </Link>
+            <Link href="/schedules" className="hover:text-foreground transition-colors">
+              Schedules
+            </Link>
+          </div>
+          <div className="flex items-center space-x-2 text-xs uppercase tracking-wide text-green-500/90">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>AI Engine Actief</span>
           </div>
         </div>
       </div>
