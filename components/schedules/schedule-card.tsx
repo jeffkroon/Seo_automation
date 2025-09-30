@@ -2,14 +2,15 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { createRoot } from "react-dom/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, RefreshCw, ChevronDown, ChevronRight, Trash2, MessageSquare } from "lucide-react"
+import { FileText, RefreshCw, ChevronDown, ChevronRight, Trash2, MessageSquare, Download, Copy, CheckCircle } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import HtmlSection from "@/components/HtmlSection"
+import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
 import { cn } from "@/lib/utils"
 
 interface ScheduleCardProps {
@@ -47,6 +48,7 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [articleExpanded, setArticleExpanded] = useState(false)
   const [faqExpanded, setFaqExpanded] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
  const latest = schedule.latestArticle ?? null
   const articlePreview = latest?.article ? formatPreview(latest.article) : null
@@ -67,36 +69,173 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
 
   const markdownClass = useMemo(
     () => cn(
-      'prose prose-sm max-w-none dark:prose-invert',
-      'prose-headings:text-foreground prose-headings:font-semibold prose-headings:leading-tight',
-      'prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-0',
-      'prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-6',
-      'prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-4',
-      'prose-li:text-foreground prose-li:mb-1',
-      'prose-ul:mb-4 prose-ul:pl-6',
-      'prose-strong:text-foreground prose-strong:font-semibold',
-      'prose-em:text-foreground',
-      'prose-a:text-primary prose-a:underline prose-a:decoration-primary/50 prose-a:underline-offset-2',
-      'prose-a:hover:text-primary/80 prose-a:hover:decoration-primary',
-      'prose-blockquote:text-muted-foreground prose-blockquote:border-primary',
-      'prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic',
+      "prose prose-sm max-w-none dark:prose-invert",
+      "prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight",
+      "prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-0",
+      "prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-6",
+      "prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-4",
+      "prose-li:text-foreground prose-li:mb-1",
+      "prose-ul:mb-4 prose-ul:pl-6",
+      "prose-strong:text-foreground prose-strong:font-semibold",
+      "prose-em:text-foreground",
+      "prose-blockquote:text-muted-foreground prose-blockquote:border-primary",
+      "prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic"
     ),
     [],
   )
 
   const markdownComponents = useMemo(() => ({
+    h1: ({ node, className, ...props }: any) => (
+      <h1
+        {...props}
+        className={cn("text-2xl font-bold mb-4 text-foreground", className)}
+      />
+    ),
+    h2: ({ node, className, ...props }: any) => (
+      <h2
+        {...props}
+        className={cn("text-xl font-semibold mb-3 mt-6 text-foreground", className)}
+      />
+    ),
+    h3: ({ node, className, ...props }: any) => (
+      <h3
+        {...props}
+        className={cn("text-lg font-semibold mb-2 mt-4 text-foreground", className)}
+      />
+    ),
+    h4: ({ node, className, ...props }: any) => (
+      <h4
+        {...props}
+        className={cn("text-base font-semibold mb-2 mt-4 text-foreground", className)}
+      />
+    ),
+    p: ({ node, className, ...props }: any) => (
+      <p
+        {...props}
+        className={cn("mb-4 leading-relaxed text-foreground", className)}
+      />
+    ),
+    ul: ({ node, className, ...props }: any) => (
+      <ul
+        {...props}
+        className={cn("mb-4 ml-6 list-disc space-y-2 text-foreground", className)}
+      />
+    ),
+    ol: ({ node, className, ...props }: any) => (
+      <ol
+        {...props}
+        className={cn("mb-4 ml-6 list-decimal space-y-2 text-foreground", className)}
+      />
+    ),
+    li: ({ node, className, ...props }: any) => (
+      <li
+        {...props}
+        className={cn("leading-relaxed text-foreground", className)}
+      />
+    ),
+    blockquote: ({ node, className, ...props }: any) => (
+      <blockquote
+        {...props}
+        className={cn(
+          "border-l-4 border-primary/40 pl-4 italic text-muted-foreground mb-4",
+          className,
+        )}
+      />
+    ),
+    strong: ({ node, className, ...props }: any) => (
+      <strong
+        {...props}
+        className={cn("font-semibold text-foreground", className)}
+      />
+    ),
+    em: ({ node, className, ...props }: any) => (
+      <em
+        {...props}
+        className={cn("italic text-foreground", className)}
+      />
+    ),
     a: ({ node, className, ...props }: any) => (
       <a
         {...props}
         className={cn(
-          'text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary',
+          "text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary",
           className,
         )}
-        target={props.target ?? '_blank'}
-        rel={props.rel ?? 'noopener noreferrer'}
+        target={props.target ?? "_blank"}
+        rel={props.rel ?? "noopener noreferrer"}
       />
     ),
+    code: ({ node, inline, className, children, ...props }: any) => {
+      const content = String(children).replace(/\n$/, "")
+      if (inline) {
+        return (
+          <code
+            {...props}
+            className={cn("rounded bg-muted px-1.5 py-0.5 text-sm text-foreground", className)}
+          >
+            {content}
+          </code>
+        )
+      }
+
+      return (
+        <pre className={cn("rounded-lg bg-muted px-4 py-3 text-sm text-foreground overflow-x-auto", className)}>
+          <code {...props}>{content}</code>
+        </pre>
+      )
+    },
   }), [])
+
+  const convertContentToHtml = async (content: string, containsHtml: boolean): Promise<string> => {
+    if (containsHtml) {
+      return sanitizeHtml(content)
+    }
+
+    const container = document.createElement("div")
+    container.style.position = "absolute"
+    container.style.left = "-9999px"
+    document.body.appendChild(container)
+
+    const root = createRoot(container)
+
+    await new Promise<void>((resolve) => {
+      root.render(
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {content}
+        </ReactMarkdown>
+      )
+      requestAnimationFrame(() => resolve())
+    })
+
+    const html = container.innerHTML
+    root.unmount()
+    document.body.removeChild(container)
+    return html
+  }
+
+  const copyToClipboard = async (content: string, id: string, containsHtml: boolean) => {
+    try {
+      const htmlString = await convertContentToHtml(content, containsHtml)
+      await navigator.clipboard.writeText(htmlString)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
+
+  const downloadArticle = async (content: string, title: string, containsHtml: boolean) => {
+    const htmlString = await convertContentToHtml(content, containsHtml)
+    const blob = new Blob([htmlString], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   async function toggleActive(value: boolean) {
     await fetch(`/api/schedules/${schedule.id}`, {
@@ -217,10 +356,41 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
                 )}
               </Button>
               {articleExpanded ? (
-                <div className={markdownClass}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {preparedMarkdown}
-                  </ReactMarkdown>
+                <div className="space-y-4">
+                  <div className={markdownClass}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {preparedMarkdown}
+                    </ReactMarkdown>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 justify-start bg-transparent"
+                      onClick={() => copyToClipboard(preparedMarkdown, `${schedule.id}-article`, containsHtml)}
+                    >
+                      {copiedId === `${schedule.id}-article` ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4 mr-2" />
+                          Kopieer HTML
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 justify-start bg-transparent"
+                      onClick={() => downloadArticle(preparedMarkdown, `Artikel ${schedule.focus_keyword || schedule.keyword || 'Onbekend'}`, containsHtml)}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Downloaden
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm leading-relaxed text-muted-foreground">{articlePreview}</p>
@@ -253,15 +423,46 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
               </Button>
             </div>
             {faqExpanded ? (
-              faqContainsHtml ? (
-                <HtmlSection html={preparedFaqMarkdown} className={markdownClass} />
-              ) : (
-                <div className={markdownClass}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {preparedFaqMarkdown}
-                  </ReactMarkdown>
+              <div className="space-y-4">
+                {faqContainsHtml ? (
+                  <HtmlSection html={preparedFaqMarkdown} className={markdownClass} />
+                ) : (
+                  <div className={markdownClass}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {preparedFaqMarkdown}
+                    </ReactMarkdown>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 justify-start bg-transparent"
+                    onClick={() => copyToClipboard(preparedFaqMarkdown, `${schedule.id}-faq`, faqContainsHtml)}
+                  >
+                    {copiedId === `${schedule.id}-faq` ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Kopieer HTML
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 justify-start bg-transparent"
+                    onClick={() => downloadArticle(preparedFaqMarkdown, `FAQ ${schedule.focus_keyword || schedule.keyword || 'Onbekend'}`, faqContainsHtml)}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Downloaden
+                  </Button>
                 </div>
-              )
+              </div>
             ) : (
               <p className="text-sm leading-relaxed text-muted-foreground">{faqPreview}</p>
             )}
