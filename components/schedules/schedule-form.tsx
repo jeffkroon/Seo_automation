@@ -25,15 +25,26 @@ export function ScheduleForm({ companies }: ScheduleFormProps) {
   const hasCompanies = companies.length > 0
 
   async function handleSubmit(formData: FormData) {
+    const languageRaw = (formData.get('language') || '').toString().trim().toLowerCase()
+    const countryRaw = (formData.get('country') || '').toString().trim().toLowerCase()
+    const language = languageRaw === 'en' ? 'en' : 'nl'
+    const country = countryRaw === 'en' ? 'en' : countryRaw === 'us' ? 'us' : 'nl'
+
+    const companyId = formData.get('companyId')?.toString() || null
+    const companyNameInput = formData.get('companyName')?.toString().trim() || ''
+    const derivedCompanyName = companyId
+      ? companies.find((company) => company.id === companyId)?.name ?? ''
+      : ''
+
     const payload = {
-      companyId: formData.get('companyId') || null,
+      companyId,
       focusKeyword: formData.get('focusKeyword') || '',
       extraKeywords: formData.get('extraKeywords') || '',
-      language: formData.get('language') || '',
-      country: formData.get('country') || '',
+      language,
+      country,
       articleType: formData.get('articleType') || '',
       websiteUrl: formData.get('websiteUrl') || '',
-      companyName: formData.get('companyName') || '',
+      companyName: companyNameInput || derivedCompanyName,
       intervalSeconds: formData.get('intervalSeconds') || '',
       nextRunAt: formData.get('nextRunAt') || undefined,
       active,
@@ -93,11 +104,28 @@ export function ScheduleForm({ companies }: ScheduleFormProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="language">Taal</Label>
-          <Input id="language" name="language" placeholder="nl" defaultValue="nl" required />
+          <Select name="language" defaultValue="nl">
+            <SelectTrigger id="language">
+              <SelectValue placeholder="Selecteer taal" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nl">NL</SelectItem>
+              <SelectItem value="en">EN</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="country">Land</Label>
-          <Input id="country" name="country" placeholder="nl" defaultValue="nl" required />
+          <Select name="country" defaultValue="nl">
+            <SelectTrigger id="country">
+              <SelectValue placeholder="Selecteer land" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nl">NL</SelectItem>
+              <SelectItem value="en">EN</SelectItem>
+              <SelectItem value="us">US</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="extraKeywords">Extra zoekwoorden</Label>

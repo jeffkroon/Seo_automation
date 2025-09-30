@@ -57,12 +57,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'language en country zijn verplicht' }, { status: 400 })
     }
 
+    const allowedLanguages = ['nl', 'en']
+    const allowedCountries = ['nl', 'en', 'us']
+    const language = String(body.language).toLowerCase()
+    const country = String(body.country).toLowerCase()
+
+    if (!allowedLanguages.includes(language)) {
+      return NextResponse.json({ error: 'language moet "nl" of "en" zijn' }, { status: 400 })
+    }
+    if (!allowedCountries.includes(country)) {
+      return NextResponse.json({ error: 'country moet een geldige waarde zijn (nl, en, us)' }, { status: 400 })
+    }
+
     const schedule = {
       company_id: body.companyId,
       focus_keyword: body.focusKeyword,
       extra_keywords: Array.isArray(body.extraKeywords) ? body.extraKeywords : body.extraKeywords?.split(',').map((v: string) => v.trim()).filter(Boolean) ?? [],
-      language: body.language,
-      country: body.country,
+      language,
+      country,
       company_name: body.companyName,
       website_url: body.websiteUrl,
       article_type: body.articleType,

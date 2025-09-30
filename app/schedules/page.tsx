@@ -1,6 +1,7 @@
 import { supabaseRest } from '@/lib/supabase-rest'
 import { ScheduleForm } from '@/components/schedules/schedule-form'
 import { ScheduleCard } from '@/components/schedules/schedule-card'
+import { Header } from '@/components/header'
 
 function resolveBaseUrl() {
   const publicBase = process.env.NEXT_PUBLIC_BASE_URL
@@ -27,6 +28,7 @@ export default async function SchedulesPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <main className="container mx-auto px-4 py-8 space-y-8">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold">Schedule overzicht</h1>

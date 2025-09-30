@@ -38,3 +38,21 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: error?.message ?? 'Onbekende fout' }, { status: 500 })
   }
 }
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    await supabaseRest(
+      'schedules',
+      {
+        method: 'DELETE',
+        searchParams: { id: `eq.${params.id}` },
+        prefer: 'return=minimal',
+      },
+    )
+
+    return NextResponse.json({ ok: true })
+  } catch (error: any) {
+    console.error(`Failed to delete schedule ${params.id}`, error)
+    return NextResponse.json({ error: error?.message ?? 'Onbekende fout' }, { status: 500 })
+  }
+}
