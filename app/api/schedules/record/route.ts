@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { upsertScheduleArticle } from '@/lib/schedules'
+import { supabaseRest } from '@/lib/supabase-rest'
 
 export async function POST(req: Request) {
   try {
@@ -10,23 +10,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'scheduleId ontbreekt' }, { status: 400 })
     }
 
-    const keyword = payload.keyword ?? payload.focusKeyword ?? ''
-    const interval = payload.interval ?? payload.frequency
-    const status = payload.status ?? 'completed'
     const generatedAt = payload.generatedAt ?? new Date().toISOString()
 
-    upsertScheduleArticle({
-      scheduleId,
-      keyword,
-      interval,
-      status,
-      article: payload.article ?? payload.content ?? payload.html,
-      faqs: payload.faqs ?? payload.faq,
-      metaTitle: payload.metaTitle,
-      metaDescription: payload.metaDescription,
-      generatedAt,
-      updatedAt: new Date().toISOString(),
-    })
+    await supabaseRest(
+      'schedule_articles',
+      {
+        method: 'POST',
+        body: {
+          schedule_id: scheduleId,
+          keyword: payload.keyword,
+          article: payload.article,
+          faqs: payload.faqs,
+          meta_title: payload.metaTitle,
+          meta_description: payload.metaDescription,
+          generated_at: generatedAt,
+        },
+        prefer: 'return=minimal',
+      },
+    )
+
+    await supabaseRest(
+      'schedules',
+      {
+        method: 'PATCH',
+        searchParams: { id: `eq.${scheduleId}` },
+        body: {
+          last_run_at: generatedAt,
+          updated_at: new Date().toISOString(),
+        },
+        prefer: 'return=minimal',
+      },
+    )
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {
