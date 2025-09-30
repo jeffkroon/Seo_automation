@@ -15,9 +15,10 @@ interface CompanyOption {
 
 interface ScheduleFormProps {
   companies: CompanyOption[]
+  onRefresh?: () => void
 }
 
-export function ScheduleForm({ companies }: ScheduleFormProps) {
+export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [active, setActive] = useState(true)
@@ -62,7 +63,11 @@ export function ScheduleForm({ companies }: ScheduleFormProps) {
     }
 
     setActive(true)
-    startTransition(() => router.refresh())
+    if (onRefresh) {
+      onRefresh()
+    } else {
+      startTransition(() => router.refresh())
+    }
   }
 
   return (

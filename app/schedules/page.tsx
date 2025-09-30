@@ -1,6 +1,4 @@
 import { supabaseRest } from '@/lib/supabase-rest'
-import { ScheduleForm } from '@/components/schedules/schedule-form'
-import { ScheduleCard } from '@/components/schedules/schedule-card'
 import { Header } from '@/components/header'
 import { SchedulesClient } from '@/components/schedules/schedules-client'
 
@@ -38,9 +36,7 @@ export default async function SchedulesPage() {
           </p>
         </div>
 
-        <ScheduleForm companies={companies} />
-
-        <SchedulesClient initialSchedules={schedules} />
+        <SchedulesClient initialSchedules={schedules} companies={companies} />
       </main>
     </div>
   )

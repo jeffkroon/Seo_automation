@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { ScheduleCard } from "@/components/schedules/schedule-card"
+import { ScheduleForm } from "@/components/schedules/schedule-form"
 import { RefreshCw } from "lucide-react"
 
 interface SchedulesClientProps {
   initialSchedules: any[]
+  companies: any[]
 }
 
-export function SchedulesClient({ initialSchedules }: SchedulesClientProps) {
+interface ScheduleCardProps {
+  schedule: any
+  onRefresh: () => void
+}
+
+export function SchedulesClient({ initialSchedules, companies }: SchedulesClientProps) {
   const [schedules, setSchedules] = useState(initialSchedules)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
@@ -57,25 +64,29 @@ export function SchedulesClient({ initialSchedules }: SchedulesClientProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Laatste update: {lastRefresh.toLocaleTimeString()}
-        </div>
-        <button
-          onClick={handleManualRefresh}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Vernieuwen...' : 'Vernieuwen'}
-        </button>
-      </div>
+    <div className="space-y-6">
+      <ScheduleForm companies={companies} onRefresh={fetchSchedules} />
 
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-        {schedules.map((schedule: any) => (
-          <ScheduleCard key={schedule.id} schedule={schedule} />
-        ))}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Laatste update: {lastRefresh.toLocaleTimeString()}
+          </div>
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Vernieuwen...' : 'Vernieuwen'}
+          </button>
+        </div>
+
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+          {schedules.map((schedule: any) => (
+            <ScheduleCard key={schedule.id} schedule={schedule} onRefresh={fetchSchedules} />
+          ))}
+        </div>
       </div>
     </div>
   )

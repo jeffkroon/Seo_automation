@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 
 interface ScheduleCardProps {
   schedule: any
+  onRefresh?: () => void
 }
 
 function formatPreview(markdown?: string, length = 220) {
@@ -42,7 +43,7 @@ function transformMarkdown(markdown?: string): string {
   return cleaned
 }
 
-export function ScheduleCard({ schedule }: ScheduleCardProps) {
+export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -244,7 +245,11 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
       body: JSON.stringify({ active: value }),
     })
 
-    startTransition(() => router.refresh())
+    if (onRefresh) {
+      onRefresh()
+    } else {
+      startTransition(() => router.refresh())
+    }
   }
 
   async function handleDelete() {
@@ -256,7 +261,11 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
         console.error('Failed to delete schedule', await res.text())
         return
       }
-      startTransition(() => router.refresh())
+      if (onRefresh) {
+        onRefresh()
+      } else {
+        startTransition(() => router.refresh())
+      }
     } finally {
       setIsDeleting(false)
     }
