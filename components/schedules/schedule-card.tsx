@@ -137,29 +137,9 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
             {schedule.id}
           </span>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-xl">
-            {schedule.focus_keyword || schedule.keyword || 'Onbekend keyword'}
-          </CardTitle>
-          {preparedMarkdown && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs font-medium flex items-center gap-1"
-              onClick={() => setArticleExpanded((prev) => !prev)}
-            >
-              {articleExpanded ? (
-                <>
-                  <ChevronDown className="h-4 w-4" /> Inklappen
-                </>
-              ) : (
-                <>
-                  <ChevronRight className="h-4 w-4" /> Uitklappen
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-xl">
+          {schedule.focus_keyword || schedule.keyword || 'Onbekend keyword'}
+        </CardTitle>
         <dl className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div>
             <dt className="font-medium text-foreground">Interval</dt>
@@ -218,18 +198,34 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
           <h3 className="text-sm font-semibold text-muted-foreground">Laatste artikel</h3>
           {!preparedMarkdown ? (
             <p className="text-sm text-muted-foreground">Nog geen artikel ontvangen.</p>
-          ) : articleExpanded ? (
-            containsHtml ? (
-              <HtmlSection html={preparedMarkdown} className={markdownClass} />
-            ) : (
-              <div className={markdownClass}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {preparedMarkdown}
-                </ReactMarkdown>
-              </div>
-            )
           ) : (
-            <p className="text-sm leading-relaxed text-muted-foreground">{articlePreview}</p>
+            <div className="space-y-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs font-medium flex items-center gap-1"
+                onClick={() => setArticleExpanded((prev) => !prev)}
+              >
+                {articleExpanded ? (
+                  <>
+                    <ChevronDown className="h-4 w-4" /> Inklappen
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="h-4 w-4" /> Uitklappen
+                  </>
+                )}
+              </Button>
+              {articleExpanded ? (
+                <div className={markdownClass}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {preparedMarkdown}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed text-muted-foreground">{articlePreview}</p>
+              )}
+            </div>
           )}
         </div>
 
