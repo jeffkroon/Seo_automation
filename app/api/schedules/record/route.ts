@@ -3,7 +3,18 @@ import { supabaseRest } from '@/lib/supabase-rest'
 
 export async function POST(req: Request) {
   try {
-    const payload = await req.json()
+    const rawBody = await req.text()
+    if (!rawBody) {
+      return NextResponse.json({ error: 'Lege body ontvangen' }, { status: 400 })
+    }
+
+    let payload: any
+    try {
+      payload = JSON.parse(rawBody)
+    } catch (err) {
+      console.error('Kon body niet parsen als JSON:', rawBody)
+      return NextResponse.json({ error: 'Body is geen geldige JSON' }, { status: 400 })
+    }
 
     const scheduleId = payload.scheduleId ?? payload.id
     if (!scheduleId) {
