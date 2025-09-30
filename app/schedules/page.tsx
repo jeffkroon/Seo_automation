@@ -2,6 +2,7 @@ import { supabaseRest } from '@/lib/supabase-rest'
 import { ScheduleForm } from '@/components/schedules/schedule-form'
 import { ScheduleCard } from '@/components/schedules/schedule-card'
 import { Header } from '@/components/header'
+import { SchedulesClient } from '@/components/schedules/schedules-client'
 
 function resolveBaseUrl() {
   const publicBase = process.env.NEXT_PUBLIC_BASE_URL
@@ -39,18 +40,7 @@ export default async function SchedulesPage() {
 
         <ScheduleForm companies={companies} />
 
-        {schedules.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-            Nog geen schedule resultaten ontvangen. Configureer de n8n workflow om de output naar
-            <code className="mx-1 rounded bg-muted px-1.5 py-0.5">/api/schedules/record</code> te posten.
-          </div>
-        ) : (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-            {schedules.map((schedule: any) => (
-              <ScheduleCard key={schedule.id} schedule={schedule} />
-            ))}
-          </div>
-        )}
+        <SchedulesClient initialSchedules={schedules} />
       </main>
     </div>
   )
