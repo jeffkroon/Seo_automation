@@ -124,7 +124,7 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
   }
 
   return (
-    <Card className="border bg-card/80 backdrop-blur-sm">
+    <Card className="border border-primary/10 bg-[#f5f0ff]">
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
               </div>
             )
           ) : (
-            <p className="text-sm leading-relaxed text-foreground">{articlePreview}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{articlePreview}</p>
           )}
         </div>
 
@@ -267,7 +267,7 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
                 </div>
               )
             ) : (
-              <p className="text-sm leading-relaxed text-foreground">{faqPreview}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{faqPreview}</p>
             )}
           </div>
         )}
