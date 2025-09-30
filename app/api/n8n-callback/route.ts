@@ -7,10 +7,17 @@ export async function POST(req: Request) {
     console.log('=== N8N CALLBACK RECEIVED ===');
     const secret = req.headers.get('x-callback-secret');
     if (process.env.CALLBACK_SECRET && secret !== process.env.CALLBACK_SECRET) {
+      console.log('=== CALLBACK SECRET MISMATCH ===');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      console.error('=== JSON PARSE ERROR ===', jsonError);
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     console.log('=== RAW CALLBACK BODY ===');
     console.log(JSON.stringify(body, null, 2));
     console.log('=== END RAW BODY ===');
@@ -71,15 +78,21 @@ export async function POST(req: Request) {
         return
       }
       const isLastEntry = index === entries.length - 1
-      storeJobResult(jobId, {
-        article: entry.article,
-        faqs: entry.faqs,
-        metaTitle: entry.metaTitle,
-        metaDescription: entry.metaDescription,
-        generatedAt: entry.generatedAt,
-        sequence: entry.sequence,
-        markComplete: markComplete && isLastEntry,
-      })
+      try {
+        storeJobResult(jobId, {
+          article: entry.article,
+          faqs: entry.faqs,
+          metaTitle: entry.metaTitle,
+          metaDescription: entry.metaDescription,
+          generatedAt: entry.generatedAt,
+          sequence: entry.sequence,
+          markComplete: markComplete && isLastEntry,
+        })
+        console.log(`Successfully stored entry ${index + 1} for job ${jobId}`)
+      } catch (storeError) {
+        console.error(`Failed to store entry ${index + 1} for job ${jobId}:`, storeError)
+        throw storeError
+      }
     })
 
     console.log('Stored job results:', {
@@ -87,12 +100,14 @@ export async function POST(req: Request) {
       entries: entries.length,
       markComplete,
     })
-    return NextResponse.json({ ok: true });
+    
+    const response = { ok: true };
+    console.log('=== SENDING RESPONSE ===', response);
+    return NextResponse.json(response);
   } catch (err: any) {
-    console.error('Callback error:', err);
-    return NextResponse.json(
-      { error: err?.message || 'Onbekende fout' },
-      { status: 500 }
-    );
+    console.error('=== CALLBACK ERROR ===', err);
+    const errorResponse = { error: err?.message || 'Onbekende fout' };
+    console.log('=== SENDING ERROR RESPONSE ===', errorResponse);
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }

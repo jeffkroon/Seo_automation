@@ -48,14 +48,24 @@ export async function supabaseRest<T = any>(
     cache: 'no-store',
   })
 
+  const rawText = await response.text().catch(() => '')
+
   if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(`Supabase request failed (${response.status}): ${text}`)
+    throw new Error(`Supabase request failed (${response.status}): ${rawText}`)
   }
 
-  if (response.status === 204) {
+  if (!rawText || response.status === 204) {
     return null as T
   }
 
-  return (await response.json()) as T
+  try {
+    return JSON.parse(rawText) as T
+  } catch (err) {
+    console.error('Failed to parse Supabase response', {
+      path,
+      method,
+      rawText,
+    })
+    throw new Error(`Unexpected Supabase response format: ${(err as Error).message}`)
+  }
 }
