@@ -41,7 +41,6 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
       companyId,
       focusKeyword: formData.get('focusKeyword') || '',
       extraKeywords: formData.get('extraKeywords') || '',
-      extraHeadings: formData.get('extraHeadings') || '',
       language,
       country,
       articleType: formData.get('articleType') || '',
@@ -136,10 +135,6 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
         <div className="space-y-2">
           <Label htmlFor="extraKeywords">Extra zoekwoorden</Label>
           <Input id="extraKeywords" name="extraKeywords" placeholder="scheid met komma's" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="extraHeadings">Extra headings</Label>
-          <Input id="extraHeadings" name="extraHeadings" placeholder="scheid met komma's" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="articleType">Artikeltype</Label>
