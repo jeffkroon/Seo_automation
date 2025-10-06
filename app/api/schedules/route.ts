@@ -73,6 +73,7 @@ export async function POST(req: Request) {
       company_id: body.companyId,
       focus_keyword: body.focusKeyword,
       extra_keywords: Array.isArray(body.extraKeywords) ? body.extraKeywords : body.extraKeywords?.split(',').map((v: string) => v.trim()).filter(Boolean) ?? [],
+      extra_headings: body.extraHeadings || '',
       language,
       country,
       company_name: body.companyName,

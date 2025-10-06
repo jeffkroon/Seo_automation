@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { ContentGenerationForm } from "@/components/content-generation-form"
 import { ArticleResults } from "@/components/article-results"
 import { Header } from "@/components/header"
@@ -25,10 +26,40 @@ interface JobStatusState {
 }
 
 export default function HomePage() {
+  const searchParams = useSearchParams()
   const [articles, setArticles] = useState<ArticleSection[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
   const [jobStatus, setJobStatus] = useState<JobStatusState | null>(null)
+  const [initialFormData, setInitialFormData] = useState<{
+    focusKeyword: string
+    country: string
+    language: string
+    webpageLink: string
+    company: string
+    additionalKeywords: string
+    additionalHeadings: string
+    articleType: string
+  } | null>(null)
+
+  // Read URL parameters and set initial form data
+  useEffect(() => {
+    const params = {
+      focusKeyword: searchParams.get('Focus Keyword') || '',
+      country: searchParams.get('Country') || '',
+      language: searchParams.get('taal') || '',
+      webpageLink: searchParams.get('Link webpagina') || '',
+      company: searchParams.get('bedrijf') || '',
+      additionalKeywords: searchParams.get('Aanvullende Zoekwoorden') || '',
+      additionalHeadings: searchParams.get('Aanvullende Headings') || '',
+      articleType: searchParams.get('Soort Artikel') || '',
+    }
+    
+    // Only set if at least one parameter is provided
+    if (Object.values(params).some(value => value !== '')) {
+      setInitialFormData(params)
+    }
+  }, [searchParams])
 
   const handleGenerate = async (formData: {
     focusKeyword: string
@@ -215,7 +246,11 @@ export default function HomePage() {
             </p>
           </div>
 
-          <ContentGenerationForm onGenerate={handleGenerate} isLoading={isLoading} />
+          <ContentGenerationForm 
+            onGenerate={handleGenerate} 
+            isLoading={isLoading} 
+            initialData={initialFormData}
+          />
 
           {isLoading && (
             <LoadingState

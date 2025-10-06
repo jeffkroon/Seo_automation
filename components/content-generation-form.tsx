@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,23 +23,59 @@ interface ContentGenerationFormProps {
     articleType?: string
   }) => void
   isLoading: boolean
+  initialData?: {
+    focusKeyword: string
+    country: string
+    language: string
+    webpageLink: string
+    company: string
+    additionalKeywords: string
+    additionalHeadings: string
+    articleType: string
+  } | null
 }
 
-export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerationFormProps) {
+export function ContentGenerationForm({ onGenerate, isLoading, initialData }: ContentGenerationFormProps) {
   const [formData, setFormData] = useState({
-    focusKeyword: "",
-    country: "",
-    language: "",
-    webpageLink: "",
-    company: "",
-    additionalKeywords: "",
-    additionalHeadings: "",
-    articleType: "",
+    focusKeyword: initialData?.focusKeyword || "",
+    country: initialData?.country || "",
+    language: initialData?.language || "",
+    webpageLink: initialData?.webpageLink || "",
+    company: initialData?.company || "",
+    additionalKeywords: initialData?.additionalKeywords || "",
+    additionalHeadings: initialData?.additionalHeadings || "",
+    articleType: initialData?.articleType || "",
   })
-  const [keywords, setKeywords] = useState<string[]>([])
+  const [keywords, setKeywords] = useState<string[]>(
+    initialData?.additionalKeywords ? initialData.additionalKeywords.split(',').map(k => k.trim()).filter(Boolean) : []
+  )
   const [newKeyword, setNewKeyword] = useState("")
-  const [headings, setHeadings] = useState<string[]>([])
+  const [headings, setHeadings] = useState<string[]>(
+    initialData?.additionalHeadings ? initialData.additionalHeadings.split(',').map(h => h.trim()).filter(Boolean) : []
+  )
   const [newHeading, setNewHeading] = useState("")
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        focusKeyword: initialData.focusKeyword || "",
+        country: initialData.country || "",
+        language: initialData.language || "",
+        webpageLink: initialData.webpageLink || "",
+        company: initialData.company || "",
+        additionalKeywords: initialData.additionalKeywords || "",
+        additionalHeadings: initialData.additionalHeadings || "",
+        articleType: initialData.articleType || "",
+      })
+      setKeywords(
+        initialData.additionalKeywords ? initialData.additionalKeywords.split(',').map(k => k.trim()).filter(Boolean) : []
+      )
+      setHeadings(
+        initialData.additionalHeadings ? initialData.additionalHeadings.split(',').map(h => h.trim()).filter(Boolean) : []
+      )
+    }
+  }, [initialData])
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
