@@ -67,6 +67,12 @@ export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
     : typeof schedule.extra_keywords === 'string'
       ? schedule.extra_keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
       : []
+  
+  const extraHeadings: string[] = Array.isArray(schedule.extra_headings)
+    ? schedule.extra_headings
+    : typeof schedule.extra_headings === 'string'
+      ? schedule.extra_headings.split(',').map((h: string) => h.trim()).filter(Boolean)
+      : []
 
   const markdownClass = useMemo(
     () => cn(
@@ -304,9 +310,20 @@ export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
         </dl>
         {extraKeywords.length > 0 && (
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Extra zoekwoorden:</span>
             {extraKeywords.map((keyword) => (
               <span key={keyword} className="rounded-full bg-muted px-2 py-1">
                 {keyword}
+              </span>
+            ))}
+          </div>
+        )}
+        {extraHeadings.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Extra headings:</span>
+            {extraHeadings.map((heading) => (
+              <span key={heading} className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">
+                {heading}
               </span>
             ))}
           </div>

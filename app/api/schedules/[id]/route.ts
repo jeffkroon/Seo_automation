@@ -17,6 +17,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             .map((v) => v.trim())
             .filter(Boolean)
     }
+    if (body.extraHeadings) {
+      updates.extra_headings = Array.isArray(body.extraHeadings)
+        ? body.extraHeadings
+        : String(body.extraHeadings)
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Geen updates aangeleverd' }, { status: 400 })
