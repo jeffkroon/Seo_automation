@@ -54,40 +54,38 @@ export function SchedulesClient({ initialSchedules, companies }: SchedulesClient
     fetchSchedules()
   }
 
-  if (schedules.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-        Nog geen schedule resultaten ontvangen. Configureer de n8n workflow om de output naar
-        <code className="mx-1 rounded bg-muted px-1.5 py-0.5">/api/schedules/record</code> te posten.
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <ScheduleForm companies={companies} onRefresh={fetchSchedules} />
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Laatste update: {lastRefresh.toLocaleTimeString()}
+      {schedules.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          <p className="mb-2">Nog geen schedules aangemaakt.</p>
+          <p className="text-sm">Maak hierboven je eerste schedule aan om te beginnen.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Laatste update: {lastRefresh.toLocaleTimeString()}
+            </div>
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Vernieuwen...' : 'Vernieuwen'}
+            </button>
           </div>
-          <button
-            onClick={handleManualRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Vernieuwen...' : 'Vernieuwen'}
-          </button>
-        </div>
 
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-          {schedules.map((schedule: any) => (
-            <ScheduleCard key={schedule.id} schedule={schedule} onRefresh={fetchSchedules} />
-          ))}
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+            {schedules.map((schedule: any) => (
+              <ScheduleCard key={schedule.id} schedule={schedule} onRefresh={fetchSchedules} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
