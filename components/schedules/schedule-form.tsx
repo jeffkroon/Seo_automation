@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Plus, X } from "lucide-react"
 
 interface CompanyOption {
   id: string
@@ -22,52 +24,132 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [active, setActive] = useState(true)
+  const [keywords, setKeywords] = useState<string[]>([])
+  const [newKeyword, setNewKeyword] = useState("")
+  const [headings, setHeadings] = useState<string[]>([])
+  const [newHeading, setNewHeading] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
 
   const hasCompanies = companies.length > 0
 
+  const addKeyword = () => {
+    if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
+      const updatedKeywords = [...keywords, newKeyword.trim()]
+      setKeywords(updatedKeywords)
+      setNewKeyword("")
+    }
+  }
+
+  const removeKeyword = (keywordToRemove: string) => {
+    const updatedKeywords = keywords.filter(k => k !== keywordToRemove)
+    setKeywords(updatedKeywords)
+  }
+
+  const addHeading = () => {
+    if (newHeading.trim() && !headings.includes(newHeading.trim())) {
+      const updatedHeadings = [...headings, newHeading.trim()]
+      setHeadings(updatedHeadings)
+      setNewHeading("")
+    }
+  }
+
+  const removeHeading = (headingToRemove: string) => {
+    const updatedHeadings = headings.filter(h => h !== headingToRemove)
+    setHeadings(updatedHeadings)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addKeyword()
+    }
+  }
+
+  const handleHeadingKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addHeading()
+    }
+  }
+
   async function handleSubmit(formData: FormData) {
-    const languageRaw = (formData.get('language') || '').toString().trim().toLowerCase()
-    const countryRaw = (formData.get('country') || '').toString().trim().toLowerCase()
-    const language = languageRaw === 'en' ? 'en' : 'nl'
-    const country = countryRaw === 'en' ? 'en' : countryRaw === 'us' ? 'us' : 'nl'
+    setIsSubmitting(true)
+    setSubmitMessage(null)
 
-    const companyId = formData.get('companyId')?.toString() || null
-    const companyNameInput = formData.get('companyName')?.toString().trim() || ''
-    const derivedCompanyName = companyId
-      ? companies.find((company) => company.id === companyId)?.name ?? ''
-      : ''
+    try {
+      const languageRaw = (formData.get('language') || '').toString().trim().toLowerCase()
+      const countryRaw = (formData.get('country') || '').toString().trim().toLowerCase()
+      const language = languageRaw === 'en' ? 'en' : 'nl'
+      const country = countryRaw === 'en' ? 'en' : countryRaw === 'us' ? 'us' : 'nl'
 
-    const payload = {
-      companyId,
-      focusKeyword: formData.get('focusKeyword') || '',
-      extraKeywords: formData.get('extraKeywords') || '',
-      extraHeadings: formData.get('extraHeadings') || '',
-      language,
-      country,
-      articleType: formData.get('articleType') || '',
-      websiteUrl: formData.get('websiteUrl') || '',
-      companyName: companyNameInput || derivedCompanyName,
-      intervalSeconds: formData.get('intervalSeconds') || '',
-      nextRunAt: formData.get('nextRunAt') || undefined,
-      active,
-    }
+      const companyId = formData.get('companyId')?.toString() || null
+      const companyNameInput = formData.get('companyName')?.toString().trim() || ''
+      const derivedCompanyName = companyId
+        ? companies.find((company) => company.id === companyId)?.name ?? ''
+        : ''
 
-    const res = await fetch('/api/schedules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
+      const payload = {
+        companyId,
+        focusKeyword: formData.get('focusKeyword') || '',
+        extraKeywords: keywords.join(', '),
+        extraHeadings: headings.join(', '),
+        language,
+        country,
+        articleType: formData.get('articleType') || '',
+        websiteUrl: formData.get('websiteUrl') || '',
+        companyName: companyNameInput || derivedCompanyName,
+        intervalSeconds: formData.get('intervalSeconds') || '',
+        nextRunAt: formData.get('nextRunAt') || undefined,
+        active,
+      }
 
-    if (!res.ok) {
-      console.error('Failed to create schedule', await res.text())
-      return
-    }
+      console.log('Submitting schedule:', payload)
 
-    setActive(true)
-    if (onRefresh) {
-      onRefresh()
-    } else {
-      startTransition(() => router.refresh())
+      const res = await fetch('/api/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('Failed to create schedule', errorText)
+        setSubmitMessage({
+          type: 'error',
+          text: `Fout bij opslaan: ${errorText}`
+        })
+        return
+      }
+
+      // Success!
+      setSubmitMessage({
+        type: 'success',
+        text: 'Schedule succesvol opgeslagen!'
+      })
+
+      // Reset form
+      setActive(true)
+      setKeywords([])
+      setHeadings([])
+      setNewKeyword("")
+      setNewHeading("")
+
+      // Refresh data
+      if (onRefresh) {
+        onRefresh()
+      } else {
+        startTransition(() => router.refresh())
+      }
+
+    } catch (error) {
+      console.error('Error creating schedule:', error)
+      setSubmitMessage({
+        type: 'error',
+        text: 'Er is een onverwachte fout opgetreden'
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -78,7 +160,7 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
         event.preventDefault()
         const formData = new FormData(event.currentTarget)
         await handleSubmit(formData)
-        event.currentTarget.reset()
+        // Don't reset here - handleSubmit handles the reset
       }}
     >
       {!hasCompanies && (
@@ -135,11 +217,95 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="extraKeywords">Extra zoekwoorden</Label>
-          <Input id="extraKeywords" name="extraKeywords" placeholder="scheid met komma's" />
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                id="extraKeywords"
+                placeholder="bijv. SEO tips"
+                value={newKeyword}
+                onChange={(e) => setNewKeyword(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="h-11 flex-1"
+                disabled={isPending}
+              />
+              <Button
+                type="button"
+                onClick={addKeyword}
+                disabled={!newKeyword.trim() || isPending}
+                className="h-11 px-3"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {keywords.map((keyword, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    {keyword}
+                    <button
+                      type="button"
+                      onClick={() => removeKeyword(keyword)}
+                      disabled={isPending}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              Voeg zoekwoorden één voor één toe met Enter of de + knop
+            </p>
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="extraHeadings">Extra headings</Label>
-          <Input id="extraHeadings" name="extraHeadings" placeholder="scheid met komma's" />
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                id="extraHeadings"
+                placeholder="bijv. Wat is digitale marketing?"
+                value={newHeading}
+                onChange={(e) => setNewHeading(e.target.value)}
+                onKeyPress={handleHeadingKeyPress}
+                className="h-11 flex-1"
+                disabled={isPending}
+              />
+              <Button
+                type="button"
+                onClick={addHeading}
+                disabled={!newHeading.trim() || isPending}
+                className="h-11 px-3"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {headings.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {headings.map((heading, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    {heading}
+                    <button
+                      type="button"
+                      onClick={() => removeHeading(heading)}
+                      disabled={isPending}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              Voeg headings één voor één toe met Enter of de + knop
+            </p>
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="articleType">Artikeltype</Label>
@@ -171,13 +337,23 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
         </div>
       </div>
 
+      {submitMessage && (
+        <div className={`rounded-lg p-3 text-sm ${
+          submitMessage.type === 'success' 
+            ? 'bg-green-50 text-green-800 border border-green-200' 
+            : 'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {submitMessage.text}
+        </div>
+      )}
+
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Switch id="active" checked={active} onCheckedChange={setActive} />
+          <Switch id="active" checked={active} onCheckedChange={setActive} disabled={isSubmitting} />
           <Label htmlFor="active">Schedule actief</Label>
         </div>
-        <Button type="submit" disabled={isPending || !hasCompanies}>
-          {isPending ? 'Opslaan…' : 'Schedule opslaan'}
+        <Button type="submit" disabled={isSubmitting || !hasCompanies}>
+          {isSubmitting ? 'Opslaan…' : 'Schedule opslaan'}
         </Button>
       </div>
     </form>
