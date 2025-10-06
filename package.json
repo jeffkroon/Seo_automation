@@ -5,7 +5,7 @@
   "description": "AI-powered SEO automation tool for content generation and optimization",
   "packageManager": "pnpm@10.18.0",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.20.4"
   },
   "scripts": {
     "build": "next build",

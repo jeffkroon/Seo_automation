@@ -10,6 +10,7 @@ import { LoadingState } from "@/components/loading-state"
 
 // Disable static generation for this page since it uses search params
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 type SectionKind = 'article' | 'faq' | 'meta'
 
@@ -29,7 +30,7 @@ interface JobStatusState {
   lastUpdatedAt?: string
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const searchParams = useSearchParams()
   const [articles, setArticles] = useState<ArticleSection[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -271,4 +272,8 @@ export default function HomePage() {
       </main>
     </div>
   )
+}
+
+export default function HomePage() {
+  return <HomePageContent />
 }
