@@ -71,7 +71,11 @@ export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
   const extraHeadings: string[] = Array.isArray(schedule.extra_headings)
     ? schedule.extra_headings.filter(Boolean)
     : typeof schedule.extra_headings === 'string'
-      ? schedule.extra_headings.split(',').map((h: string) => h.trim()).filter(Boolean)
+      ? schedule.extra_headings
+          .replace(/^\[|\]$/g, '') // Remove outer brackets
+          .split(/",\s*"/) // Split on ", " pattern
+          .map((h: string) => h.replace(/^"|"$/g, '').trim()) // Remove quotes and trim
+          .filter(Boolean)
       : []
 
   const markdownClass = useMemo(
