@@ -69,7 +69,7 @@ export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
       : []
   
   const extraHeadings: string[] = Array.isArray(schedule.extra_headings)
-    ? schedule.extra_headings
+    ? schedule.extra_headings.filter(Boolean)
     : typeof schedule.extra_headings === 'string'
       ? schedule.extra_headings.split(',').map((h: string) => h.trim()).filter(Boolean)
       : []
@@ -321,8 +321,8 @@ export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
         {extraHeadings.length > 0 && (
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">Extra headings:</span>
-            {extraHeadings.map((heading) => (
-              <span key={heading} className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">
+            {extraHeadings.map((heading, index) => (
+              <span key={index} className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">
                 {heading}
               </span>
             ))}
