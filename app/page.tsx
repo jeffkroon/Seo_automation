@@ -2,10 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+
 import { ContentGenerationForm } from "@/components/content-generation-form"
 import { ArticleResults } from "@/components/article-results"
 import { Header } from "@/components/header"
 import { LoadingState } from "@/components/loading-state"
+
+// Disable static generation for this page since it uses search params
+export const dynamic = 'force-dynamic'
 
 type SectionKind = 'article' | 'faq' | 'meta'
 

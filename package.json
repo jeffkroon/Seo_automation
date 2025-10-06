@@ -4,6 +4,10 @@
   "private": true,
   "description": "AI-powered SEO automation tool for content generation and optimization",
   "packageManager": "pnpm@10.18.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": "10.18.0"
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
