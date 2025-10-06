@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Wand2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Wand2, Plus, X } from "lucide-react"
 
 interface ContentGenerationFormProps {
   onGenerate: (data: {
@@ -18,6 +19,7 @@ interface ContentGenerationFormProps {
     webpageLink: string
     company: string
     additionalKeywords?: string
+    additionalHeadings?: string
     articleType?: string
   }) => void
   isLoading: boolean
@@ -31,8 +33,57 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
     webpageLink: "",
     company: "",
     additionalKeywords: "",
+    additionalHeadings: "",
     articleType: "",
   })
+  const [keywords, setKeywords] = useState<string[]>([])
+  const [newKeyword, setNewKeyword] = useState("")
+  const [headings, setHeadings] = useState<string[]>([])
+  const [newHeading, setNewHeading] = useState("")
+
+  const addKeyword = () => {
+    if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
+      const updatedKeywords = [...keywords, newKeyword.trim()]
+      setKeywords(updatedKeywords)
+      setFormData((prev) => ({ ...prev, additionalKeywords: updatedKeywords.join(", ") }))
+      setNewKeyword("")
+    }
+  }
+
+  const removeKeyword = (keywordToRemove: string) => {
+    const updatedKeywords = keywords.filter(k => k !== keywordToRemove)
+    setKeywords(updatedKeywords)
+    setFormData((prev) => ({ ...prev, additionalKeywords: updatedKeywords.join(", ") }))
+  }
+
+  const addHeading = () => {
+    if (newHeading.trim() && !headings.includes(newHeading.trim())) {
+      const updatedHeadings = [...headings, newHeading.trim()]
+      setHeadings(updatedHeadings)
+      setFormData((prev) => ({ ...prev, additionalHeadings: updatedHeadings.join(", ") }))
+      setNewHeading("")
+    }
+  }
+
+  const removeHeading = (headingToRemove: string) => {
+    const updatedHeadings = headings.filter(h => h !== headingToRemove)
+    setHeadings(updatedHeadings)
+    setFormData((prev) => ({ ...prev, additionalHeadings: updatedHeadings.join(", ") }))
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addKeyword()
+    }
+  }
+
+  const handleHeadingKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addHeading()
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -157,19 +208,102 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
               <Label htmlFor="additionalKeywords" className="text-sm font-medium">
                 Aanvullende Zoekwoorden
               </Label>
-              <Input
-                id="additionalKeywords"
-                placeholder="bijv. SEO tips, marketing strategie, content"
-                value={formData.additionalKeywords}
-                onChange={(e) => setFormData((prev) => ({ ...prev, additionalKeywords: e.target.value }))}
-                className="h-11"
-                disabled={isLoading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Scheid meerdere zoekwoorden met komma's
-              </p>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    id="additionalKeywords"
+                    placeholder="bijv. SEO tips"
+                    value={newKeyword}
+                    onChange={(e) => setNewKeyword(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="h-11 flex-1"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    onClick={addKeyword}
+                    disabled={!newKeyword.trim() || isLoading}
+                    className="h-11 px-3"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                {keywords.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {keywords.map((keyword, index) => (
+                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                        {keyword}
+                        <button
+                          type="button"
+                          onClick={() => removeKeyword(keyword)}
+                          disabled={isLoading}
+                          className="ml-1 hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground">
+                  Voeg zoekwoorden één voor één toe met Enter of de + knop
+                </p>
+              </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="additionalHeadings" className="text-sm font-medium">
+                Aanvullende Headings
+              </Label>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    id="additionalHeadings"
+                    placeholder="bijv. Wat is digitale marketing?"
+                    value={newHeading}
+                    onChange={(e) => setNewHeading(e.target.value)}
+                    onKeyPress={handleHeadingKeyPress}
+                    className="h-11 flex-1"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    onClick={addHeading}
+                    disabled={!newHeading.trim() || isLoading}
+                    className="h-11 px-3"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                {headings.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {headings.map((heading, index) => (
+                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                        {heading}
+                        <button
+                          type="button"
+                          onClick={() => removeHeading(heading)}
+                          disabled={isLoading}
+                          className="ml-1 hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground">
+                  Voeg headings één voor één toe met Enter of de + knop
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="articleType" className="text-sm font-medium">
                 Soort Artikel

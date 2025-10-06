@@ -37,6 +37,7 @@ export default function HomePage() {
     webpageLink: string
     company: string
     additionalKeywords?: string
+    additionalHeadings?: string
     articleType?: string
   }) => {
     setIsLoading(true)
@@ -58,6 +59,7 @@ export default function HomePage() {
           "Link webpagina": formData.webpageLink,
           "bedrijf": formData.company,
           "Aanvullende Zoekwoorden": formData.additionalKeywords || "",
+          "Aanvullende Headings": formData.additionalHeadings || "",
           "Soort Artikel": formData.articleType || "",
         }),
       })
@@ -158,7 +160,7 @@ export default function HomePage() {
             }
 
             return entries
-          }).sort((a, b) => {
+          }).sort((a: ArticleSection, b: ArticleSection) => {
             if (a.sequence !== b.sequence) return a.sequence - b.sequence
             const kindWeight = { article: 0, faq: 1, meta: 2 } as const
             return kindWeight[a.kind] - kindWeight[b.kind]
