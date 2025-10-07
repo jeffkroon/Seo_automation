@@ -35,10 +35,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<CompanyUser[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isAdding, setIsAdding] = useState(false)
   const [isInviting, setIsInviting] = useState(false)
-  const [newUserEmail, setNewUserEmail] = useState("")
-  const [newUserRole, setNewUserRole] = useState("user")
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("user")
   const [error, setError] = useState("")
@@ -72,7 +69,38 @@ export default function AdminUsersPage() {
       
       if (usersResponse.ok) {
         const data = await usersResponse.json()
-        setUsers(data.memberships || [])
+        const memberships = data.memberships || []
+        
+        // Fetch user details separately
+        if (memberships.length > 0) {
+          const userIds = memberships.map((m: any) => m.user_id)
+          const userDetailsResponse = await apiClient('/api/admin/user-details', {
+            method: 'POST',
+            body: JSON.stringify({ userIds })
+          })
+          
+          if (userDetailsResponse.ok) {
+            const userDetailsData = await userDetailsResponse.json()
+            const userDetailsMap = new Map(
+              userDetailsData.userDetails.map((u: any) => [u.id, u])
+            )
+            
+            // Enrich memberships with user details
+            const enrichedMemberships = memberships.map((membership: any) => ({
+              ...membership,
+              users: userDetailsMap.get(membership.user_id) || {
+                id: membership.user_id,
+                email: `user-${membership.user_id.substring(0, 8)}`
+              }
+            }))
+            
+            setUsers(enrichedMemberships)
+          } else {
+            setUsers(memberships)
+          }
+        } else {
+          setUsers(memberships)
+        }
       } else {
         const errorData = await usersResponse.json()
         setError(errorData.error || 'Fout bij ophalen gebruikers')
@@ -89,38 +117,6 @@ export default function AdminUsersPage() {
     }
   }
 
-  const addUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newUserEmail.trim()) return
-
-    try {
-      setIsAdding(true)
-      setError("")
-      setSuccess("")
-
-      const response = await apiClient('/api/admin/users', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: newUserEmail.trim(),
-          role: newUserRole
-        })
-      })
-
-      if (response.ok) {
-        setSuccess('Gebruiker succesvol toegevoegd!')
-        setNewUserEmail("")
-        setNewUserRole("user")
-        fetchUsers() // Refresh the list
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Fout bij toevoegen gebruiker')
-      }
-    } catch (error) {
-      setError('Fout bij toevoegen gebruiker')
-    } finally {
-      setIsAdding(false)
-    }
-  }
 
   const sendInvitation = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -309,64 +305,6 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {/* Add Existing User Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Bestaande Gebruiker Toevoegen
-          </CardTitle>
-          <CardDescription>
-            Voeg een bestaande gebruiker toe aan je bedrijf (als ze al een account hebben)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={addUser} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Adres</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="gebruiker@example.com"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="role">Rol</Label>
-                <Select value={newUserRole} onValueChange={setNewUserRole}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">Gebruiker</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-end">
-                <Button type="submit" disabled={isAdding} className="w-full">
-                  {isAdding ? (
-                    <>
-                      <Plus className="h-4 w-4 mr-2 animate-spin" />
-                      Toevoegen...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Toevoegen
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
 
       {/* Pending Invitations */}
       {invitations.length > 0 && (

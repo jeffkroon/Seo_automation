@@ -21,31 +21,8 @@ export async function GET(req: Request) {
       },
     )
 
-    // Get user details from auth.users using listUsers and filter
-    let allAuthUsers: any[] = []
-    try {
-      const { data: authUsersData, error: authError } = await supabase.auth.admin.listUsers()
-      if (!authError && authUsersData) {
-        allAuthUsers = authUsersData.users
-      }
-    } catch (error) {
-      console.error('Error fetching all users:', error)
-    }
-
-    // Enrich memberships with user details
-    const enrichedMemberships = memberships.map((membership) => {
-      const authUser = allAuthUsers.find(u => u.id === membership.user_id)
-      
-      return {
-        ...membership,
-        users: {
-          id: membership.user_id,
-          email: authUser?.email || 'Unknown User'
-        }
-      }
-    })
-
-    return NextResponse.json({ memberships: enrichedMemberships })
+    // Return memberships with user IDs - frontend will fetch user details separately
+    return NextResponse.json({ memberships })
   } catch (error: any) {
     console.error('Error fetching company members:', error)
     return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
@@ -67,62 +44,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email is verplicht' }, { status: 400 })
     }
 
-    // First, check if user exists in auth.users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
-    
-    if (authError) {
-      return NextResponse.json({ 
-        error: 'Fout bij ophalen gebruikers: ' + authError.message 
-      }, { status: 500 })
-    }
-
-    const user = authUsers.users.find(u => u.email === email.toLowerCase())
-
-    if (!user) {
-      return NextResponse.json({ 
-        error: 'User met dit email adres bestaat niet. Ze moeten zich eerst registreren.' 
-      }, { status: 404 })
-    }
-
-    // Check if user is already a member
-    const existingMembership = await supabaseRest<any[]>(
-      'memberships',
-      { 
-        headers: { 'x-company-id': companyId },
-        searchParams: { 
-          user_id: `eq.${user.id}`,
-          company_id: `eq.${companyId}`
-        }
-      },
-    )
-
-    if (existingMembership && existingMembership.length > 0) {
-      return NextResponse.json({ 
-        error: 'User is al lid van dit bedrijf.' 
-      }, { status: 409 })
-    }
-
-    // Add user to company
-    const membership = await supabaseRest(
-      'memberships',
-      {
-        method: 'POST',
-        headers: { 'x-company-id': companyId },
-        body: {
-          user_id: user.id,
-          company_id: companyId,
-          role: role
-        }
-      }
-    )
-
+    // Instead of adding existing users directly, redirect to invitation system
     return NextResponse.json({ 
-      success: true, 
-      message: 'User succesvol toegevoegd aan het bedrijf.',
-      membership 
-    })
+      error: 'Gebruik het invitation systeem om nieuwe gebruikers toe te voegen. Ga naar "Nieuwe Gebruiker Uitnodigen" sectie.',
+      redirect_to_invitation: true
+    }, { status: 400 })
   } catch (error: any) {
-    console.error('Error adding user to company:', error)
+    console.error('Error in user management:', error)
     return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
   }
 }
