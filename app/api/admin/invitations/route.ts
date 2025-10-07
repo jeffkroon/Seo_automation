@@ -44,23 +44,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email is verplicht' }, { status: 400 })
     }
 
-    // Check if user already exists
-    const { data: authUsers } = await supabaseRest<any[]>(
-      'auth.users',
-      { 
-        headers: { 'x-company-id': companyId },
-        searchParams: { email: `eq.${email}` }
-      },
-    )
-
-    if (authUsers && authUsers.length > 0) {
-      return NextResponse.json({ 
-        error: 'User met dit email adres bestaat al. Gebruik de "Gebruikers" pagina om ze toe te voegen.' 
-      }, { status: 409 })
-    }
+    // Skip user existence check - we'll handle this during registration
 
     // Check if invitation already exists
-    const { data: existingInvitations } = await supabaseRest<any[]>(
+    const existingInvitations = await supabaseRest<any[]>(
       'invitations',
       { 
         headers: { 'x-company-id': companyId },
