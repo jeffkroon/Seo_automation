@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { Suspense } from "react"
 import { CompanySwitcher } from "@/components/company-switcher"
+import { useAuth } from "@/hooks/use-auth"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -38,6 +39,16 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const { user, logout } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await logout()
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,11 +112,17 @@ export default function DashboardLayout({
             <div className="border-t border-sidebar-border p-4">
               <div className="flex items-center space-x-3 mb-4">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">JD</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                    {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">John Doe</p>
-                  <p className="text-xs text-muted-foreground truncate">john@company.com</p>
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {user?.companyName || 'User'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.email || 'user@example.com'}
+                  </p>
                 </div>
               </div>
               <div className="space-y-1">
@@ -113,7 +130,12 @@ export default function DashboardLayout({
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-sidebar-foreground"
+                  onClick={handleSignOut}
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign out
                 </Button>
