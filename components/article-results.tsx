@@ -379,17 +379,6 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         })}
       </div>
 
-      <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="p-6 text-center">
-          <h3 className="text-lg font-semibold mb-2">Klaar voor integratie?</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Vervang de mock data in de form handler met je echte webhook endpoint om echte content te genereren.
-          </p>
-          <Badge variant="outline" className="text-xs">
-            Webhook Integratie Klaar
-          </Badge>
-        </CardContent>
-      </Card>
     </div>
   )
 }

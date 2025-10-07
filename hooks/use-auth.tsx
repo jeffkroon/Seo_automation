@@ -27,11 +27,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for existing session
-    const savedUser = localStorage.getItem("seo-factory-user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          // Get user's companies and memberships
+          const { data: memberships } = await supabase
+            .from('memberships')
+            .select(`
+              role,
+              companies (
+                id,
+                name
+              )
+            `)
+            .eq('user_id', session.user.id)
+
+          if (memberships && memberships.length > 0) {
+            const firstMembership = memberships[0]
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email!,
+              companyId: firstMembership.companies.id,
+              companyName: firstMembership.companies.name,
+              role: firstMembership.role as "admin" | "user",
+            }
+            setUser(user)
+            localStorage.setItem("seo-factory-user", JSON.stringify(user))
+          }
+        } else {
+          // Check localStorage as fallback
+          const savedUser = localStorage.getItem("seo-factory-user")
+          if (savedUser) {
+            setUser(JSON.parse(savedUser))
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error)
+        // Fallback to localStorage
+        const savedUser = localStorage.getItem("seo-factory-user")
+        if (savedUser) {
+          setUser(JSON.parse(savedUser))
+        }
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setIsLoading(false)
+
+    checkSession()
   }, [])
 
   const login = async (email: string, password: string) => {
