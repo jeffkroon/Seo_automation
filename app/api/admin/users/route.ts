@@ -21,37 +21,29 @@ export async function GET(req: Request) {
       },
     )
 
-    // Get user details from auth.users (since we don't have a separate users table)
-    const enrichedMemberships = await Promise.all(
-      memberships.map(async (membership) => {
-        try {
-          // Get user details from auth.users
-          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(membership.user_id)
-          
-          if (authUser && authUser.user) {
-            return {
-              ...membership,
-              users: {
-                id: authUser.user.id,
-                email: authUser.user.email
-              }
-            }
-          }
-          
-          // Fallback: return membership without user details
-          return {
-            ...membership,
-            users: { id: membership.user_id, email: 'Unknown User' }
-          }
-        } catch (error) {
-          console.error('Error fetching user details:', error)
-          return {
-            ...membership,
-            users: { id: membership.user_id, email: 'Unknown User' }
-          }
+    // Get user details from auth.users using listUsers and filter
+    let allAuthUsers: any[] = []
+    try {
+      const { data: authUsersData, error: authError } = await supabase.auth.admin.listUsers()
+      if (!authError && authUsersData) {
+        allAuthUsers = authUsersData.users
+      }
+    } catch (error) {
+      console.error('Error fetching all users:', error)
+    }
+
+    // Enrich memberships with user details
+    const enrichedMemberships = memberships.map((membership) => {
+      const authUser = allAuthUsers.find(u => u.id === membership.user_id)
+      
+      return {
+        ...membership,
+        users: {
+          id: membership.user_id,
+          email: authUser?.email || 'Unknown User'
         }
-      })
-    )
+      }
+    })
 
     return NextResponse.json({ memberships: enrichedMemberships })
   } catch (error: any) {
