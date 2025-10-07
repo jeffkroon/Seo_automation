@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Wand2, Plus, X } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 interface ContentGenerationFormProps {
   onGenerate: (data: {
@@ -26,12 +27,14 @@ interface ContentGenerationFormProps {
 }
 
 export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerationFormProps) {
+  const { user } = useAuth()
+  
   const [formData, setFormData] = useState({
     focusKeyword: "",
     country: "",
     language: "",
     webpageLink: "",
-    company: "",
+    company: user?.companyName || "",
     additionalKeywords: "",
     additionalHeadings: "",
     articleType: "",
@@ -40,6 +43,13 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
   const [newKeyword, setNewKeyword] = useState("")
   const [headings, setHeadings] = useState<string[]>([])
   const [newHeading, setNewHeading] = useState("")
+
+  // Update company when user changes
+  useEffect(() => {
+    if (user?.companyName) {
+      setFormData(prev => ({ ...prev, company: user.companyName }))
+    }
+  }, [user])
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
@@ -173,19 +183,6 @@ export function ContentGenerationForm({ onGenerate, isLoading }: ContentGenerati
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="company" className="text-sm font-medium">
-                Bedrijfsnaam *
-              </Label>
-              <Input
-                id="company"
-                placeholder="bijv. Uw Bedrijf BV"
-                value={formData.company}
-                onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
-                className="h-11"
-                disabled={isLoading}
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
