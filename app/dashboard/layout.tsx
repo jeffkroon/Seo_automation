@@ -20,6 +20,7 @@ import {
   Settings,
   LogOut,
   Home,
+  Users,
 } from "lucide-react"
 import { Suspense } from "react"
 import { CompanySwitcher } from "@/components/company-switcher"
@@ -30,6 +31,7 @@ const navigation = [
   { name: "Copywriter", href: "/dashboard/keywords", icon: Search },
   { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar },
   { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp },
+  { name: "Gebruikers", href: "/dashboard/admin", icon: Users },
 ]
 
 export default function DashboardLayout({

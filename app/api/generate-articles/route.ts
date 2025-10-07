@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       console.error('n8n returned error:', data);
       return NextResponse.json(
         { 
-          error: data.message || 'Service tijdelijk niet beschikbaar. Probeer het later opnieuw.',
+          error: data.message || 'Too many users at the moment, please try again later.',
           error_code: data.error_code || 'SERVICE_UNAVAILABLE'
         },
         { status: 503 }
