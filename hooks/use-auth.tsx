@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('companies')
         .insert({
           name: companyName,
+          domain: `${companyName.toLowerCase().replace(/\s+/g, '')}.com`, // Generate domain from company name
           created_by: authData.user.id,
         })
         .select()
