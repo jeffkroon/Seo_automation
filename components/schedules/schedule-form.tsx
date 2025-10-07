@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
 
 interface CompanyOption {
   id: string
@@ -106,12 +107,8 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
 
       console.log('Submitting schedule:', payload)
 
-      const res = await fetch('/api/schedules', {
+      const res = await apiClient('/api/schedules', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Company-Id': companyId || ''
-        },
         body: JSON.stringify(payload),
       })
 

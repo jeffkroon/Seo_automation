@@ -22,6 +22,7 @@ import {
   Home,
 } from "lucide-react"
 import { Suspense } from "react"
+import { CompanySwitcher } from "@/components/company-switcher"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -91,6 +92,13 @@ export default function DashboardLayout({
                 )
               })}
             </nav>
+
+            {/* Company Switcher */}
+            <div className="border-t border-sidebar-border p-4">
+              <div className="mb-4">
+                <CompanySwitcher />
+              </div>
+            </div>
 
             {/* User menu */}
             <div className="border-t border-sidebar-border p-4">

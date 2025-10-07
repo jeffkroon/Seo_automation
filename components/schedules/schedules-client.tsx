@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { ScheduleCard } from "@/components/schedules/schedule-card"
 import { ScheduleForm } from "@/components/schedules/schedule-form"
 import { RefreshCw } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
 
 interface SchedulesClientProps {
   initialSchedules: any[]
@@ -23,13 +24,10 @@ export function SchedulesClient({ initialSchedules, companies }: SchedulesClient
   const fetchSchedules = async () => {
     try {
       setIsRefreshing(true)
-      // TODO: Get company ID from context or props
-      const companyId = 'your-company-id' // Replace with actual company ID
-      const response = await fetch('/api/schedules', { 
+      const response = await apiClient('/api/schedules', { 
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache',
-          'X-Company-Id': companyId
+          'Cache-Control': 'no-cache'
         }
       })
       

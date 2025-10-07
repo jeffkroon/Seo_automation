@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { supabase } from "@/lib/supabase"
 
 interface User {
   id: string
@@ -34,34 +35,101 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
-    // Mock authentication - replace with real auth later
-    const mockUser: User = {
-      id: "1",
-      email,
-      companyId: "company-1",
-      companyName: "Demo Company",
-      role: "admin",
-    }
+    try {
+      // Use Supabase Auth for real authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    setUser(mockUser)
-    localStorage.setItem("seo-factory-user", JSON.stringify(mockUser))
+      if (error) throw error
+
+      // Get user's companies and memberships
+      const { data: memberships } = await supabase
+        .from('memberships')
+        .select(`
+          role,
+          companies (
+            id,
+            name
+          )
+        `)
+        .eq('user_id', data.user.id)
+
+      if (!memberships || memberships.length === 0) {
+        throw new Error('No company membership found')
+      }
+
+      // Use first company for now (later add company switcher)
+      const firstMembership = memberships[0]
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email!,
+        companyId: firstMembership.companies.id,
+        companyName: firstMembership.companies.name,
+        role: firstMembership.role as "admin" | "user",
+      }
+
+      setUser(user)
+      localStorage.setItem("seo-factory-user", JSON.stringify(user))
+    } catch (error) {
+      console.error('Login error:', error)
+      throw error
+    }
   }
 
   const register = async (email: string, password: string, companyName: string) => {
-    // Mock registration - replace with real auth later
-    const mockUser: User = {
-      id: "1",
-      email,
-      companyId: "company-1",
-      companyName,
-      role: "admin",
-    }
+    try {
+      // Register user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
-    setUser(mockUser)
-    localStorage.setItem("seo-factory-user", JSON.stringify(mockUser))
+      if (authError) throw authError
+      if (!authData.user) throw new Error('User creation failed')
+
+      // Create company
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: companyName,
+          created_by: authData.user.id,
+        })
+        .select()
+        .single()
+
+      if (companyError) throw companyError
+
+      // Create membership (user becomes owner of the company)
+      const { error: membershipError } = await supabase
+        .from('memberships')
+        .insert({
+          user_id: authData.user.id,
+          company_id: company.id,
+          role: 'owner',
+        })
+
+      if (membershipError) throw membershipError
+
+      const user: User = {
+        id: authData.user.id,
+        email: authData.user.email!,
+        companyId: company.id,
+        companyName: company.name,
+        role: "admin", // Owner has admin rights
+      }
+
+      setUser(user)
+      localStorage.setItem("seo-factory-user", JSON.stringify(user))
+    } catch (error) {
+      console.error('Registration error:', error)
+      throw error
+    }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut()
     setUser(null)
     localStorage.removeItem("seo-factory-user")
   }
