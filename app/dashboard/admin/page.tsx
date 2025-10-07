@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Mail, Shield, Trash2, UserPlus } from "lucide-react"
+import { Plus, Users, Mail, Shield, Trash2, UserPlus, Send, Copy, CheckCircle, Clock } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -20,18 +20,33 @@ interface CompanyUser {
   }
 }
 
+interface Invitation {
+  id: string
+  email: string
+  role: string
+  created_at: string
+  expires_at: string
+  used_at: string | null
+  invitation_link?: string
+}
+
 export default function AdminUsersPage() {
   const { user } = useAuth()
   const [users, setUsers] = useState<CompanyUser[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
+  const [isInviting, setIsInviting] = useState(false)
   const [newUserEmail, setNewUserEmail] = useState("")
   const [newUserRole, setNewUserRole] = useState("user")
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteRole, setInviteRole] = useState("user")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [copiedLink, setCopiedLink] = useState<string | null>(null)
 
-  // Check if user has admin rights
-  if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+  // Check if user has owner rights
+  if (!user || user.role !== 'owner') {
     return (
       <div className="p-6">
         <Card>
@@ -39,7 +54,7 @@ export default function AdminUsersPage() {
             <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Toegang Geweigerd</h2>
             <p className="text-muted-foreground">
-              Je hebt geen admin rechten om gebruikers te beheren.
+              Alleen bedrijfseigenaren kunnen gebruikers beheren.
             </p>
           </CardContent>
         </Card>
@@ -50,14 +65,22 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
-      const response = await apiClient('/api/admin/users')
+      const [usersResponse, invitationsResponse] = await Promise.all([
+        apiClient('/api/admin/users'),
+        apiClient('/api/admin/invitations')
+      ])
       
-      if (response.ok) {
-        const data = await response.json()
+      if (usersResponse.ok) {
+        const data = await usersResponse.json()
         setUsers(data.memberships || [])
       } else {
-        const errorData = await response.json()
+        const errorData = await usersResponse.json()
         setError(errorData.error || 'Fout bij ophalen gebruikers')
+      }
+
+      if (invitationsResponse.ok) {
+        const data = await invitationsResponse.json()
+        setInvitations(data.invitations || [])
       }
     } catch (error) {
       setError('Fout bij ophalen gebruikers')
@@ -99,6 +122,75 @@ export default function AdminUsersPage() {
     }
   }
 
+  const sendInvitation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inviteEmail.trim()) return
+    
+    try {
+      setIsInviting(true)
+      setError("")
+      setSuccess("")
+      
+      const response = await apiClient('/api/admin/invitations', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          email: inviteEmail.trim(),
+          role: inviteRole 
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setSuccess('Uitnodiging succesvol aangemaakt!')
+        setInviteEmail("")
+        fetchUsers()
+        
+        // Show invitation link
+        if (data.invitation?.invitation_link) {
+          setCopiedLink(data.invitation.invitation_link)
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Fout bij aanmaken uitnodiging')
+      }
+    } catch (error) {
+      setError('Fout bij aanmaken uitnodiging')
+    } finally {
+      setIsInviting(false)
+    }
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedLink(text)
+      setTimeout(() => setCopiedLink(null), 2000)
+    } catch (error) {
+      setError('Fout bij kopiëren link')
+    }
+  }
+
+  const removeUser = async (userId: string) => {
+    if (!confirm('Weet je zeker dat je deze gebruiker wilt verwijderen?')) return
+    
+    try {
+      const response = await apiClient('/api/admin/users', {
+        method: 'DELETE',
+        body: JSON.stringify({ userId })
+      })
+      
+      if (response.ok) {
+        setSuccess('Gebruiker succesvol verwijderd')
+        fetchUsers()
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Fout bij verwijderen gebruiker')
+      }
+    } catch (error) {
+      setError('Fout bij verwijderen gebruiker')
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -115,29 +207,116 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Add User Form */}
+      {/* Success/Error Messages */}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-sm text-green-600">{success}</p>
+        </div>
+      )}
+
+      {/* Send Invitation Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Nieuwe Gebruiker Uitnodigen
+          </CardTitle>
+          <CardDescription>
+            Stuur een uitnodiging naar een nieuw email adres. Ze kunnen dan een account aanmaken en worden automatisch toegevoegd aan je bedrijf.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={sendInvitation} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Email Adres</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="nieuwe@gebruiker.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="invite-role">Rol</Label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Gebruiker</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-end">
+                <Button type="submit" disabled={isInviting} className="w-full">
+                  {isInviting ? (
+                    <>
+                      <Send className="h-4 w-4 mr-2 animate-spin" />
+                      Versturen...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Uitnodiging Versturen
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {/* Show invitation link if created */}
+          {copiedLink && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-700 mb-2">
+                <strong>Uitnodigingslink aangemaakt!</strong> Kopieer deze link en stuur hem naar de gebruiker:
+              </p>
+              <div className="flex gap-2">
+                <Input 
+                  value={copiedLink} 
+                  readOnly 
+                  className="font-mono text-xs"
+                />
+                <Button 
+                  size="sm" 
+                  onClick={() => copyToClipboard(copiedLink)}
+                  variant="outline"
+                >
+                  {copiedLink === copiedLink ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Existing User Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Nieuwe Gebruiker Toevoegen
+            Bestaande Gebruiker Toevoegen
           </CardTitle>
           <CardDescription>
-            Voeg een bestaande gebruiker toe aan je bedrijf
+            Voeg een bestaande gebruiker toe aan je bedrijf (als ze al een account hebben)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-600">{success}</p>
-            </div>
-          )}
-          
           <form onSubmit={addUser} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -185,10 +364,52 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
+      {/* Pending Invitations */}
+      {invitations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Lopende Uitnodigingen ({invitations.filter(i => !i.used_at).length})
+            </CardTitle>
+            <CardDescription>
+              Uitnodigingen die nog niet zijn gebruikt
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {invitations
+                .filter(invitation => !invitation.used_at)
+                .map((invitation) => (
+                <div key={invitation.id} className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <Mail className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{invitation.email}</p>
+                      <Badge variant="secondary" className="mt-1">
+                        {invitation.role === 'admin' ? 'Admin' : 'Gebruiker'}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Verstuurd: {new Date(invitation.created_at).toLocaleDateString('nl-NL')}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-yellow-600">
+                    Wachtend
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>Bedrijfsgebruikers</CardTitle>
+          <CardTitle>Bedrijfsgebruikers ({users.length})</CardTitle>
           <CardDescription>
             Alle gebruikers die toegang hebben tot {user?.companyName}
           </CardDescription>
@@ -225,7 +446,12 @@ export default function AdminUsersPage() {
                   </div>
                   
                   {member.role !== 'owner' && (
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => removeUser(member.users.id)}
+                    >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Verwijderen
                     </Button>

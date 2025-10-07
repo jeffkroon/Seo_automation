@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,8 +17,34 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [companyName, setCompanyName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [invitationData, setInvitationData] = useState<any>(null)
+  const [isInvited, setIsInvited] = useState(false)
   const { register } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
+
+  // Check for invitation token on mount
+  useEffect(() => {
+    if (token) {
+      fetchInvitationData()
+    }
+  }, [token])
+
+  const fetchInvitationData = async () => {
+    try {
+      const response = await fetch(`/api/auth/invitation?token=${token}`)
+      if (response.ok) {
+        const data = await response.json()
+        setInvitationData(data.invitation)
+        setIsInvited(true)
+        setEmail(data.invitation.email)
+        setCompanyName(data.invitation.company_name)
+      }
+    } catch (error) {
+      console.error("Error fetching invitation:", error)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +55,13 @@ export function RegisterForm() {
 
     setIsLoading(true)
     try {
-      await register(email, password, companyName)
+      if (isInvited && token) {
+        // Use invitation-based registration
+        await registerWithInvitation(email, password, token)
+      } else {
+        // Regular registration
+        await register(email, password, companyName)
+      }
       router.push("/dashboard")
     } catch (error) {
       console.error("Registration failed:", error)
@@ -38,25 +70,60 @@ export function RegisterForm() {
     }
   }
 
+  const registerWithInvitation = async (email: string, password: string, token: string) => {
+    const response = await fetch('/api/auth/register-with-invitation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, token })
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Registration failed')
+    }
+    
+    return response.json()
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>Start your free trial today</CardDescription>
+        <CardTitle>
+          {isInvited ? "Complete Your Invitation" : "Create Account"}
+        </CardTitle>
+        <CardDescription>
+          {isInvited 
+            ? `You've been invited to join ${invitationData?.company_name}` 
+            : "Start your free trial today"
+          }
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="company">Company Name</Label>
-            <Input
-              id="company"
-              type="text"
-              placeholder="Your Company"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              required
-            />
+        {isInvited && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700">
+              <strong>Invitation Details:</strong><br />
+              Email: {invitationData?.email}<br />
+              Company: {invitationData?.company_name}<br />
+              Role: {invitationData?.role === 'admin' ? 'Admin' : 'User'}
+            </p>
           </div>
+        )}
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isInvited && (
+            <div className="space-y-2">
+              <Label htmlFor="company">Company Name</Label>
+              <Input
+                id="company"
+                type="text"
+                placeholder="Your Company"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                required
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -66,6 +133,8 @@ export function RegisterForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              readOnly={isInvited}
+              className={isInvited ? "bg-gray-50" : ""}
             />
           </div>
           <div className="space-y-2">

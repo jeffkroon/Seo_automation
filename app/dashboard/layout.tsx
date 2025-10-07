@@ -84,6 +84,11 @@ export default function DashboardLayout({
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-2">
               {navigation.map((item) => {
+                // Hide admin link for non-owners
+                if (item.href === "/dashboard/admin" && user?.role !== 'owner') {
+                  return null
+                }
+                
                 const isActive = pathname === item.href
                 return (
                   <Link
