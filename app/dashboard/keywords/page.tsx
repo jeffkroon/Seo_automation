@@ -64,17 +64,18 @@ export default function KeywordsPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
       }
 
-      const { jobId } = await response.json()
+      const responseData = await response.json()
       
-      if (!jobId) {
-        throw new Error('Geen jobId ontvangen')
+      if (!responseData.jobId) {
+        throw new Error(responseData.error || 'Geen jobId ontvangen')
       }
 
       // Start polling for results
-      await pollForResults(jobId)
+      await pollForResults(responseData.jobId)
       
     } catch (error) {
       console.error("Error generating articles:", error)
@@ -82,10 +83,14 @@ export default function KeywordsPage() {
       let errorMessage = 'Er is een fout opgetreden bij het genereren van artikelen.'
       
       if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
+        if (error.message.includes('too many users')) {
+          errorMessage = 'De service is momenteel overbelast. Probeer het over een paar minuten opnieuw.'
+        } else if (error.message.includes('fetch')) {
           errorMessage = 'Kan geen verbinding maken met de webhook. Controleer je internetverbinding en webhook URL.'
         } else if (error.message.includes('HTTP error')) {
           errorMessage = `Webhook error: ${error.message}. Controleer je n8n workflow.`
+        } else {
+          errorMessage = error.message
         }
       }
       

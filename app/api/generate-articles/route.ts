@@ -38,6 +38,18 @@ export async function POST(req: Request) {
       data = rawData;
     }
     
+    // Check if response contains an error
+    if (data.status === 'error') {
+      console.error('n8n returned error:', data);
+      return NextResponse.json(
+        { 
+          error: data.message || 'Service tijdelijk niet beschikbaar. Probeer het later opnieuw.',
+          error_code: data.error_code || 'SERVICE_UNAVAILABLE'
+        },
+        { status: 503 }
+      );
+    }
+
     // Clean jobId (remove = prefix if present)
     if (data.jobId && data.jobId.startsWith('=')) {
       data.jobId = data.jobId.substring(1);
