@@ -25,7 +25,7 @@ import { Suspense } from "react"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Keywords", href: "/dashboard/keywords", icon: Search },
+  { name: "Copywriter", href: "/dashboard/keywords", icon: Search },
   { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar },
   { name: "SERP Analysis", href: "/dashboard/serp", icon: BarChart3 },
   { name: "Rank Tracking", href: "/dashboard/rankings", icon: TrendingUp },

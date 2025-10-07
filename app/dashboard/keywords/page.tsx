@@ -201,7 +201,7 @@ export default function KeywordsPage() {
   return (
     <div className="p-6 space-y-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Content Generation</h1>
+        <h1 className="text-3xl font-semibold">Copywriter</h1>
         <p className="text-muted-foreground max-w-2xl">
           Generate SEO-optimized articles with AI-driven content creation.
         </p>

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +18,7 @@ export function RegisterForm() {
   const [companyName, setCompanyName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { register } = useAuth()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,6 +30,7 @@ export function RegisterForm() {
     setIsLoading(true)
     try {
       await register(email, password, companyName)
+      router.push("/dashboard")
     } catch (error) {
       console.error("Registration failed:", error)
     } finally {
