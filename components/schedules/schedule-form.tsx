@@ -108,7 +108,10 @@ export function ScheduleForm({ companies, onRefresh }: ScheduleFormProps) {
 
       const res = await fetch('/api/schedules', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Company-Id': companyId || ''
+        },
         body: JSON.stringify(payload),
       })
 

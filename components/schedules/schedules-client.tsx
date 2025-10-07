@@ -23,10 +23,13 @@ export function SchedulesClient({ initialSchedules, companies }: SchedulesClient
   const fetchSchedules = async () => {
     try {
       setIsRefreshing(true)
+      // TODO: Get company ID from context or props
+      const companyId = 'your-company-id' // Replace with actual company ID
       const response = await fetch('/api/schedules', { 
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'X-Company-Id': companyId
         }
       })
       

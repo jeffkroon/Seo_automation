@@ -1,11 +1,20 @@
 import { NextResponse } from 'next/server'
 import { supabaseRest } from '@/lib/supabase-rest'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const companyId = req.headers.get('x-company-id')
+    
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
+    }
+
     const schedules = await supabaseRest<any[]>(
       'schedules',
-      { searchParams: { order: 'created_at.desc' } },
+      { 
+        headers: { 'x-company-id': companyId },
+        searchParams: { order: 'created_at.desc' } 
+      },
     )
 
     const enriched = await Promise.all(
@@ -14,6 +23,7 @@ export async function GET() {
           const articles = await supabaseRest<any[]>(
             'schedule_articles',
             {
+              headers: { 'x-company-id': companyId },
               searchParams: {
                 schedule_id: `eq.${schedule.id}`,
                 order: 'generated_at.desc',
@@ -46,9 +56,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
+    const companyId = req.headers.get('x-company-id')
 
     if (!body.companyId) {
       return NextResponse.json({ error: 'companyId is verplicht' }, { status: 400 })
+    }
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
     if (!body.focusKeyword) {
       return NextResponse.json({ error: 'focusKeyword is verplicht' }, { status: 400 })
@@ -90,6 +105,7 @@ export async function POST(req: Request) {
       'schedules',
       {
         method: 'POST',
+        headers: { 'x-company-id': companyId },
         body: schedule,
         prefer: 'return=representation',
       },
