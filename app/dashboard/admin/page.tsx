@@ -174,20 +174,24 @@ export default function AdminUsersPage() {
     if (!confirm('Weet je zeker dat je deze gebruiker wilt verwijderen?')) return
     
     try {
+      setError("")
+      setSuccess("")
+      
       const response = await apiClient('/api/admin/users', {
         method: 'DELETE',
         body: JSON.stringify({ userId })
       })
       
       if (response.ok) {
-        setSuccess('Gebruiker succesvol verwijderd')
+        setSuccess('Gebruiker succesvol verwijderd uit het bedrijf')
         fetchUsers()
       } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Fout bij verwijderen gebruiker')
+        const errorData = await response.json().catch(() => ({}))
+        setError(errorData.error || `Fout bij verwijderen gebruiker (${response.status})`)
       }
-    } catch (error) {
-      setError('Fout bij verwijderen gebruiker')
+    } catch (error: any) {
+      console.error("Delete user error:", error)
+      setError(`Fout bij verwijderen gebruiker: ${error.message || 'Onbekende fout'}`)
     }
   }
 

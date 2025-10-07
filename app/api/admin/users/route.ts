@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseRest } from '@/lib/supabase-rest'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(req: Request) {
   try {
@@ -15,13 +16,44 @@ export async function GET(req: Request) {
       { 
         headers: { 'x-company-id': companyId },
         searchParams: { 
-          company_id: `eq.${companyId}`,
-          select: '*,users(email,id)'
+          company_id: `eq.${companyId}`
         } 
       },
     )
 
-    return NextResponse.json({ memberships })
+    // Get user details from auth.users (since we don't have a separate users table)
+    const enrichedMemberships = await Promise.all(
+      memberships.map(async (membership) => {
+        try {
+          // Get user details from auth.users
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(membership.user_id)
+          
+          if (authUser && authUser.user) {
+            return {
+              ...membership,
+              users: {
+                id: authUser.user.id,
+                email: authUser.user.email
+              }
+            }
+          }
+          
+          // Fallback: return membership without user details
+          return {
+            ...membership,
+            users: { id: membership.user_id, email: 'Unknown User' }
+          }
+        } catch (error) {
+          console.error('Error fetching user details:', error)
+          return {
+            ...membership,
+            users: { id: membership.user_id, email: 'Unknown User' }
+          }
+        }
+      })
+    )
+
+    return NextResponse.json({ memberships: enrichedMemberships })
   } catch (error: any) {
     console.error('Error fetching company members:', error)
     return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
@@ -44,21 +76,21 @@ export async function POST(req: Request) {
     }
 
     // First, check if user exists in auth.users
-    const { data: authUsers } = await supabaseRest<any[]>(
-      'auth.users',
-      { 
-        headers: { 'x-company-id': companyId },
-        searchParams: { email: `eq.${email}` }
-      },
-    )
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
+    
+    if (authError) {
+      return NextResponse.json({ 
+        error: 'Fout bij ophalen gebruikers: ' + authError.message 
+      }, { status: 500 })
+    }
 
-    if (!authUsers || authUsers.length === 0) {
+    const user = authUsers.users.find(u => u.email === email.toLowerCase())
+
+    if (!user) {
       return NextResponse.json({ 
         error: 'User met dit email adres bestaat niet. Ze moeten zich eerst registreren.' 
       }, { status: 404 })
     }
-
-    const user = authUsers[0]
 
     // Check if user is already a member
     const { data: existingMembership } = await supabaseRest<any[]>(
@@ -99,6 +131,49 @@ export async function POST(req: Request) {
     })
   } catch (error: any) {
     console.error('Error adding user to company:', error)
+    return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const companyId = req.headers.get('x-company-id')
+    const body = await req.json()
+    
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
+    }
+
+    const { userId } = body
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is verplicht' }, { status: 400 })
+    }
+
+    // Delete membership (this removes the user from the company)
+    try {
+      await supabaseRest(
+        'memberships',
+        {
+          method: 'DELETE',
+          headers: { 'x-company-id': companyId },
+          searchParams: {
+            user_id: `eq.${userId}`,
+            company_id: `eq.${companyId}`
+          }
+        }
+      )
+    } catch (membershipError) {
+      console.error('Error deleting membership:', membershipError)
+      return NextResponse.json({ error: 'Database error deleting user membership' }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'User succesvol verwijderd uit het bedrijf.' 
+    })
+  } catch (error: any) {
+    console.error('Error removing user from company:', error)
     return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
   }
 }
