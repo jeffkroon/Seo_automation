@@ -32,15 +32,14 @@ export function CompanySwitcher() {
     if (!user?.id) return
 
     try {
-      const response = await fetch('/api/user/companies', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('supabase-auth-token')}` // You'll need to implement this
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setCompanies(data.companies || [])
+      // For now, just use the current user's company
+      // Later we can implement multi-company support
+      if (user.companyId && user.companyName) {
+        setCompanies([{
+          id: user.companyId,
+          name: user.companyName,
+          role: user.role
+        }])
       }
     } catch (error) {
       console.error('Failed to load companies:', error)
