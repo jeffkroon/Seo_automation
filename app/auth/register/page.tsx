@@ -2,6 +2,7 @@ import { RegisterForm } from "@/components/auth/register-form"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Suspense } from "react"
 
 export default function RegisterPage() {
   return (
@@ -19,7 +20,9 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Get Started</h1>
           <p className="text-slate-600">Create your SearchFactory account</p>
         </div>
-        <RegisterForm />
+        <Suspense fallback={<div className="text-center">Loading...</div>}>
+          <RegisterForm />
+        </Suspense>
       </div>
     </div>
   )
