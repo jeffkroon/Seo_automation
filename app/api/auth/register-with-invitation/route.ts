@@ -47,24 +47,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Kon gebruiker niet aanmaken' }, { status: 500 })
     }
 
-    // Create user record in users table
-    try {
-      await supabaseRest(
-        'users',
-        {
-          method: 'POST',
-          body: {
-            id: authData.user.id,
-            email: email.toLowerCase(),
-            company_id: invitation.company_id,
-            company_name: invitation.company_name
-          }
-        }
-      )
-    } catch (userError) {
-      console.error('Error creating user record:', userError)
-      // Continue anyway, the auth user is created
-    }
+    // Note: No need to create user record since we don't have a separate users table
+    // The auth.user is sufficient for our schema
 
     // Create membership
     try {

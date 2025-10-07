@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user is already a member
-    const { data: existingMembership } = await supabaseRest<any[]>(
+    const existingMembership = await supabaseRest<any[]>(
       'memberships',
       { 
         headers: { 'x-company-id': companyId },
