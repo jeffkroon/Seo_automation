@@ -27,6 +27,16 @@ export function ClientSwitcher() {
   const { selectedClient, setSelectedClient, clients, isLoading } = useClientContext()
   const [open, setOpen] = React.useState(false)
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔄 ClientSwitcher render:', {
+      selectedClient: selectedClient?.naam,
+      clientsCount: clients.length,
+      clients: clients.map(c => ({ id: c.id, naam: c.naam })),
+      isLoading
+    })
+  }, [selectedClient, clients, isLoading])
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -63,9 +73,12 @@ export function ClientSwitcher() {
               {clients.map((client) => (
                 <CommandItem
                   key={client.id}
-                  onSelect={() => {
-                    console.log('🔄 Client selected:', client.naam, client.id)
+                  value={client.naam}
+                  onSelect={(value) => {
+                    console.log('🔄 Client selected:', client.naam, client.id, 'value:', value)
+                    console.log('🔄 About to call setSelectedClient with:', client)
                     setSelectedClient(client)
+                    console.log('🔄 setSelectedClient called, closing dialog')
                     setOpen(false)
                   }}
                   className="text-sm rounded-md my-0.5 hover:bg-primary/10 cursor-pointer transition-colors"

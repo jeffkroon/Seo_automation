@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Archive, Search, Calendar, FileText, Download, Eye, Trash2, Filter, ChevronDown, ChevronUp, Hash, Tag } from "lucide-react"
+import { Archive, Search, Calendar, FileText, Download, Eye, Trash2, Filter, ChevronDown, ChevronUp, Hash, Tag, X, ExternalLink } from "lucide-react"
 import { useClientContext } from "@/hooks/use-client-context"
 import { apiClient } from "@/lib/api-client"
 import { format } from "date-fns"
@@ -36,6 +36,8 @@ export default function ArchivePage() {
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("newest")
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
+  const [sidePanelOpen, setSidePanelOpen] = useState(false)
+  const [selectedArticle, setSelectedArticle] = useState<SavedArticle | null>(null)
 
   useEffect(() => {
     if (selectedClient) {
@@ -112,6 +114,16 @@ export default function ArchivePage() {
       }
       return next
     })
+  }
+
+  const openSidePanel = (article: SavedArticle) => {
+    setSelectedArticle(article)
+    setSidePanelOpen(true)
+  }
+
+  const closeSidePanel = () => {
+    setSidePanelOpen(false)
+    setSelectedArticle(null)
   }
 
   const downloadArticle = (article: SavedArticle) => {
@@ -261,7 +273,7 @@ export default function ArchivePage() {
             const faqPreview = article.content_faq ? createPreview(article.content_faq, 200) : null
             
             return (
-              <Card key={article.id} className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
+              <Card key={article.id} className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 bg-gradient-to-br from-card to-card/80">
                 <CardHeader className="pb-4">
                   {/* Header with badge and date */}
                   <div className="flex items-start justify-between gap-3 mb-4">
@@ -368,55 +380,17 @@ export default function ArchivePage() {
                     )}
                   </div>
 
-                  {/* Expand/Collapse Content - Beautiful button */}
+                  {/* View Full Content Button */}
                   {(article.content_article || article.content_faq) && (
-                    <div className="space-y-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleExpanded(article.id)}
-                        className="w-full justify-between h-10 border-dashed hover:border-solid transition-all"
-                      >
-                        <span className="font-medium">
-                          {isExpanded ? 'Inhoud verbergen' : 'Inhoud bekijken'}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </div>
-                      </Button>
-
-                      {isExpanded && (
-                        <div className="space-y-4 p-4 bg-gradient-to-br from-muted/20 to-muted/10 rounded-xl border border-muted/50">
-                          {article.content_article && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                                <div className="h-2 w-2 rounded-full bg-green-500" />
-                                <span>Artikel Content</span>
-                              </div>
-                              <div className="text-sm text-muted-foreground leading-relaxed max-h-40 overflow-y-auto bg-white/50 p-3 rounded-lg">
-                                {articlePreview}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {article.content_faq && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                                <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                <span>FAQ Content</span>
-                              </div>
-                              <div className="text-sm text-muted-foreground leading-relaxed max-h-40 overflow-y-auto bg-white/50 p-3 rounded-lg">
-                                {faqPreview}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openSidePanel(article)}
+                      className="w-full h-10 border-dashed hover:border-solid hover:bg-primary/5 transition-all"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Volledige tekst bekijken</span>
+                    </Button>
                   )}
 
                   {/* Actions - Modern buttons */}
@@ -444,6 +418,154 @@ export default function ArchivePage() {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {/* Side Panel for Full Content */}
+      {sidePanelOpen && selectedArticle && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeSidePanel}
+          />
+          
+          {/* Side Panel */}
+          <div className="fixed right-0 top-0 h-full w-full max-w-2xl bg-background shadow-2xl transform transition-transform duration-300 ease-in-out">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold">{selectedArticle.title}</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedArticle.focus_keyword} • {format(new Date(selectedArticle.created_at), 'dd MMM yyyy', { locale: nl })}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeSidePanel}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Article Content */}
+                {selectedArticle.content_article && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <span>Artikel Content</span>
+                    </div>
+                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {selectedArticle.content_article}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* FAQ Content */}
+                {selectedArticle.content_faq && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <div className="h-3 w-3 rounded-full bg-blue-500" />
+                      <span>FAQ Content</span>
+                    </div>
+                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {selectedArticle.content_faq}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metadata */}
+                <div className="space-y-3 pt-4 border-t">
+                  <h3 className="text-lg font-semibold">Metadata</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-muted-foreground">Type:</span>
+                      <div className="mt-1">{selectedArticle.article_type || 'Onbekend'}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-muted-foreground">Land:</span>
+                      <div className="mt-1">{selectedArticle.country || 'Niet opgegeven'}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-muted-foreground">Taal:</span>
+                      <div className="mt-1">{selectedArticle.language || 'Niet opgegeven'}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-muted-foreground">Aangemaakt:</span>
+                      <div className="mt-1">{format(new Date(selectedArticle.created_at), 'dd MMM yyyy HH:mm', { locale: nl })}</div>
+                    </div>
+                  </div>
+
+                  {/* Additional Keywords */}
+                  {selectedArticle.additional_keywords && selectedArticle.additional_keywords.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="font-medium text-muted-foreground">Aanvullende zoekwoorden:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedArticle.additional_keywords.map((keyword, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Headings */}
+                  {selectedArticle.additional_headings && selectedArticle.additional_headings.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="font-medium text-muted-foreground">Aanvullende headers:</span>
+                      <div className="space-y-1">
+                        {selectedArticle.additional_headings.map((heading, index) => (
+                          <div key={index} className="text-sm text-muted-foreground">
+                            • {heading}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-6 border-t bg-muted/30">
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => downloadArticle(selectedArticle)}
+                    className="flex-1"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      closeSidePanel()
+                      deleteArticle(selectedArticle.id)
+                    }}
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Verwijder
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
