@@ -39,23 +39,6 @@ export default function AdminClientsPage() {
   const [notities, setNotities] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
-  // Check if user has owner/admin rights
-  if (!user || (user.role !== 'owner' && user.role !== 'admin')) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Toegang Geweigerd</h2>
-            <p className="text-muted-foreground">
-              Alleen bedrijfseigenaren en admins kunnen clients beheren.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   const fetchClients = async () => {
     try {
       setIsLoading(true)
@@ -154,8 +137,27 @@ export default function AdminClientsPage() {
   }
 
   useEffect(() => {
-    fetchClients()
-  }, [])
+    if (user && (user.role === 'owner' || user.role === 'admin')) {
+      fetchClients()
+    }
+  }, [user])
+
+  // Check if user has owner/admin rights - AFTER all hooks
+  if (!user || (user.role !== 'owner' && user.role !== 'admin')) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Toegang Geweigerd</h2>
+            <p className="text-muted-foreground">
+              Alleen bedrijfseigenaren en admins kunnen clients beheren.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
