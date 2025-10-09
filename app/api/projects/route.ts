@@ -5,6 +5,7 @@ import { supabaseRest } from '@/lib/supabase-rest'
 export async function GET(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
+    const userRole = req.headers.get('x-user-role')
     
     if (!companyId) {
       return NextResponse.json({ error: 'X-Company-Id header is required' }, { status: 400 })
@@ -18,8 +19,17 @@ export async function GET(req: Request) {
       order: 'created_at.desc'
     }
 
-    if (clientId) {
+    // For viewers: MUST filter by client (their assigned client only)
+    if (userRole === 'viewer') {
+      if (!clientId) {
+        return NextResponse.json({ projects: [] }) // No client = no access
+      }
       searchParamsObj.client_id = `eq.${clientId}`
+    } else {
+      // For non-viewers: optionally filter by client
+      if (clientId) {
+        searchParamsObj.client_id = `eq.${clientId}`
+      }
     }
 
     const projects = await supabaseRest<any[]>(
@@ -42,9 +52,15 @@ export async function POST(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
     const userId = req.headers.get('x-user-id')
+    const userRole = req.headers.get('x-user-role')
     
     if (!companyId || !userId) {
       return NextResponse.json({ error: 'X-Company-Id and X-User-Id headers are required' }, { status: 400 })
+    }
+
+    // Viewers cannot create projects
+    if (userRole === 'viewer') {
+      return NextResponse.json({ error: 'Viewers hebben geen toestemming om projecten aan te maken' }, { status: 403 })
     }
 
     const { name, description, client_id } = await req.json()
@@ -98,9 +114,15 @@ export async function PATCH(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
     const userId = req.headers.get('x-user-id')
+    const userRole = req.headers.get('x-user-role')
     
     if (!companyId || !userId) {
       return NextResponse.json({ error: 'X-Company-Id and X-User-Id headers are required' }, { status: 400 })
+    }
+
+    // Viewers cannot update projects
+    if (userRole === 'viewer') {
+      return NextResponse.json({ error: 'Viewers hebben geen toestemming om projecten te bewerken' }, { status: 403 })
     }
 
     const { id, name, description, client_id } = await req.json()
@@ -152,9 +174,15 @@ export async function DELETE(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
     const userId = req.headers.get('x-user-id')
+    const userRole = req.headers.get('x-user-role')
     
     if (!companyId || !userId) {
       return NextResponse.json({ error: 'X-Company-Id and X-User-Id headers are required' }, { status: 400 })
+    }
+
+    // Viewers cannot delete projects
+    if (userRole === 'viewer') {
+      return NextResponse.json({ error: 'Viewers hebben geen toestemming om projecten te verwijderen' }, { status: 403 })
     }
 
     const { id } = await req.json()

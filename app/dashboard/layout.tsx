@@ -30,12 +30,12 @@ import { useAuth } from "@/hooks/use-auth"
 import { ClientProvider } from "@/hooks/use-client-context"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Copywriter", href: "/dashboard/keywords", icon: Search },
+  { name: "Dashboard", href: "/dashboard", icon: Home, hideForViewer: true },
+  { name: "Copywriter", href: "/dashboard/keywords", icon: Search, hideForViewer: true },
   { name: "Content Archief", href: "/dashboard/archive", icon: FileText },
   { name: "Projecten", href: "/dashboard/projects", icon: Folder },
-  { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar },
-  { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp },
+  { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar, hideForViewer: true },
+  { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp, hideForViewer: true },
   { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresOwner: true },
   { name: "Gebruikers", href: "/dashboard/admin", icon: Users, requiresOwner: true },
 ]
@@ -96,6 +96,11 @@ export default function DashboardLayout({
                   return null
                 }
                 
+                // Hide non-viewer pages for viewers
+                if (item.hideForViewer && user?.role === 'viewer') {
+                  return null
+                }
+                
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href))
                 return (
                   <Link
@@ -123,7 +128,9 @@ export default function DashboardLayout({
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                     <span className="text-sm font-medium capitalize">
-                      {user?.role === 'owner' ? 'Eigenaar' : user?.role === 'admin' ? 'Admin' : 'Gebruiker'}
+                      {user?.role === 'owner' ? 'Eigenaar' : 
+                       user?.role === 'admin' ? 'Admin' : 
+                       user?.role === 'viewer' ? 'Viewer' : 'Gebruiker'}
                     </span>
                   </div>
                 </div>

@@ -109,6 +109,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
+    const userRole = req.headers.get('x-user-role')
     
     if (!companyId) {
       return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
@@ -124,9 +125,17 @@ export async function GET(req: Request) {
       order: 'created_at.desc'
     }
 
-    // Filter by client if provided
-    if (clientId) {
+    // For viewers: MUST filter by client (their assigned client only)
+    if (userRole === 'viewer') {
+      if (!clientId) {
+        return NextResponse.json({ articles: [] }) // No client = no access
+      }
       searchParamsObj.client_id = `eq.${clientId}`
+    } else {
+      // For non-viewers: optionally filter by client
+      if (clientId) {
+        searchParamsObj.client_id = `eq.${clientId}`
+      }
     }
 
     const articles = await supabaseRest<any[]>(

@@ -309,6 +309,7 @@ export default function AdminUsersPage() {
                   <SelectContent>
                     <SelectItem value="user">Gebruiker</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="viewer">Viewer (Alleen Projecten & Archief)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -442,12 +443,13 @@ export default function AdminUsersPage() {
                           )}
                         </div>
                         <div className="flex gap-2 mt-1">
-                          <Badge 
-                            variant={member.role === 'owner' ? 'default' : member.role === 'admin' ? 'secondary' : 'outline'}
-                          >
-                            {member.role === 'owner' ? 'Eigenaar' : 
-                             member.role === 'admin' ? 'Admin' : 'Gebruiker'}
-                          </Badge>
+                      <Badge 
+                        variant={member.role === 'owner' ? 'default' : member.role === 'admin' ? 'secondary' : 'outline'}
+                      >
+                        {member.role === 'owner' ? 'Eigenaar' : 
+                         member.role === 'admin' ? 'Admin' : 
+                         member.role === 'viewer' ? 'Viewer' : 'Gebruiker'}
+                      </Badge>
                           {!isVerified && (
                             <Badge variant="outline" className="text-yellow-600 border-yellow-600">
                               Niet geverifieerd
