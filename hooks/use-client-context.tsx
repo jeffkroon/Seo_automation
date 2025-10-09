@@ -33,27 +33,36 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
 
   const fetchClients = async () => {
     // Only fetch on client-side after mount
-    if (typeof window === 'undefined' || !isMounted) return
+    if (typeof window === 'undefined' || !isMounted) {
+      console.log('🔄 fetchClients skipped: window undefined or not mounted')
+      return
+    }
     
     try {
+      console.log('🔄 fetchClients starting...')
       setIsLoading(true)
       const response = await apiClient('/api/admin/clients')
+      console.log('🔄 fetchClients response:', response.status, response.ok)
       
       if (response.ok) {
         const data = await response.json()
+        console.log('🔄 fetchClients data:', data)
         setClients(data.clients || [])
         
         // Auto-select first client if none selected
         if (!selectedClient && data.clients && data.clients.length > 0) {
+          console.log('🔄 Auto-selecting first client:', data.clients[0].naam)
           setSelectedClient(data.clients[0])
         }
       } else {
-        console.warn('Failed to fetch clients, this might be normal if user is not admin/owner')
+        const errorData = await response.json().catch(() => ({}))
+        console.warn('Failed to fetch clients:', response.status, errorData)
       }
     } catch (error) {
       console.error('Error fetching clients:', error)
     } finally {
       setIsLoading(false)
+      console.log('🔄 fetchClients finished, isLoading set to false')
     }
   }
 

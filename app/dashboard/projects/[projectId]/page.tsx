@@ -38,8 +38,14 @@ interface Article {
   id: string
   title: string
   focus_keyword: string
-  created_at: string
+  content_article: string | null
+  content_faq: string | null
   article_type: string | null
+  country: string | null
+  language: string | null
+  additional_keywords: string[]
+  additional_headings: string[]
+  created_at: string
 }
 
 interface TeamMember {
@@ -124,6 +130,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
             const filtered = articlesData.articles.filter((a: Article) => 
               articleIds.includes(a.id)
             )
+            console.log('📄 Project articles loaded:', filtered.length)
             setArticles(filtered)
           }
         }
@@ -268,8 +275,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
   }
 
   const downloadArticle = (article: Article) => {
-    // Simple download - in real app would fetch full content
-    const content = `# ${article.title}\n\nKeyword: ${article.focus_keyword}`
+    const content = `# ${article.title}\n\n${article.content_article || ''}\n\n---\n\n${article.content_faq || ''}`
     const blob = new Blob([content], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -611,7 +617,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
         </DialogContent>
       </Dialog>
 
-      {/* Side Panel for Full Content */}
+      {/* Side Panel for Full Content - Same as Archive */}
       {sidePanelOpen && selectedArticle && (
         <div className="fixed inset-0 z-50 flex">
           {/* Backdrop */}
@@ -649,32 +655,34 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Article Content */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    <div className="h-3 w-3 rounded-full bg-green-500" />
-                    <span>Artikel Content</span>
-                  </div>
-                  <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
-                    <div className="text-sm leading-relaxed">
-                      Volledige artikel content zou hier moeten staan. 
-                      In een echte implementatie zou je de volledige content ophalen via de API.
+                {selectedArticle.content_article && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <span>Artikel Content</span>
+                    </div>
+                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {selectedArticle.content_article}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* FAQ Content */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    <div className="h-3 w-3 rounded-full bg-blue-500" />
-                    <span>FAQ Content</span>
-                  </div>
-                  <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
-                    <div className="text-sm leading-relaxed">
-                      Volledige FAQ content zou hier moeten staan.
-                      In een echte implementatie zou je de volledige content ophalen via de API.
+                {selectedArticle.content_faq && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <div className="h-3 w-3 rounded-full bg-blue-500" />
+                      <span>FAQ Content</span>
+                    </div>
+                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {selectedArticle.content_faq}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Metadata */}
                 <div className="space-y-3 pt-4 border-t">
@@ -685,10 +693,46 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
                       <div className="mt-1">{selectedArticle.article_type || 'Onbekend'}</div>
                     </div>
                     <div>
+                      <span className="font-medium text-muted-foreground">Land:</span>
+                      <div className="mt-1">{selectedArticle.country || 'Niet opgegeven'}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-muted-foreground">Taal:</span>
+                      <div className="mt-1">{selectedArticle.language || 'Niet opgegeven'}</div>
+                    </div>
+                    <div>
                       <span className="font-medium text-muted-foreground">Aangemaakt:</span>
                       <div className="mt-1">{format(new Date(selectedArticle.created_at), 'dd MMM yyyy HH:mm', { locale: nl })}</div>
                     </div>
                   </div>
+
+                  {/* Additional Keywords */}
+                  {selectedArticle.additional_keywords && selectedArticle.additional_keywords.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="font-medium text-muted-foreground">Aanvullende zoekwoorden:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedArticle.additional_keywords.map((keyword, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Headings */}
+                  {selectedArticle.additional_headings && selectedArticle.additional_headings.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="font-medium text-muted-foreground">Aanvullende headers:</span>
+                      <div className="space-y-1">
+                        {selectedArticle.additional_headings.map((heading, index) => (
+                          <div key={index} className="text-sm text-muted-foreground">
+                            • {heading}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
