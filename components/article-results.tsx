@@ -26,9 +26,17 @@ interface ArticleSection {
 
 interface ArticleResultsProps {
   articles: ArticleSection[]
+  metadata?: {
+    focusKeyword?: string
+    country?: string
+    language?: string
+    articleType?: string
+    additionalKeywords?: string[]
+    additionalHeadings?: string[]
+  }
 }
 
-export function ArticleResults({ articles }: ArticleResultsProps) {
+export function ArticleResults({ articles, metadata }: ArticleResultsProps) {
   const { selectedClient } = useClientContext()
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
@@ -179,11 +187,16 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         method: 'POST',
         body: JSON.stringify({
           client_id: selectedClient.id,
-          focus_keyword: title,
+          focus_keyword: metadata?.focusKeyword || title,
           title: title,
           article: articleContent,
           faqs: faqContent,
           meta_title: title,
+          country: metadata?.country,
+          language: metadata?.language,
+          article_type: metadata?.articleType,
+          additional_keywords: metadata?.additionalKeywords || [],
+          additional_headings: metadata?.additionalHeadings || [],
         })
       })
 

@@ -386,7 +386,17 @@ export default function KeywordsPage() {
             
             {/* Show generated articles under this piece */}
             {piece.generatedArticles && piece.generatedArticles.length > 0 && (
-              <ArticleResults articles={piece.generatedArticles} />
+              <ArticleResults 
+                articles={piece.generatedArticles}
+                metadata={{
+                  focusKeyword: piece.focusKeyword,
+                  country: piece.country,
+                  language: piece.language,
+                  articleType: piece.articleType,
+                  additionalKeywords: piece.additionalKeywords,
+                  additionalHeadings: piece.additionalHeadings,
+                }}
+              />
             )}
           </div>
         ))}

@@ -31,6 +31,7 @@ import { ClientProvider } from "@/hooks/use-client-context"
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Copywriter", href: "/dashboard/keywords", icon: Search },
+  { name: "Content Archief", href: "/dashboard/archive", icon: FileText },
   { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar },
   { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp },
   { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresOwner: true },

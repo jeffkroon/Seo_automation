@@ -147,3 +147,43 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const companyId = req.headers.get('x-company-id')
+    const userId = req.headers.get('x-user-id')
+    
+    if (!companyId || !userId) {
+      return NextResponse.json({ error: 'X-Company-Id and X-User-Id headers are required' }, { status: 400 })
+    }
+
+    const { id } = await req.json()
+
+    if (!id) {
+      return NextResponse.json({ error: 'Article ID is verplicht' }, { status: 400 })
+    }
+
+    // Delete the article (with company_id check for security)
+    const SUPABASE_URL = process.env.SUPABASE_URL
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/generated_articles?id=eq.${id}&company_id=eq.${companyId}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Error deleting article:', errorText)
+      return NextResponse.json({ error: 'Failed to delete article' }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: 'Artikel verwijderd' }, { status: 200 })
+  } catch (error: any) {
+    console.error('Error in DELETE /api/articles:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  }
+}
