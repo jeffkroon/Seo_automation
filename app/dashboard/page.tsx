@@ -82,71 +82,186 @@ export default function DashboardPage() {
     }
   }
 
-  const detectBrowser = () => {
+  const collectAllContext = async () => {
     const ua = navigator.userAgent
-    if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome'
-    if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari'
-    if (ua.includes('Firefox')) return 'Firefox'
-    if (ua.includes('Edg')) return 'Edge'
-    return 'een browser'
-  }
-
-  const detectDeviceType = () => {
-    const ua = navigator.userAgent
-    if (/mobile|android|iphone|ipad|tablet/i.test(ua)) return 'mobile'
-    return 'desktop'
-  }
-
-  const isDarkMode = () => {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-  }
-
-  const isReturningUser = () => {
-    const hasVisited = localStorage.getItem('hasVisitedDashboard')
-    if (!hasVisited) {
-      localStorage.setItem('hasVisitedDashboard', 'true')
-      return false
+    
+    // Browser detection
+    let browser = 'unknown'
+    if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome'
+    else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari'
+    else if (ua.includes('Firefox')) browser = 'Firefox'
+    else if (ua.includes('Edg')) browser = 'Edge'
+    
+    // Device type
+    const isMobile = /mobile|android|iphone|ipad|tablet/i.test(ua)
+    const deviceType = isMobile ? 'mobile' : 'desktop'
+    
+    // Platform/OS
+    let platform = 'unknown'
+    if (ua.includes('Win')) platform = 'Windows'
+    else if (ua.includes('Mac')) platform = 'macOS'
+    else if (ua.includes('Linux')) platform = 'Linux'
+    else if (ua.includes('Android')) platform = 'Android'
+    else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) platform = 'iOS'
+    
+    // Dark mode
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    
+    // Battery status
+    let battery = null
+    try {
+      if ('getBattery' in navigator) {
+        const batteryObj = await (navigator as any).getBattery()
+        battery = {
+          level: Math.round(batteryObj.level * 100),
+          charging: batteryObj.charging,
+          chargingTime: batteryObj.chargingTime,
+          dischargingTime: batteryObj.dischargingTime
+        }
+      }
+    } catch (e) {
+      console.log('Battery API not available')
     }
-    return true
+    
+    // Returning visitor
+    const visitCount = parseInt(localStorage.getItem('dashboardVisitCount') || '0')
+    localStorage.setItem('dashboardVisitCount', (visitCount + 1).toString())
+    const isReturning = visitCount > 0
+    
+    // Referrer
+    const referrer = document.referrer
+    let referrerSource = 'direct'
+    if (referrer.includes('google')) referrerSource = 'Google'
+    else if (referrer.includes('bing')) referrerSource = 'Bing'
+    else if (referrer.includes('facebook')) referrerSource = 'Facebook'
+    else if (referrer.includes('linkedin')) referrerSource = 'LinkedIn'
+    else if (referrer.includes('twitter') || referrer.includes('x.com')) referrerSource = 'Twitter/X'
+    else if (referrer && referrer !== window.location.href) referrerSource = 'another site'
+    
+    // Time on site (from session start)
+    const sessionStart = parseInt(sessionStorage.getItem('sessionStart') || Date.now().toString())
+    if (!sessionStorage.getItem('sessionStart')) {
+      sessionStorage.setItem('sessionStart', Date.now().toString())
+    }
+    const timeOnSite = Math.floor((Date.now() - sessionStart) / 1000) // seconds
+    
+    // Screen resolution
+    const screenWidth = window.screen.width
+    const screenHeight = window.screen.height
+    
+    // Viewport size
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    // Connection info (if available)
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+    const connectionType = connection?.effectiveType || 'unknown'
+    
+    // Language
+    const language = navigator.language || 'en'
+    
+    // Timezone
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    
+    // Local time
+    const now = new Date()
+    const localTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    
+    // Get location from IP (using a free API)
+    let location = null
+    try {
+      const locationResponse = await fetch('https://ipapi.co/json/')
+      if (locationResponse.ok) {
+        location = await locationResponse.json()
+      }
+    } catch (e) {
+      console.log('Could not fetch location')
+    }
+    
+    return {
+      browser,
+      deviceType,
+      platform,
+      isDarkMode,
+      isReturning,
+      visitCount,
+      referrerSource,
+      timeOnSite,
+      screenResolution: `${screenWidth}×${screenHeight}`,
+      viewportSize: `${viewportWidth}×${viewportHeight}`,
+      connectionType,
+      language,
+      timezone,
+      localTime,
+      battery,
+      location: location ? {
+        city: location.city,
+        region: location.region,
+        country: location.country_name,
+        ip: location.ip
+      } : null
+    }
   }
 
   const generateAIGreeting = async (statsData: DashboardStats) => {
     try {
+      // Check if we have a cached greeting (less than 5 minutes old)
+      const cachedGreeting = localStorage.getItem('aiGreeting')
+      const cachedTimestamp = localStorage.getItem('aiGreetingTimestamp')
+      
+      if (cachedGreeting && cachedTimestamp) {
+        const age = Date.now() - parseInt(cachedTimestamp)
+        const fiveMinutes = 5 * 60 * 1000
+        
+        if (age < fiveMinutes) {
+          console.log('Using cached greeting (age:', Math.floor(age / 1000), 'seconds)')
+          setAiGreeting(cachedGreeting)
+          return
+        }
+      }
+      
       setIsLoadingGreeting(true)
       const timeOfDay = getTimeOfDay()
       const hour = new Date().getHours()
+      
+      // Collect ALL context
+      const context = await collectAllContext()
       
       const response = await apiClient('/api/dashboard/greeting', {
         method: 'POST',
         body: JSON.stringify({
           userEmail: user?.email || '',
           timeOfDay,
+          hour,
           stats: statsData,
-          browser: detectBrowser(),
-          isDarkMode: isDarkMode(),
-          isReturning: isReturningUser(),
-          deviceType: detectDeviceType(),
-          hour
+          context
         })
       })
       
       if (response.ok) {
         const data = await response.json()
         setAiGreeting(data.greeting)
+        
+        // Cache the greeting
+        localStorage.setItem('aiGreeting', data.greeting)
+        localStorage.setItem('aiGreetingTimestamp', Date.now().toString())
       }
     } catch (error) {
       console.error('Error generating greeting:', error)
-      // Fallback greeting with context
+      // Fallback greeting with basic context
       const timeOfDay = getTimeOfDay()
       const hour = new Date().getHours()
-      const emailPrefix = user?.email?.split('@')[0] || 'daar'
+      const emailPrefix = user?.email?.split('@')[0] || 'there'
       const firstName = emailPrefix.split(/[._-]/)[0].charAt(0).toUpperCase() + emailPrefix.split(/[._-]/)[0].slice(1)
       
-      // Brutale fallback
+      // Simple fallback
+      const visitCount = parseInt(localStorage.getItem('dashboardVisitCount') || '0')
+      const isReturning = visitCount > 1
+      
       if (hour >= 22 || hour < 6) {
-        setAiGreeting(`${firstName}, ${detectBrowser()}, ${isDarkMode() ? 'dark mode' : 'light mode'}, ${hour}:00 uur — dedication level: maximum 🔥`)
+        setAiGreeting(`${firstName}, working late at ${hour}:00? Dedication level: maximum 🔥`)
       } else {
-        setAiGreeting(`Goed${timeOfDay} ${firstName}! 👋 ${isReturningUser() ? 'Welkom terug!' : 'Welkom!'} Klaar om content te maken?`)
+        setAiGreeting(`Good ${timeOfDay} ${firstName}! 👋 ${isReturning ? 'Welcome back!' : 'Welcome!'} Ready to create content?`)
       }
     } finally {
       setIsLoadingGreeting(false)

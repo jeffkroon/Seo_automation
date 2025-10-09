@@ -10,82 +10,116 @@ export async function POST(req: Request) {
     const { 
       userEmail, 
       timeOfDay, 
+      hour,
       stats, 
-      browser, 
-      isDarkMode, 
-      isReturning,
-      deviceType,
-      hour 
+      context
     } = await req.json()
 
     // Extract first name from email
-    const emailPrefix = userEmail?.split('@')[0] || 'daar'
+    const emailPrefix = userEmail?.split('@')[0] || 'there'
     const firstName = emailPrefix
       .split(/[._-]/)[0]
       .replace(/[0-9]/g, '')
       .charAt(0).toUpperCase() + emailPrefix.split(/[._-]/)[0].slice(1)
 
-    // Build context for AI
-    const contextParts = []
+    // Build rich context string for AI
+    const contextDetails = []
     
-    // Time context
-    if (hour >= 0 && hour < 6) {
-      contextParts.push("het is midden in de nacht")
-    } else if (hour >= 22) {
-      contextParts.push("het is laat in de avond")
+    // Device & Browser
+    if (context.platform) contextDetails.push(`${context.platform} user`)
+    if (context.browser) contextDetails.push(`on ${context.browser}`)
+    if (context.deviceType === 'mobile') contextDetails.push(`mobile device`)
+    
+    // Dark mode
+    if (context.isDarkMode) contextDetails.push(`dark mode enabled`)
+    
+    // Battery (IMPORTANT!)
+    if (context.battery) {
+      contextDetails.push(`battery: ${context.battery.level}%, ${context.battery.charging ? 'charging' : 'not charging'}`)
     }
     
-    // Browser/device context
-    if (browser) contextParts.push(`gebruikt ${browser}`)
-    if (isDarkMode) contextParts.push("heeft dark mode aan")
-    if (deviceType === 'mobile') contextParts.push("is op mobiel")
-    
-    // Behavior context
-    if (isReturning) {
-      contextParts.push("is een terugkerende gebruiker")
-    } else {
-      contextParts.push("is nieuw")
+    // Location (if available)
+    if (context.location) {
+      if (context.location.city) contextDetails.push(`in ${context.location.city}, ${context.location.country}`)
+      else if (context.location.country) contextDetails.push(`in ${context.location.country}`)
     }
     
-    // Stats context
-    if (stats.articlesThisMonth === 0) {
-      contextParts.push("heeft nog geen artikelen deze maand")
-    } else if (stats.articlesThisMonth > 10) {
-      contextParts.push(`heeft al ${stats.articlesThisMonth} artikelen deze maand gemaakt`)
+    // Time & Timezone
+    if (context.timezone) contextDetails.push(`timezone: ${context.timezone}`)
+    if (context.localTime) contextDetails.push(`local time: ${context.localTime}`)
+    
+    // Behavior
+    if (context.visitCount > 1) contextDetails.push(`visit #${context.visitCount}`)
+    else contextDetails.push(`first visit`)
+    
+    if (context.referrerSource && context.referrerSource !== 'direct') {
+      contextDetails.push(`came from ${context.referrerSource}`)
+    }
+    
+    if (context.timeOnSite > 0) {
+      contextDetails.push(`${context.timeOnSite}s on site`)
+    }
+    
+    // Connection
+    if (context.connectionType && context.connectionType !== 'unknown') {
+      contextDetails.push(`${context.connectionType} connection`)
     }
 
-    const context = contextParts.join(", ")
+    const fullContext = contextDetails.join(", ")
 
-    const prompt = `Je bent een brutaal eerlijke, grappige AI assistent voor een SEO content platform. Je hebt een scherpe, sarcastische humor maar blijft vriendelijk.
+    const prompt = `You're a brutally honest, witty AI assistant with "spionage energy". You notice EVERYTHING about the user and make clever, unexpected jokes about it.
 
-Gebruiker: ${firstName}
-Context: ${context}
-Tijd: ${timeOfDay} (${hour}:00 uur)
-Stats: ${stats.totalArticles} artikelen totaal, ${stats.articlesThisMonth} deze maand, ${stats.totalProjects} projecten
+User: ${firstName}
+Context: ${fullContext}
+Time: ${timeOfDay} (${hour}:00)
+Stats: ${stats.totalArticles} articles total, ${stats.articlesThisMonth} this month, ${stats.totalProjects} projects
 
-INSTRUCTIES:
-- Maak een korte, pakkende groet (max 2 zinnen)
-- Wees brutaal eerlijk en grappig, maar niet gemeen
-- Gebruik de context op een slimme, onverwachte manier
-- Als het laat is + dark mode: maak een grap over "nog aan het werk?"
-- Als ze veel artikelen hebben: complimenteer op een sarcastische manier
-- Als ze weinig hebben: motiveer op een brutale maar grappige manier
-- Gebruik emojis strategisch
-- Spreek ${firstName} direct aan
+AVAILABLE CONTEXT (full data):
+${JSON.stringify(context, null, 2)}
 
-Voorbeelden van de tone:
-- "Goedemorgen ${firstName}! Chrome, dark mode, 3 uur 's nachts — SEO wacht niet op slaap, toch? 😅"
-- "Welkom terug ${firstName}. ${stats.articlesThisMonth} artikelen deze maand? Iemand is on fire 🔥"
-- "Hey ${firstName}, laat in de avond nog even checken? We zien je dedication 👀"
+PRIORITY CONTEXT (use these MORE often):
+${context.battery ? `🔋 BATTERY: ${context.battery.level}%, ${context.battery.charging ? 'charging' : 'NOT charging'} - USE THIS 40% OF THE TIME!` : ''}
+${context.location?.city ? `📍 LOCATION: ${context.location.city}, ${context.location.country} - USE THIS 30% OF THE TIME!` : ''}
+${hour >= 22 || hour < 6 ? `🌙 LATE NIGHT: ${hour}:00 ${context.isDarkMode ? '+ dark mode' : ''} - USE THIS 20% OF THE TIME!` : ''}
 
-Genereer NU een unieke groet in deze stijl:`
+OTHER INTERESTING DETAILS (use these too):
+- Referrer: ${context.referrerSource}
+- Visit #${context.visitCount}
+- ${context.deviceType} on ${context.browser}
+- ${context.connectionType} connection
+- ${context.timeOnSite}s on site
+
+INSTRUCTIONS:
+- Pick 1-2 details (prioritize battery/location/late night but mix it up!)
+- Create a short, punchy greeting (max 2 sentences)
+- Be brutally honest, sarcastic, but friendly
+- Make them think "wow, they're watching me" 👀
+- Use emojis strategically
+- Address ${firstName} directly
+
+BATTERY EXAMPLES (use these often!):
+- "Battery ${context.battery?.level}% and not charging? ${firstName}, you'd better plug in before you optimize everything 🔋⚡"
+- "${firstName}, 87% charged and ready — let's boost those rankings like your battery 🔋🚀"
+- "12% battery, ${firstName}? Living dangerously. Let's make this quick ⚡😅"
+
+LOCATION EXAMPLES:
+- "Good ${timeOfDay} from ${context.location?.city || 'your city'}, ${firstName}! 🌍 ${stats.articlesThisMonth} articles this month — local legend vibes 🔥"
+- "${firstName}... ${context.location?.city}, ${hour}:00, ${context.browser} — we see everything 👀"
+
+LATE NIGHT + DARK MODE EXAMPLES:
+- "${firstName}, dark mode, ${hour}:00 — SEO doesn't sleep, does it? 😅🌙"
+- "Still working at ${hour}:00, ${firstName}? Dedication level: insane 🔥"
+
+MIX IT UP! Don't always use the same pattern. Be creative and unexpected.
+
+Generate NOW:`
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'Je bent een brutaal eerlijke, sarcastische maar vriendelijke AI assistent. Je maakt slimme grappen over gebruikersgedrag en context. Wees kort, pakkend en onverwacht.'
+          content: 'You are a brutally honest, sarcastic but friendly AI assistant. You make clever jokes about user behavior and context. Be short, punchy and unexpected.'
         },
         {
           role: 'user',
@@ -96,17 +130,17 @@ Genereer NU een unieke groet in deze stijl:`
       temperature: 1.0,
     })
 
-    const greeting = completion.choices[0]?.message?.content || `Goedemorgen ${firstName}! 🌟`
+    const greeting = completion.choices[0]?.message?.content || `Good morning ${firstName}! 🌟`
 
     return NextResponse.json({ greeting })
   } catch (error: any) {
     console.error('Error generating greeting:', error)
     // Fallback greeting
-    const body = await req.json().catch(() => ({ userEmail: '', timeOfDay: 'dag' }))
-    const emailPrefix = body.userEmail?.split('@')[0] || 'daar'
+    const body = await req.json().catch(() => ({ userEmail: '', timeOfDay: 'morning', hour: 9 }))
+    const emailPrefix = body.userEmail?.split('@')[0] || 'there'
     const firstName = emailPrefix.split(/[._-]/)[0].charAt(0).toUpperCase() + emailPrefix.split(/[._-]/)[0].slice(1)
     return NextResponse.json({ 
-      greeting: `Goed${body.timeOfDay} ${firstName}! 👋 Klaar om vandaag weer geweldige content te maken?` 
+      greeting: `Good ${body.timeOfDay} ${firstName}! 👋 Ready to create some amazing content?` 
     })
   }
 }
