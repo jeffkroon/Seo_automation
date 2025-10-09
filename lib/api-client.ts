@@ -7,20 +7,27 @@ interface ApiClientOptions extends RequestInit {
 export async function apiClient(url: string, options: ApiClientOptions = {}) {
   const { companyId, ...fetchOptions } = options
 
-  // Get company ID from localStorage if not provided
+  // Get user data from localStorage if not provided
   let finalCompanyId = companyId
+  let userId = null
+  let userRole = null
+  
   if (!finalCompanyId) {
     const savedUser = localStorage.getItem("seo-factory-user")
     if (savedUser) {
       const user = JSON.parse(savedUser)
       finalCompanyId = user.companyId
+      userId = user.id
+      userRole = user.role
     }
   }
 
-  // Add X-Company-Id header for RLS
+  // Add authentication headers
   const headers = {
     'Content-Type': 'application/json',
     ...(finalCompanyId && { 'X-Company-Id': finalCompanyId }),
+    ...(userId && { 'X-User-Id': userId }),
+    ...(userRole && { 'X-User-Role': userRole }),
     ...fetchOptions.headers,
   }
 

@@ -1,28 +1,14 @@
 // app/api/articles/route.ts
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
-import { cookies } from 'next/headers'
+import { supabaseRest } from '@/lib/supabase-rest'
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user's company
-    const { data: membership, error: membershipError } = await supabase
-      .from('memberships')
-      .select('company_id, role')
-      .eq('user_id', user.id)
-      .single()
-
-    if (membershipError || !membership) {
-      return NextResponse.json({ error: 'No company found' }, { status: 404 })
+    const companyId = req.headers.get('x-company-id')
+    const userId = req.headers.get('x-user-id')
+    
+    if (!companyId || !userId) {
+      return NextResponse.json({ error: 'Authentication headers missing' }, { status: 400 })
     }
 
     const body = await req.json()
@@ -51,44 +37,53 @@ export async function POST(req: Request) {
     }
 
     // Verify client belongs to user's company
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('id, naam')
-      .eq('id', client_id)
-      .eq('company_id', membership.company_id)
-      .single()
+    const clients = await supabaseRest<any[]>(
+      'clients',
+      { 
+        headers: { 'x-company-id': companyId },
+        searchParams: { 
+          id: `eq.${client_id}`,
+          company_id: `eq.${companyId}`
+        } 
+      },
+    )
 
-    if (clientError || !client) {
+    if (!clients || clients.length === 0) {
       return NextResponse.json({ error: 'Client niet gevonden of geen toegang' }, { status: 404 })
     }
 
-    // Save article
-    const { data: savedArticle, error: insertError } = await supabase
-      .from('generated_articles')
-      .insert({
-        company_id: membership.company_id,
-        member_id: user.id,
-        client_id: client_id,
-        focus_keyword: focus_keyword.trim(),
-        title: title?.trim() || null,
-        article: article?.trim() || null,
-        faqs: faqs?.trim() || null,
-        meta_title: meta_title?.trim() || null,
-        meta_description: meta_description?.trim() || null,
-        country: country?.trim() || null,
-        language: language?.trim() || null,
-        article_type: article_type?.trim() || null,
-        additional_keywords: additional_keywords || [],
-        additional_headings: additional_headings || [],
-        job_id: job_id || null
-      })
-      .select()
-      .single()
+    const client = clients[0]
 
-    if (insertError) {
-      console.error('Error saving article:', insertError)
-      return NextResponse.json({ error: 'Failed to save article' }, { status: 500 })
-    }
+    // Save article
+    const savedArticles = await supabaseRest<any[]>(
+      'generated_articles',
+      {
+        method: 'POST',
+        headers: { 
+          'x-company-id': companyId,
+          'Prefer': 'return=representation'
+        },
+        body: {
+          company_id: companyId,
+          member_id: userId,
+          client_id: client_id,
+          focus_keyword: focus_keyword.trim(),
+          title: title?.trim() || null,
+          article: article?.trim() || null,
+          faqs: faqs?.trim() || null,
+          meta_title: meta_title?.trim() || null,
+          meta_description: meta_description?.trim() || null,
+          country: country?.trim() || null,
+          language: language?.trim() || null,
+          article_type: article_type?.trim() || null,
+          additional_keywords: additional_keywords || [],
+          additional_headings: additional_headings || [],
+          job_id: job_id || null
+        }
+      },
+    )
+
+    const savedArticle = Array.isArray(savedArticles) ? savedArticles[0] : savedArticles
 
     return NextResponse.json({ 
       article: savedArticle,
@@ -102,48 +97,34 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user's company
-    const { data: membership, error: membershipError } = await supabase
-      .from('memberships')
-      .select('company_id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (membershipError || !membership) {
-      return NextResponse.json({ error: 'No company found' }, { status: 404 })
+    const companyId = req.headers.get('x-company-id')
+    
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
 
     // Get query params
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('client_id')
 
-    // Build query
-    let query = supabase
-      .from('generated_articles')
-      .select('*')
-      .eq('company_id', membership.company_id)
-      .order('created_at', { ascending: false })
+    // Build search params
+    const searchParamsObj: Record<string, string> = {
+      company_id: `eq.${companyId}`,
+      order: 'created_at.desc'
+    }
 
     // Filter by client if provided
     if (clientId) {
-      query = query.eq('client_id', clientId)
+      searchParamsObj.client_id = `eq.${clientId}`
     }
 
-    const { data: articles, error: articlesError } = await query
-
-    if (articlesError) {
-      console.error('Error fetching articles:', articlesError)
-      return NextResponse.json({ error: 'Failed to fetch articles' }, { status: 500 })
-    }
+    const articles = await supabaseRest<any[]>(
+      'generated_articles',
+      { 
+        headers: { 'x-company-id': companyId },
+        searchParams: searchParamsObj
+      },
+    )
 
     return NextResponse.json({ articles: articles || [] })
   } catch (error: any) {
@@ -151,4 +132,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
-

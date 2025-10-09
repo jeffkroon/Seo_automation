@@ -104,7 +104,7 @@ export default function AdminClientsPage() {
       setError("")
       setSuccess("")
 
-      const method = isEditing ? 'PUT' : 'POST'
+      const method = isEditing ? 'PATCH' : 'POST'
       const body = isEditing
         ? { id: currentClient?.id, naam, website_url: websiteUrl, notities }
         : { naam, website_url: websiteUrl, notities }
