@@ -74,14 +74,17 @@ export default function KeywordsPage() {
           const mapping = new Map(jobs.map(j => [j.jobId, j.pieceId]))
           setJobToPieceMap(mapping)
           
-          // Expand the content pieces that are loading
-          setContentPieces(prev => prev.map(piece => {
-            if (pieceIds.has(piece.id)) {
-              // This piece is loading, make sure it's expanded
-              return piece
+          // Create/restore content pieces with the correct IDs
+          setContentPieces(prev => {
+            // If we only have one empty piece, replace it with pieces from jobs
+            if (prev.length === 1 && !prev[0].focusKeyword) {
+              return jobs.map(({ pieceId }) => ({
+                ...createEmptyPiece(),
+                id: pieceId  // Use the saved piece ID!
+              }))
             }
-            return piece
-          }))
+            return prev
+          })
           
           // Resume polling for each job
           jobs.forEach(({ jobId, pieceId }) => {
