@@ -69,8 +69,15 @@ export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds 
 
   // Auto-expand pieces that are loading
   useEffect(() => {
+    console.log('🔄 Accordion expand check:', { 
+      loadingPieceIds: Array.from(loadingPieceIds), 
+      expandedItems, 
+      contentPieces: contentPieces.map(p => ({ id: p.id, title: p.title || p.focusKeyword }))
+    })
+    
     contentPieces.forEach(piece => {
       if (loadingPieceIds.has(piece.id) && !expandedItems.includes(piece.id)) {
+        console.log(`📂 Auto-expanding piece: ${piece.title || piece.focusKeyword} (${piece.id})`)
         setExpandedItems(prev => [...prev, piece.id])
       }
     })

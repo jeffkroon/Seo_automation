@@ -204,11 +204,29 @@ export default function KeywordsPage() {
         const response = await fetch(`/api/jobs/${jobId}`)
         
         if (!response.ok) {
+          // Job not found (404) - stop polling gracefully
+          if (response.status === 404) {
+            console.log(`Job ${jobId} not found - stopping polling`)
+            removeActiveJob(jobId)
+            setLoadingPieceIds(prev => {
+              const next = new Set(prev)
+              next.delete(pieceId)
+              return next
+            })
+            isPolling = false
+            return
+          }
           throw new Error(`Status check failed: ${response.status}`)
         }
 
         const job = await response.json()
         console.log(`Polling job ${jobId}:`, job)
+        console.log(`🔍 Version check:`, { 
+          resultsVersion: job.resultsVersion, 
+          lastVersion, 
+          willProcess: job.resultsVersion !== lastVersion,
+          resultsCount: job.results?.length || 0
+        })
 
         if (job.status === "error") {
           removeActiveJob(jobId)
@@ -217,6 +235,7 @@ export default function KeywordsPage() {
 
         if (typeof job.resultsVersion === "number" && job.resultsVersion !== lastVersion) {
           lastVersion = job.resultsVersion
+          console.log(`📥 Processing results for version ${job.resultsVersion}`)
 
           const sections: ArticleSection[] = (job.results || []).flatMap((result: any, index: number) => {
             const sequence = result?.sequence ?? 1
