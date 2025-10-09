@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     
     if (!error) {
       // Redirect to dashboard after successful auth
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`https://lionfish-app-es8ks.ondigitalocean.app${next}`)
     }
   }
 
@@ -32,10 +32,10 @@ export async function GET(request: Request) {
 
     if (!error && data.user) {
       // Redirect to dashboard after successful verification
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`https://lionfish-app-es8ks.ondigitalocean.app${next}`)
     }
   }
 
   // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  return NextResponse.redirect(`https://lionfish-app-es8ks.ondigitalocean.app/auth/auth-code-error`)
 }
