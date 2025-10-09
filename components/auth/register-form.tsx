@@ -63,8 +63,14 @@ export function RegisterForm() {
         await register(email, password, companyName)
       }
       router.push("/dashboard")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration failed:", error)
+      if (error.message === "EMAIL_VERIFICATION_REQUIRED") {
+        alert("Registratie succesvol! Check je email voor de verificatie link en klik erop voordat je kunt inloggen.")
+        router.push("/auth/login")
+      } else {
+        alert("Registratie mislukt: " + (error.message || "Onbekende fout"))
+      }
     } finally {
       setIsLoading(false)
     }

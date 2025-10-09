@@ -104,8 +104,8 @@ export default function DashboardLayout({
                     className={cn(
                       "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                        ? "bg-primary text-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-primary/10 hover:text-primary",
                     )}
                   >
                     <item.icon className="h-5 w-5" />

@@ -87,6 +87,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error
 
+      // Check if email is confirmed
+      if (!data.user.email_confirmed_at) {
+        throw new Error('EMAIL_NOT_CONFIRMED')
+      }
+
       // Get user's companies and memberships
       const { data: memberships } = await supabase
         .from('memberships')
@@ -123,14 +128,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (email: string, password: string, companyName: string) => {
     try {
-      // Register user with Supabase Auth
+      // Register user with Supabase Auth - REQUIRE email verification
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm`
+        }
       })
 
       if (authError) throw authError
       if (!authData.user) throw new Error('User creation failed')
+
+      // Check if email is already confirmed (shouldn't happen in normal flow)
+      if (!authData.user.email_confirmed_at) {
+        // User needs to verify email first
+        throw new Error('EMAIL_VERIFICATION_REQUIRED')
+      }
 
       // Create company
       const { data: company, error: companyError } = await supabase

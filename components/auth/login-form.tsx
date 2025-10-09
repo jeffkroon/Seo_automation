@@ -32,8 +32,8 @@ export function LoginForm() {
       console.error("Login failed:", error)
       if (error.message?.includes("Invalid login credentials")) {
         setError("Ongeldige inloggegevens. Controleer je email en wachtwoord.")
-      } else if (error.message?.includes("Email not confirmed")) {
-        setError("Je email is nog niet geverifieerd. Check je inbox voor de verificatie link.")
+      } else if (error.message === "EMAIL_NOT_CONFIRMED") {
+        setError("Je email is nog niet geverifieerd. Check je inbox voor de verificatie link en klik erop voordat je inlogt.")
       } else {
         setError("Er is een fout opgetreden bij het inloggen. Probeer het opnieuw.")
       }
