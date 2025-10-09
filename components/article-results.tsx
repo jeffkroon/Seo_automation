@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Download, Copy, CheckCircle, ChevronDown, ChevronRight } from "lucide-react"
+import { FileText, Download, Copy, CheckCircle, ChevronDown, ChevronRight, Save, HelpCircle } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import type { Components } from "react-markdown"
@@ -11,6 +11,8 @@ import remarkGfm from "remark-gfm"
 import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
 import { cn } from "@/lib/utils"
 import { createRoot } from "react-dom/client"
+import { useClientContext } from "@/hooks/use-client-context"
+import { apiClient } from "@/lib/api-client"
 
 type SectionKind = "article" | "faq" | "meta"
 
@@ -27,7 +29,10 @@ interface ArticleResultsProps {
 }
 
 export function ArticleResults({ articles }: ArticleResultsProps) {
+  const { selectedClient } = useClientContext()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savingId, setSavingId] = useState<string | null>(null)
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -135,6 +140,44 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     URL.revokeObjectURL(url)
   }
 
+  const saveArticle = async (section: ArticleSection, content: string) => {
+    if (!selectedClient) {
+      alert('Selecteer eerst een client om het artikel op te slaan')
+      return
+    }
+
+    try {
+      setSavingId(section.id)
+      
+      const response = await apiClient('/api/articles', {
+        method: 'POST',
+        body: JSON.stringify({
+          client_id: selectedClient.id,
+          focus_keyword: section.title,
+          title: section.title,
+          article: section.kind === 'article' ? content : null,
+          faqs: section.kind === 'faq' ? content : null,
+          meta_title: section.title,
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setSavedId(section.id)
+        setTimeout(() => setSavedId(null), 3000)
+        alert(data.message || 'Artikel opgeslagen!')
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || 'Fout bij opslaan')
+      }
+    } catch (error) {
+      console.error('Failed to save:', error)
+      alert('Fout bij opslaan artikel')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   const markdownComponents = useMemo<Components>(() => ({
     h1: ({ node, className, ...props }) => (
       <h1
@@ -216,8 +259,9 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         rel={props.rel ?? "noopener noreferrer"}
       />
     ),
-    code: ({ node, inline, className, children, ...props }) => {
+    code: ({ node, className, children, ...props }: any) => {
       const content = String(children).replace(/\n$/, "")
+      const inline = !className?.includes('language-')
       if (inline) {
         return (
           <code
@@ -371,6 +415,31 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Downloaden
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start bg-transparent"
+                    onClick={() => saveArticle(article, preparedMarkdown)}
+                    disabled={savingId === article.id || !selectedClient}
+                  >
+                    {savingId === article.id ? (
+                      <>
+                        <Save className="w-4 h-4 mr-2 animate-pulse" />
+                        Opslaan...
+                      </>
+                    ) : savedId === article.id ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                        Opgeslagen!
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        {selectedClient ? `Opslaan voor ${selectedClient.naam}` : 'Selecteer client'}
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>

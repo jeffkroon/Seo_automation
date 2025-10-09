@@ -21,17 +21,21 @@ import {
   LogOut,
   Home,
   Users,
+  Building2,
 } from "lucide-react"
 import { Suspense } from "react"
 import { CompanySwitcher } from "@/components/company-switcher"
+import { ClientSwitcher } from "@/components/client-switcher"
 import { useAuth } from "@/hooks/use-auth"
+import { ClientProvider } from "@/hooks/use-client-context"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Copywriter", href: "/dashboard/keywords", icon: Search },
   { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar },
   { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp },
-  { name: "Gebruikers", href: "/dashboard/admin", icon: Users },
+  { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresOwner: true },
+  { name: "Gebruikers", href: "/dashboard/admin", icon: Users, requiresOwner: true },
 ]
 
 export default function DashboardLayout({
@@ -53,7 +57,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <ClientProvider>
+      <div className="min-h-screen bg-background">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -84,12 +89,12 @@ export default function DashboardLayout({
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-2">
               {navigation.map((item) => {
-                // Hide admin link for non-owners
-                if (item.href === "/dashboard/admin" && user?.role !== 'owner') {
+                // Hide admin/owner-only links for non-owners
+                if (item.requiresOwner && user?.role !== 'owner' && user?.role !== 'admin') {
                   return null
                 }
                 
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href))
                 return (
                   <Link
                     key={item.name}
@@ -108,10 +113,15 @@ export default function DashboardLayout({
               })}
             </nav>
 
-            {/* Company Switcher */}
-            <div className="border-t border-sidebar-border p-4">
-              <div className="mb-4">
+            {/* Company & Client Switcher */}
+            <div className="border-t border-sidebar-border p-4 space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Bedrijf</label>
                 <CompanySwitcher />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Client</label>
+                <ClientSwitcher />
               </div>
             </div>
 
@@ -171,5 +181,6 @@ export default function DashboardLayout({
         <main className="flex-1">{children}</main>
       </div>
     </div>
+    </ClientProvider>
   )
 }

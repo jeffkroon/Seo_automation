@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { BatchContentForm } from "@/components/batch-content-form"
 import { ArticleResults } from "@/components/article-results"
 import { LoadingState } from "@/components/loading-state"
@@ -56,6 +56,35 @@ export default function KeywordsPage() {
   const [loadingPieceIds, setLoadingPieceIds] = useState<Set<string>>(new Set())
   const [jobToPieceMap, setJobToPieceMap] = useState<Map<string, string>>(new Map())
 
+  // Load active jobs from localStorage on mount
+  useEffect(() => {
+    const savedJobs = localStorage.getItem('activeJobs')
+    if (savedJobs) {
+      try {
+        const jobs = JSON.parse(savedJobs) as Array<{ jobId: string; pieceId: string }>
+        
+        if (jobs.length > 0) {
+          console.log('Hervatten van actieve jobs:', jobs)
+          
+          // Restore loading state
+          const pieceIds = new Set(jobs.map(j => j.pieceId))
+          setLoadingPieceIds(pieceIds)
+          
+          // Restore job mapping
+          const mapping = new Map(jobs.map(j => [j.jobId, j.pieceId]))
+          setJobToPieceMap(mapping)
+          
+          // Resume polling for each job
+          jobs.forEach(({ jobId, pieceId }) => {
+            pollForResults(jobId, pieceId)
+          })
+        }
+      } catch (error) {
+        console.error('Error loading active jobs:', error)
+      }
+    }
+  }, [])
+
   const handleGenerateSingle = async (contentPiece: ContentPiece) => {
     // Mark this piece as loading
     setLoadingPieceIds(prev => new Set(prev).add(contentPiece.id))
@@ -92,6 +121,9 @@ export default function KeywordsPage() {
       // Map jobId to pieceId so we can update the right piece
       setJobToPieceMap(prev => new Map(prev).set(responseData.jobId, contentPiece.id))
 
+      // Save active job to localStorage
+      saveActiveJob(responseData.jobId, contentPiece.id)
+
       // Poll for this single job
       await pollForResults(responseData.jobId, contentPiece.id)
     } catch (error) {
@@ -120,6 +152,38 @@ export default function KeywordsPage() {
     }
   }
 
+  const saveActiveJob = (jobId: string, pieceId: string) => {
+    const savedJobs = localStorage.getItem('activeJobs')
+    let jobs = []
+    
+    if (savedJobs) {
+      try {
+        jobs = JSON.parse(savedJobs)
+      } catch (e) {
+        jobs = []
+      }
+    }
+    
+    // Add new job if not already there
+    if (!jobs.find((j: any) => j.jobId === jobId)) {
+      jobs.push({ jobId, pieceId })
+      localStorage.setItem('activeJobs', JSON.stringify(jobs))
+    }
+  }
+
+  const removeActiveJob = (jobId: string) => {
+    const savedJobs = localStorage.getItem('activeJobs')
+    if (!savedJobs) return
+    
+    try {
+      const jobs = JSON.parse(savedJobs)
+      const filtered = jobs.filter((j: any) => j.jobId !== jobId)
+      localStorage.setItem('activeJobs', JSON.stringify(filtered))
+    } catch (e) {
+      console.error('Error removing active job:', e)
+    }
+  }
+
   const pollForResults = async (jobId: string, pieceId: string) => {
     let lastVersion = -1
     let isPolling = true
@@ -138,6 +202,7 @@ export default function KeywordsPage() {
         console.log(`Polling job ${jobId}:`, job)
 
         if (job.status === "error") {
+          removeActiveJob(jobId)
           throw new Error(job.error || "Workflow error")
         }
 
@@ -203,6 +268,7 @@ export default function KeywordsPage() {
 
         if (job.isComplete) {
           console.log(`✅ Job ${jobId} complete`)
+          removeActiveJob(jobId)
           setLoadingPieceIds(prev => {
             const next = new Set(prev)
             next.delete(pieceId)
@@ -217,6 +283,7 @@ export default function KeywordsPage() {
       } catch (error) {
         console.error("Error polling for results:", error)
         alert(`Error: ${error instanceof Error ? error.message : "Onbekende fout"}`)
+        removeActiveJob(jobId)
         setLoadingPieceIds(prev => {
           const next = new Set(prev)
           next.delete(pieceId)

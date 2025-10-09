@@ -115,31 +115,15 @@ export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds 
       <CardHeader className="pb-4 border-b bg-muted/30">
         <CardTitle className="text-lg flex items-center gap-2">
           <Wand2 className="w-5 h-5 text-primary" />
-          Batch Content Generator
+          Content Generator
         </CardTitle>
         <CardDescription className="text-sm">
-          Create multiple SEO-optimized articles at once. Add as many content pieces as you need.
+          Genereer SEO-geoptimaliseerde artikelen met AI. Vul de details in en klik op generate.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-4">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
-              {contentPieces.length} Content Piece{contentPieces.length !== 1 ? "s" : ""}
-            </Badge>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addContentPiece}
-              disabled={isLoading}
-              className="gap-1.5 h-8 text-xs bg-transparent"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Content Piece
-            </Button>
-          </div>
 
           <Accordion type="multiple" value={expandedItems} onValueChange={setExpandedItems} className="space-y-3">
             {contentPieces.map((piece, index) => (
