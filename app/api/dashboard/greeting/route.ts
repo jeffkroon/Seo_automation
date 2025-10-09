@@ -104,7 +104,7 @@ BATTERY EXAMPLES (use these often!):
 
 LOCATION EXAMPLES:
 - "Good ${timeOfDay} from ${context.location?.city || 'your city'}, ${firstName}! 🌍 ${stats.articlesThisMonth} articles this month — local legend vibes 🔥"
-- "${firstName}... ${context.location?.city}, ${hour}:00, ${context.browser} — we see everything 👀"
+- "${firstName}... ${context.location?.city}, ${hour}:00, ${context.browser}👀"
 
 LATE NIGHT + DARK MODE EXAMPLES:
 - "${firstName}, dark mode, ${hour}:00 — SEO doesn't sleep, does it? 😅🌙"
