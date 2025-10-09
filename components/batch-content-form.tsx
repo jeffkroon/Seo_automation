@@ -26,13 +26,14 @@ interface ContentPiece {
 }
 
 interface BatchContentFormProps {
-  onGenerate: (contentPieces: ContentPiece[]) => void
   onGenerateSingle: (contentPiece: ContentPiece) => void
   isLoading: boolean
   loadingPieceIds?: Set<string>
+  contentPieces: ContentPiece[]
+  onUpdatePieces: (pieces: ContentPiece[]) => void
 }
 
-export function BatchContentForm({ onGenerate, onGenerateSingle, isLoading, loadingPieceIds = new Set() }: BatchContentFormProps) {
+export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds = new Set(), contentPieces, onUpdatePieces }: BatchContentFormProps) {
   const { user } = useAuth()
 
   const createEmptyPiece = (): ContentPiece => ({
@@ -48,29 +49,28 @@ export function BatchContentForm({ onGenerate, onGenerateSingle, isLoading, load
     articleType: "",
   })
 
-  const [contentPieces, setContentPieces] = useState<ContentPiece[]>([createEmptyPiece()])
-  const [expandedItems, setExpandedItems] = useState<string[]>([contentPieces[0].id])
+  const [expandedItems, setExpandedItems] = useState<string[]>(contentPieces.length > 0 ? [contentPieces[0].id] : [])
 
   useEffect(() => {
     if (user?.companyName) {
-      setContentPieces((prev) => prev.map((piece) => ({ ...piece, company: user.companyName })))
+      onUpdatePieces(contentPieces.map((piece) => ({ ...piece, company: user.companyName })))
     }
-  }, [user])
+  }, [user?.companyName])
 
   const addContentPiece = () => {
     const newPiece = createEmptyPiece()
-    setContentPieces((prev) => [...prev, newPiece])
+    onUpdatePieces([...contentPieces, newPiece])
     setExpandedItems((prev) => [...prev, newPiece.id])
   }
 
   const removeContentPiece = (id: string) => {
     if (contentPieces.length === 1) return
-    setContentPieces((prev) => prev.filter((piece) => piece.id !== id))
+    onUpdatePieces(contentPieces.filter((piece) => piece.id !== id))
     setExpandedItems((prev) => prev.filter((itemId) => itemId !== id))
   }
 
   const updatePiece = (id: string, updates: Partial<ContentPiece>) => {
-    setContentPieces((prev) => prev.map((piece) => (piece.id === id ? { ...piece, ...updates } : piece)))
+    onUpdatePieces(contentPieces.map((piece) => (piece.id === id ? { ...piece, ...updates } : piece)))
   }
 
   const addKeyword = (pieceId: string, keyword: string) => {
@@ -109,19 +109,6 @@ export function BatchContentForm({ onGenerate, onGenerateSingle, isLoading, load
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onGenerate(contentPieces)
-  }
-
-  const isFormValid = contentPieces.every(
-    (piece) =>
-      piece.focusKeyword.trim() !== "" &&
-      piece.country.trim() !== "" &&
-      piece.language.trim() !== "" &&
-      piece.webpageLink.trim() !== "" &&
-      piece.company.trim() !== "",
-  )
 
   return (
     <Card className="w-full shadow-sm border">
@@ -136,7 +123,7 @@ export function BatchContentForm({ onGenerate, onGenerateSingle, isLoading, load
       </CardHeader>
 
       <CardContent className="pt-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
               {contentPieces.length} Content Piece{contentPieces.length !== 1 ? "s" : ""}
@@ -200,25 +187,7 @@ export function BatchContentForm({ onGenerate, onGenerateSingle, isLoading, load
               </AccordionItem>
             ))}
           </Accordion>
-
-          <Button
-            type="submit"
-            className="w-full h-10 text-sm font-medium bg-primary hover:bg-primary/90 transition-all duration-200"
-            disabled={!isFormValid || isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating {contentPieces.length} Article{contentPieces.length !== 1 ? "s" : ""}...
-              </>
-            ) : (
-              <>
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate {contentPieces.length} SEO Article{contentPieces.length !== 1 ? "s" : ""}
-              </>
-            )}
-          </Button>
-        </form>
+        </div>
       </CardContent>
     </Card>
   )
