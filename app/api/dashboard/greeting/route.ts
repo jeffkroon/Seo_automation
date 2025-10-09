@@ -38,10 +38,13 @@ export async function POST(req: Request) {
       contextDetails.push(`battery: ${context.battery.level}%, ${context.battery.charging ? 'charging' : 'not charging'}`)
     }
     
-    // Location (if available)
+    // Location (if available) - use region for better accuracy
     if (context.location) {
-      if (context.location.city) contextDetails.push(`in ${context.location.city}, ${context.location.country}`)
-      else if (context.location.country) contextDetails.push(`in ${context.location.country}`)
+      if (context.location.region && context.location.country) {
+        contextDetails.push(`somewhere around ${context.location.region}, ${context.location.country}`)
+      } else if (context.location.country) {
+        contextDetails.push(`in ${context.location.country}`)
+      }
     }
     
     // Time & Timezone
@@ -78,8 +81,8 @@ AVAILABLE CONTEXT (full data):
 ${JSON.stringify(context, null, 2)}
 
 PRIORITY CONTEXT (use these MORE often):
-${context.battery ? `🔋 BATTERY: ${context.battery.level}%, ${context.battery.charging ? 'charging' : 'NOT charging'} - USE THIS 40% OF THE TIME!` : ''}
-${context.location?.city ? `📍 LOCATION: ${context.location.city}, ${context.location.country} - USE THIS 30% OF THE TIME!` : ''}
+${context.battery ? `🔋 BATTERY: ${context.battery.level}%, ${context.battery.charging ? 'charging' : 'NOT charging'} - USE THIS 40% OF THE TIME!` : '⚠️ NO BATTERY INFO - DO NOT MENTION BATTERY!'}
+${context.location?.region ? `📍 LOCATION: Somewhere around ${context.location.region}, ${context.location.country} - USE THIS 30% OF THE TIME!` : context.location?.country ? `📍 LOCATION: ${context.location.country}` : '📍 LOCATION: Unknown - use timezone instead: ${context.timezone}'}
 ${hour >= 22 || hour < 6 ? `🌙 LATE NIGHT: ${hour}:00 ${context.isDarkMode ? '+ dark mode' : ''} - USE THIS 20% OF THE TIME!` : ''}
 
 OTHER INTERESTING DETAILS (use these too):
@@ -97,20 +100,21 @@ INSTRUCTIONS:
 - Use emojis strategically
 - Address ${firstName} directly
 
-BATTERY EXAMPLES (use these often!):
-- "Battery ${context.battery?.level}% and not charging? ${firstName}, you'd better plug in before you optimize everything 🔋⚡"
-- "${firstName}, 87% charged and ready — let's boost those rankings like your battery 🔋🚀"
-- "12% battery, ${firstName}? Living dangerously. Let's make this quick ⚡😅"
+BATTERY EXAMPLES (ONLY use if battery info is available!):
+${context.battery ? `- "Battery ${context.battery.level}% and ${context.battery.charging ? 'charging' : 'not charging'}? ${firstName}, ${context.battery.level < 20 && !context.battery.charging ? "you'd better plug in before you optimize everything" : context.battery.level > 80 ? "fully charged and ready — let's boost those rankings" : "let's make this count"} 🔋⚡"` : '- DO NOT USE BATTERY EXAMPLES - NO BATTERY INFO AVAILABLE'}
+${context.battery ? `- "${firstName}, ${context.battery.level}% battery${context.battery.charging ? ', charging' : ''} — ${context.battery.level < 15 ? 'living dangerously' : context.battery.level > 90 ? 'fully loaded' : 'good to go'} 🔋"` : ''}
 
 LOCATION EXAMPLES:
-- "Good ${timeOfDay} from ${context.location?.city || 'your city'}, ${firstName}! 🌍 ${stats.articlesThisMonth} articles this month — local legend vibes 🔥"
-- "${firstName}... ${context.location?.city}, ${hour}:00, ${context.browser}👀"
+- "Good ${timeOfDay} from somewhere around ${context.location?.region || 'your area'}, ${firstName}! 🌍 ${stats.articlesThisMonth} articles this month — local legend vibes 🔥"
+- "${firstName}... somewhere around ${context.location?.region || 'the Netherlands'}, ${hour}:00, ${context.browser} — we see you 👀"
+- "Greetings from ${context.location?.region || 'your region'}, ${firstName}! Close enough, right? 😏"
 
 LATE NIGHT + DARK MODE EXAMPLES:
-- "${firstName}, dark mode, ${hour}:00 — SEO doesn't sleep, does it? 😅🌙"
+- "${firstName}, dark mode, ${hour}:00 — SEO doesn't sleep, does it? 🌙"
 - "Still working at ${hour}:00, ${firstName}? Dedication level: insane 🔥"
 
 MIX IT UP! Don't always use the same pattern. Be creative and unexpected.
+do not use too much emojis
 
 Generate NOW:`
 
