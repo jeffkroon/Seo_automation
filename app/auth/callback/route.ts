@@ -23,16 +23,18 @@ export async function GET(request: Request) {
     }
   }
 
-  // Handle token-based verification (older Supabase flow)
+  // Handle token-based verification (Supabase email verification flow)
   if (token && type === 'signup') {
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: token,
-      type: 'signup'
-    })
-
-    if (!error && data.user) {
-      // Redirect to dashboard after successful verification
-      return NextResponse.redirect(`https://lionfish-app-es8ks.ondigitalocean.app${next}`)
+    try {
+      // Use the correct method for email verification tokens
+      const { data, error } = await supabase.auth.exchangeCodeForSession(token)
+      
+      if (!error && data.user) {
+        // Redirect to dashboard after successful verification
+        return NextResponse.redirect(`https://lionfish-app-es8ks.ondigitalocean.app${next}`)
+      }
+    } catch (error) {
+      console.error('Token verification error:', error)
     }
   }
 
