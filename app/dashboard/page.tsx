@@ -54,9 +54,9 @@ export default function DashboardPage() {
 
   const getTimeOfDay = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'morgen'
-    if (hour < 18) return 'middag'
-    return 'avond'
+    if (hour < 12) return 'morning'
+    if (hour < 18) return 'afternoon'
+    return 'evening'
   }
 
   const fetchDashboardData = async () => {
