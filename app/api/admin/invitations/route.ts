@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
     // TODO: Send email here (using your email service)
     // For now, we'll return the invitation link
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lionfish-app-es8ks.ondigitalocean.app'
     const invitationLink = `${baseUrl}/auth/register?token=${token}`
 
     return NextResponse.json({ 
