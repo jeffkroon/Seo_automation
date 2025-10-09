@@ -24,7 +24,6 @@ import {
   Building2,
 } from "lucide-react"
 import { Suspense } from "react"
-import { CompanySwitcher } from "@/components/company-switcher"
 import { ClientSwitcher } from "@/components/client-switcher"
 import { useAuth } from "@/hooks/use-auth"
 import { ClientProvider } from "@/hooks/use-client-context"
@@ -113,11 +112,18 @@ export default function DashboardLayout({
               })}
             </nav>
 
-            {/* Company & Client Switcher */}
+            {/* Role & Client Switcher */}
             <div className="border-t border-sidebar-border p-4 space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Bedrijf</label>
-                <CompanySwitcher />
+                <label className="text-xs text-muted-foreground mb-1.5 block">Rol</label>
+                <div className="px-3 py-2 rounded-lg bg-sidebar-accent/30 border border-sidebar-border">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-sm font-medium capitalize">
+                      {user?.role === 'owner' ? 'Eigenaar' : user?.role === 'admin' ? 'Admin' : 'Gebruiker'}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Client</label>

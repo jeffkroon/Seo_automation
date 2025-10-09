@@ -49,17 +49,7 @@ export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds 
     articleType: "",
   })
 
-  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
-    // Auto-expand if this piece is loading
-    if (contentPieces.length > 0) {
-      const piece = contentPieces[0]
-      if (loadingPieceIds.has(piece.id)) {
-        return [piece.id] // Expand loading pieces
-      }
-      return [piece.id] // Default: expand first piece
-    }
-    return []
-  })
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   useEffect(() => {
     if (user?.companyName) {
@@ -67,7 +57,7 @@ export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds 
     }
   }, [user?.companyName])
 
-  // Auto-expand pieces that are loading
+  // Auto-expand pieces that are loading OR first piece by default
   useEffect(() => {
     console.log('🔄 Accordion expand check:', { 
       loadingPieceIds: Array.from(loadingPieceIds), 
@@ -75,13 +65,29 @@ export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds 
       contentPieces: contentPieces.map(p => ({ id: p.id, title: p.title || p.focusKeyword }))
     })
     
+    const itemsToExpand = new Set(expandedItems)
+    let hasChanges = false
+    
+    // Expand all loading pieces
     contentPieces.forEach(piece => {
-      if (loadingPieceIds.has(piece.id) && !expandedItems.includes(piece.id)) {
-        console.log(`📂 Auto-expanding piece: ${piece.title || piece.focusKeyword} (${piece.id})`)
-        setExpandedItems(prev => [...prev, piece.id])
+      if (loadingPieceIds.has(piece.id) && !itemsToExpand.has(piece.id)) {
+        console.log(`📂 Auto-expanding loading piece: ${piece.title || piece.focusKeyword} (${piece.id})`)
+        itemsToExpand.add(piece.id)
+        hasChanges = true
       }
     })
-  }, [loadingPieceIds, contentPieces, expandedItems])
+    
+    // If no items expanded yet and we have pieces, expand the first one
+    if (itemsToExpand.size === 0 && contentPieces.length > 0) {
+      console.log(`📂 Auto-expanding first piece: ${contentPieces[0].title || contentPieces[0].focusKeyword}`)
+      itemsToExpand.add(contentPieces[0].id)
+      hasChanges = true
+    }
+    
+    if (hasChanges) {
+      setExpandedItems(Array.from(itemsToExpand))
+    }
+  }, [loadingPieceIds, contentPieces])
 
   const addContentPiece = () => {
     const newPiece = createEmptyPiece()

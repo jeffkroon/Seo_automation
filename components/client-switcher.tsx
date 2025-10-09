@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Building2, Plus } from "lucide-react"
+import { Check, ChevronsUpDown, Building2, Plus, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
@@ -35,23 +35,31 @@ export function ClientSwitcher() {
           role="combobox"
           aria-expanded={open}
           aria-label="Selecteer een client"
-          className="w-full justify-between bg-sidebar-accent/50 hover:bg-sidebar-accent border-sidebar-border"
+          className="w-full justify-between bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 hover:from-primary/20 hover:via-primary/10 hover:to-primary/20 border-primary/20 hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md group relative overflow-hidden"
         >
-          <div className="flex items-center gap-2 truncate">
-            <Building2 className="h-4 w-4 shrink-0" />
-            <span className="truncate">
+          {/* Animated background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          
+          <div className="flex items-center gap-2 truncate relative z-10">
+            <div className="relative">
+              <Building2 className="h-4 w-4 shrink-0 text-primary" />
+              {selectedClient && (
+                <Sparkles className="h-2 w-2 absolute -top-1 -right-1 text-primary animate-pulse" />
+              )}
+            </div>
+            <span className="truncate font-medium">
               {isLoading ? 'Laden...' : selectedClient ? selectedClient.naam : 'Selecteer client'}
             </span>
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="start">
+      <PopoverContent className="w-[300px] p-0 border-primary/20 shadow-xl" align="start">
         <Command>
-          <CommandInput placeholder="Zoek client..." />
+          <CommandInput placeholder="Zoek client..." className="border-0" />
           <CommandList>
             <CommandEmpty>Geen clients gevonden.</CommandEmpty>
-            <CommandGroup heading="Clients">
+            <CommandGroup heading="Clients" className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
               {clients.map((client) => (
                 <CommandItem
                   key={client.id}
@@ -59,13 +67,17 @@ export function ClientSwitcher() {
                     setSelectedClient(client)
                     setOpen(false)
                   }}
-                  className="text-sm"
+                  className="text-sm rounded-md my-0.5 hover:bg-primary/10 cursor-pointer transition-colors"
                 >
-                  <Building2 className="mr-2 h-4 w-4" />
-                  <span className="flex-1 truncate">{client.naam}</span>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Building2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="flex-1 truncate font-medium">{client.naam}</span>
+                  </div>
                   <Check
                     className={cn(
-                      "ml-auto h-4 w-4",
+                      "ml-auto h-4 w-4 text-primary",
                       selectedClient?.id === client.id
                         ? "opacity-100"
                         : "opacity-0"
@@ -81,10 +93,12 @@ export function ClientSwitcher() {
                   setOpen(false)
                   router.push('/dashboard/admin/clients')
                 }}
-                className="text-sm"
+                className="text-sm rounded-md my-0.5 hover:bg-primary/10 cursor-pointer transition-colors text-primary"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Nieuwe Client
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <Plus className="h-4 w-4 text-primary" />
+                </div>
+                <span className="ml-2 font-medium">Nieuwe Client</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>
