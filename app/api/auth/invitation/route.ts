@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseRest } from '@/lib/supabase-rest'
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)

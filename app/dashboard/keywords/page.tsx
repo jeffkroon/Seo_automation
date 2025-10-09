@@ -74,6 +74,15 @@ export default function KeywordsPage() {
           const mapping = new Map(jobs.map(j => [j.jobId, j.pieceId]))
           setJobToPieceMap(mapping)
           
+          // Expand the content pieces that are loading
+          setContentPieces(prev => prev.map(piece => {
+            if (pieceIds.has(piece.id)) {
+              // This piece is loading, make sure it's expanded
+              return piece
+            }
+            return piece
+          }))
+          
           // Resume polling for each job
           jobs.forEach(({ jobId, pieceId }) => {
             pollForResults(jobId, pieceId)

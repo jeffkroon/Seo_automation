@@ -24,10 +24,16 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Handle SSR hydration
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const fetchClients = async () => {
-    // Only fetch on client-side
-    if (typeof window === 'undefined') return
+    // Only fetch on client-side after mount
+    if (typeof window === 'undefined' || !isMounted) return
     
     try {
       setIsLoading(true)
@@ -52,8 +58,10 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    fetchClients()
-  }, [])
+    if (isMounted) {
+      fetchClients()
+    }
+  }, [isMounted])
 
   // Save selected client to localStorage
   useEffect(() => {
@@ -68,7 +76,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
 
   // Load selected client from localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined' && clients.length > 0) {
+    if (typeof window !== 'undefined' && isMounted && clients.length > 0) {
       try {
         const savedClientId = localStorage.getItem('selectedClientId')
         if (savedClientId) {
@@ -81,7 +89,22 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading from localStorage:', e)
       }
     }
-  }, [clients])
+  }, [clients, isMounted])
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!isMounted) {
+    return (
+      <ClientContext.Provider value={{
+        selectedClient: null,
+        setSelectedClient: () => {},
+        clients: [],
+        isLoading: true,
+        refreshClients: async () => {}
+      }}>
+        {children}
+      </ClientContext.Provider>
+    )
+  }
 
   return (
     <ClientContext.Provider value={{

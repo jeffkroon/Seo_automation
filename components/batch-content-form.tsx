@@ -49,13 +49,32 @@ export function BatchContentForm({ onGenerateSingle, isLoading, loadingPieceIds 
     articleType: "",
   })
 
-  const [expandedItems, setExpandedItems] = useState<string[]>(contentPieces.length > 0 ? [contentPieces[0].id] : [])
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    // Auto-expand if this piece is loading
+    if (contentPieces.length > 0) {
+      const piece = contentPieces[0]
+      if (loadingPieceIds.has(piece.id)) {
+        return [piece.id] // Expand loading pieces
+      }
+      return [piece.id] // Default: expand first piece
+    }
+    return []
+  })
 
   useEffect(() => {
     if (user?.companyName) {
       onUpdatePieces(contentPieces.map((piece) => ({ ...piece, company: user.companyName })))
     }
   }, [user?.companyName])
+
+  // Auto-expand pieces that are loading
+  useEffect(() => {
+    contentPieces.forEach(piece => {
+      if (loadingPieceIds.has(piece.id) && !expandedItems.includes(piece.id)) {
+        setExpandedItems(prev => [...prev, piece.id])
+      }
+    })
+  }, [loadingPieceIds, contentPieces, expandedItems])
 
   const addContentPiece = () => {
     const newPiece = createEmptyPiece()
