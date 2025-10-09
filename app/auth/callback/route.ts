@@ -26,8 +26,11 @@ export async function GET(request: Request) {
   // Handle token-based verification (Supabase email verification flow)
   if (token && type === 'signup') {
     try {
-      // Use the correct method for email verification tokens
-      const { data, error } = await supabase.auth.exchangeCodeForSession(token)
+      // Use verifyOtp for email verification tokens
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'signup'
+      })
       
       if (!error && data.user) {
         // Redirect to dashboard after successful verification
