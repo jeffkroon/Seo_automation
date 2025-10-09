@@ -13,6 +13,8 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface Project {
   id: string
@@ -688,10 +690,10 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
                       <div className="h-3 w-3 rounded-full bg-green-500" />
                       <span>Artikel Content</span>
                     </div>
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {selectedArticle.content_article}
-                      </div>
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}
@@ -703,10 +705,10 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
                       <div className="h-3 w-3 rounded-full bg-blue-500" />
                       <span>FAQ Content</span>
                     </div>
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-4 rounded-lg border">
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {selectedArticle.content_faq}
-                      </div>
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}
