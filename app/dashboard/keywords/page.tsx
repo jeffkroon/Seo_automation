@@ -80,10 +80,10 @@ export default function KeywordsPage() {
             if (prev.length === 1 && !prev[0].focusKeyword) {
               return jobs.map(({ pieceId, pieceData }) => {
                 if (pieceData) {
-                  // Restore the full piece data!
+                  // Restore the full piece data including generated articles!
                   return {
                     ...pieceData,
-                    generatedArticles: []  // Clear generated articles (will be refetched)
+                    generatedArticles: pieceData.generatedArticles || []  // Keep existing articles
                   }
                 }
                 // Fallback: create empty piece with saved ID
