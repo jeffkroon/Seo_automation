@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseRest } from '@/lib/supabase-rest'
 import { randomBytes } from 'crypto'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function GET(req: Request) {
   try {
@@ -84,14 +87,85 @@ export async function POST(req: Request) {
       }
     )
 
-    // TODO: Send email here (using your email service)
-    // For now, we'll return the invitation link
+    // Generate invitation link
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lionfish-app-es8ks.ondigitalocean.app'
     const invitationLink = `${baseUrl}/auth/register?token=${token}`
 
+    // Send invitation email
+    try {
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || 'noreply@lionfish-app-es8ks.ondigitalocean.app',
+        to: email,
+        subject: 'Uitnodiging voor SearchFactory',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">SearchFactory</h1>
+              </div>
+              
+              <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+                <h2 style="color: #333; margin-top: 0;">Je bent uitgenodigd! 🎉</h2>
+                
+                <p style="font-size: 16px; color: #555;">
+                  Je bent uitgenodigd om lid te worden van een team op <strong>SearchFactory</strong>, 
+                  het professionele SEO automation platform.
+                </p>
+                
+                <p style="font-size: 16px; color: #555;">
+                  Klik op de knop hieronder om je account aan te maken en aan de slag te gaan:
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${invitationLink}" 
+                     style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                            color: white; 
+                            padding: 14px 32px; 
+                            text-decoration: none; 
+                            border-radius: 8px; 
+                            font-weight: 600; 
+                            font-size: 16px;
+                            display: inline-block;
+                            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                    Account aanmaken
+                  </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #777; margin-top: 30px;">
+                  Of kopieer deze link in je browser:
+                </p>
+                <p style="font-size: 12px; color: #999; word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 5px;">
+                  ${invitationLink}
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+                
+                <p style="font-size: 12px; color: #999; text-align: center;">
+                  Deze uitnodiging is verstuurd naar ${email}. 
+                  Als je deze uitnodiging niet verwacht had, kun je deze email negeren.
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+                <p>© 2024 SearchFactory. All rights reserved.</p>
+              </div>
+            </body>
+          </html>
+        `
+      })
+    } catch (emailError) {
+      console.error('Error sending invitation email:', emailError)
+      // Continue even if email fails - return the link so admin can manually share it
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: 'Uitnodiging succesvol aangemaakt.',
+      message: 'Uitnodiging succesvol aangemaakt en verzonden.',
       invitation: {
         ...invitation,
         invitation_link: invitationLink
