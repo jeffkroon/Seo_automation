@@ -17,37 +17,65 @@ export function EmailConfirm() {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
+        // Check if this is a Supabase auth callback
+        const code = searchParams.get('code')
         const token = searchParams.get('token')
         const type = searchParams.get('type')
 
-        if (!token || type !== 'signup') {
-          setStatus('error')
-          setMessage('Ongeldige verificatie link.')
-          return
-        }
+        console.log('Email confirm params:', { code, token, type })
 
-        // Verify the email
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'signup'
-        })
-
-        if (error) {
-          console.error('Email verification error:', error)
-          setStatus('error')
-          setMessage('Verificatie mislukt. De link is mogelijk verlopen of al gebruikt.')
-          return
-        }
-
-        if (data.user) {
-          setStatus('success')
-          setMessage('Email succesvol geverifieerd! Je kunt nu inloggen.')
+        // Handle Supabase auth callback with code
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
           
-          // Redirect to login after 3 seconds
-          setTimeout(() => {
-            router.push('/auth/login')
-          }, 3000)
+          if (error) {
+            console.error('Code exchange error:', error)
+            setStatus('error')
+            setMessage('Verificatie mislukt. De link is mogelijk verlopen of al gebruikt.')
+            return
+          }
+
+          if (data.user) {
+            setStatus('success')
+            setMessage('Email succesvol geverifieerd! Je wordt doorgestuurd naar de dashboard.')
+            
+            // Redirect to dashboard after 3 seconds
+            setTimeout(() => {
+              router.push('/dashboard')
+            }, 3000)
+            return
+          }
         }
+
+        // Handle OTP verification
+        if (token && type === 'signup') {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'signup'
+          })
+
+          if (error) {
+            console.error('OTP verification error:', error)
+            setStatus('error')
+            setMessage('Verificatie mislukt. De link is mogelijk verlopen of al gebruikt.')
+            return
+          }
+
+          if (data.user) {
+            setStatus('success')
+            setMessage('Email succesvol geverifieerd! Je kunt nu inloggen.')
+            
+            // Redirect to login after 3 seconds
+            setTimeout(() => {
+              router.push('/auth/login')
+            }, 3000)
+            return
+          }
+        }
+
+        // No valid parameters found
+        setStatus('error')
+        setMessage('Ongeldige verificatie link.')
       } catch (error) {
         console.error('Unexpected error:', error)
         setStatus('error')
