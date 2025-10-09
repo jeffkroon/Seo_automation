@@ -27,10 +27,12 @@ interface ContentPiece {
 
 interface BatchContentFormProps {
   onGenerate: (contentPieces: ContentPiece[]) => void
+  onGenerateSingle: (contentPiece: ContentPiece) => void
   isLoading: boolean
+  loadingPieceIds?: Set<string>
 }
 
-export function BatchContentForm({ onGenerate, isLoading }: BatchContentFormProps) {
+export function BatchContentForm({ onGenerate, onGenerateSingle, isLoading, loadingPieceIds = new Set() }: BatchContentFormProps) {
   const { user } = useAuth()
 
   const createEmptyPiece = (): ContentPiece => ({
@@ -190,7 +192,9 @@ export function BatchContentForm({ onGenerate, isLoading }: BatchContentFormProp
                     onRemoveKeyword={(keyword) => removeKeyword(piece.id, keyword)}
                     onAddHeading={(heading) => addHeading(piece.id, heading)}
                     onRemoveHeading={(heading) => removeHeading(piece.id, heading)}
+                    onGenerateSingle={() => onGenerateSingle(piece)}
                     isLoading={isLoading}
+                    isPieceLoading={loadingPieceIds.has(piece.id)}
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -227,7 +231,9 @@ interface ContentPieceFormProps {
   onRemoveKeyword: (keyword: string) => void
   onAddHeading: (heading: string) => void
   onRemoveHeading: (heading: string) => void
+  onGenerateSingle: () => void
   isLoading: boolean
+  isPieceLoading: boolean
 }
 
 function ContentPieceForm({
@@ -237,7 +243,9 @@ function ContentPieceForm({
   onRemoveKeyword,
   onAddHeading,
   onRemoveHeading,
+  onGenerateSingle,
   isLoading,
+  isPieceLoading,
 }: ContentPieceFormProps) {
   const [newKeyword, setNewKeyword] = useState("")
   const [newHeading, setNewHeading] = useState("")
@@ -451,6 +459,28 @@ function ContentPieceForm({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Individual Generate Button */}
+      <div className="pt-3 border-t">
+        <Button
+          type="button"
+          onClick={onGenerateSingle}
+          disabled={isLoading || isPieceLoading || !piece.focusKeyword.trim() || !piece.country.trim() || !piece.language.trim() || !piece.webpageLink.trim() || !piece.company.trim()}
+          className="w-full h-9 text-sm font-medium bg-primary hover:bg-primary/90"
+        >
+          {isPieceLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-4 h-4 mr-2" />
+              Generate This Article
+            </>
+          )}
+        </Button>
       </div>
     </div>
   )

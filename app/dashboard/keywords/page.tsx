@@ -40,6 +40,71 @@ export default function KeywordsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
   const [jobStatus, setJobStatus] = useState<JobStatusState | null>(null)
+  const [loadingPieceIds, setLoadingPieceIds] = useState<Set<string>>(new Set())
+
+  const handleGenerateSingle = async (contentPiece: ContentPiece) => {
+    // Mark this piece as loading
+    setLoadingPieceIds(prev => new Set(prev).add(contentPiece.id))
+    
+    try {
+      const response = await fetch("/api/generate-articles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "Focus Keyword": contentPiece.focusKeyword,
+          Country: contentPiece.country,
+          taal: contentPiece.language,
+          "Link webpagina": contentPiece.webpageLink,
+          bedrijf: contentPiece.company,
+          "Aanvullende Zoekwoorden": contentPiece.additionalKeywords.join(", "),
+          "Aanvullende Headings": contentPiece.additionalHeadings.join(", "),
+          "Soort Artikel": contentPiece.articleType,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const responseData = await response.json()
+
+      if (!responseData.jobId) {
+        throw new Error(responseData.error || "Geen jobId ontvangen")
+      }
+
+      // Poll for this single job
+      setHasGenerated(true)
+      await pollForAllResults([responseData.jobId])
+    } catch (error) {
+      console.error("Error generating article:", error)
+
+      let errorMessage = "Er is een fout opgetreden bij het genereren van het artikel."
+
+      if (error instanceof Error) {
+        if (error.message.includes("too many users")) {
+          errorMessage = "De service is momenteel overbelast. Probeer het over een paar minuten opnieuw."
+        } else if (error.message.includes("fetch")) {
+          errorMessage = "Kan geen verbinding maken met de webhook. Controleer je internetverbinding en webhook URL."
+        } else if (error.message.includes("HTTP error")) {
+          errorMessage = `Webhook error: ${error.message}. Controleer je n8n workflow.`
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      alert(errorMessage)
+    } finally {
+      // Remove from loading
+      setLoadingPieceIds(prev => {
+        const next = new Set(prev)
+        next.delete(contentPiece.id)
+        return next
+      })
+    }
+  }
 
   const handleGenerate = async (contentPieces: ContentPiece[]) => {
     setIsLoading(true)
@@ -251,7 +316,12 @@ export default function KeywordsPage() {
         </p>
       </div>
 
-      <BatchContentForm onGenerate={handleGenerate} isLoading={isLoading} />
+      <BatchContentForm 
+        onGenerate={handleGenerate} 
+        onGenerateSingle={handleGenerateSingle}
+        isLoading={isLoading} 
+        loadingPieceIds={loadingPieceIds}
+      />
 
       {isLoading && (
         <LoadingState
