@@ -42,23 +42,6 @@ export default function AdminUsersPage() {
   const [success, setSuccess] = useState("")
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
 
-  // Check if user has owner rights
-  if (!user || user.role !== 'owner') {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Toegang Geweigerd</h2>
-            <p className="text-muted-foreground">
-              Alleen bedrijfseigenaren kunnen gebruikers beheren.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
@@ -192,8 +175,28 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    // Only fetch if user is owner
+    if (user && user.role === 'owner') {
+      fetchUsers()
+    }
+  }, [user])
+
+  // Check if user has owner rights - AFTER all hooks
+  if (!user || user.role !== 'owner') {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Toegang Geweigerd</h2>
+            <p className="text-muted-foreground">
+              Alleen bedrijfseigenaren kunnen gebruikers beheren.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
