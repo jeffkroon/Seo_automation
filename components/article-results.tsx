@@ -140,30 +140,56 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const saveArticle = async (section: ArticleSection, content: string) => {
+  // Group articles by sequence (article + FAQ together)
+  const groupedArticles = useMemo(() => {
+    const groups = new Map<number, { article?: ArticleSection; faq?: ArticleSection }>()
+    
+    articles.forEach(section => {
+      const existing = groups.get(section.sequence) || {}
+      if (section.kind === 'article') {
+        existing.article = section
+      } else if (section.kind === 'faq') {
+        existing.faq = section
+      }
+      groups.set(section.sequence, existing)
+    })
+    
+    return Array.from(groups.entries()).sort((a, b) => a[0] - b[0])
+  }, [articles])
+
+  const saveArticlePair = async (sequence: number, articleSection?: ArticleSection, faqSection?: ArticleSection) => {
     if (!selectedClient) {
       alert('Selecteer eerst een client om het artikel op te slaan')
       return
     }
 
+    if (!articleSection && !faqSection) {
+      alert('Geen content om op te slaan')
+      return
+    }
+
     try {
-      setSavingId(section.id)
+      setSavingId(`seq-${sequence}`)
+      
+      const articleContent = articleSection ? transformMarkdown(articleSection.html) : null
+      const faqContent = faqSection ? transformMarkdown(faqSection.html) : null
+      const title = articleSection?.title || faqSection?.title || 'Untitled'
       
       const response = await apiClient('/api/articles', {
         method: 'POST',
         body: JSON.stringify({
           client_id: selectedClient.id,
-          focus_keyword: section.title,
-          title: section.title,
-          article: section.kind === 'article' ? content : null,
-          faqs: section.kind === 'faq' ? content : null,
-          meta_title: section.title,
+          focus_keyword: title,
+          title: title,
+          article: articleContent,
+          faqs: faqContent,
+          meta_title: title,
         })
       })
 
       if (response.ok) {
         const data = await response.json()
-        setSavedId(section.id)
+        setSavedId(`seq-${sequence}`)
         setTimeout(() => setSavedId(null), 3000)
         alert(data.message || 'Artikel opgeslagen!')
       } else {
@@ -306,13 +332,9 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
         </p>
       </div>
 
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-        {articles.map((article) => {
-          const preparedMarkdown = transformMarkdown(article.html)
-          const title = article.title || extractTitle(preparedMarkdown)
-          const containsHtml = /<\/?[a-z][\s\S]*>/i.test(preparedMarkdown)
-          const previewText = createPreview(preparedMarkdown)
-          const isExpanded = expandedArticles.has(article.id)
+      <div className="grid gap-6 grid-cols-1">
+        {groupedArticles.map(([sequence, { article, faq }]) => {
+          const title = article?.title || faq?.title || 'Untitled'
           const markdownClass = cn(
             "prose prose-sm max-w-none dark:prose-invert",
             "prose-headings:text-foreground prose-headings:font-bold prose-headings:leading-tight",
@@ -326,15 +348,22 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
             "prose-blockquote:text-muted-foreground prose-blockquote:border-primary",
             "prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic"
           )
-          const badgeLabel = article.kind === 'faq'
-            ? `FAQ ${article.sequence}`
-            : article.kind === 'meta'
-              ? `Meta ${article.sequence}`
-              : `Artikel ${article.sequence}`
+
+          // Prepare article content
+          const articleMarkdown = article ? transformMarkdown(article.html) : null
+          const articleContainsHtml = articleMarkdown ? /<\/?[a-z][\s\S]*>/i.test(articleMarkdown) : false
+          const articlePreview = articleMarkdown ? createPreview(articleMarkdown) : null
+          const articleExpanded = article ? expandedArticles.has(article.id) : false
+
+          // Prepare FAQ content
+          const faqMarkdown = faq ? transformMarkdown(faq.html) : null
+          const faqContainsHtml = faqMarkdown ? /<\/?[a-z][\s\S]*>/i.test(faqMarkdown) : false
+          const faqPreview = faqMarkdown ? createPreview(faqMarkdown) : null
+          const faqExpanded = faq ? expandedArticles.has(faq.id) : false
 
           return (
             <Card
-              key={article.id}
+              key={`seq-${sequence}`}
               className="group hover:shadow-lg transition-all duration-300 border-0 bg-card/80 backdrop-blur-sm"
             >
               <CardHeader className="pb-4">
@@ -342,94 +371,162 @@ export function ArticleResults({ articles }: ArticleResultsProps) {
                   <div className="flex items-center space-x-2">
                     <FileText className="w-5 h-5 text-primary" />
                     <Badge variant="secondary" className="text-xs">
-                      {badgeLabel}
+                      Artikel {sequence}
                     </Badge>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-lg text-balance leading-tight flex-1">{title}</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs font-medium flex items-center gap-1"
-                    onClick={() => toggleExpanded(article.id)}
-                  >
-                    {isExpanded ? (
-                      <>
-                        <ChevronDown className="h-4 w-4" /> Inklappen
-                      </>
-                    ) : (
-                      <>
-                        <ChevronRight className="h-4 w-4" /> Uitklappen
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <CardTitle className="text-lg text-balance leading-tight">{title}</CardTitle>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                {isExpanded ? (
-                  containsHtml ? (
-                    <HtmlSection html={preparedMarkdown} className={markdownClass} />
-                  ) : (
-                    <div className={markdownClass}>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={markdownComponents}
-                      >
-                        {preparedMarkdown}
-                      </ReactMarkdown>
+              <CardContent className="space-y-6">
+                {/* Article + FAQ side by side */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Article Section */}
+                  {article && articleMarkdown && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary" />
+                          Artikel
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => toggleExpanded(article.id)}
+                        >
+                          {articleExpanded ? (
+                            <><ChevronDown className="h-3 w-3 mr-1" /> Inklappen</>
+                          ) : (
+                            <><ChevronRight className="h-3 w-3 mr-1" /> Uitklappen</>
+                          )}
+                        </Button>
+                      </div>
+
+                      <div className="border rounded-lg p-4 bg-background/50">
+                        {articleExpanded ? (
+                          articleContainsHtml ? (
+                            <HtmlSection html={articleMarkdown} className={markdownClass} />
+                          ) : (
+                            <div className={markdownClass}>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                {articleMarkdown}
+                              </ReactMarkdown>
+                            </div>
+                          )
+                        ) : (
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {articlePreview}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => copyToClipboard(articleMarkdown, article.id, articleContainsHtml)}
+                        >
+                          {copiedId === article.id ? (
+                            <><CheckCircle className="w-3 h-3 mr-1 text-green-500" /> Copied!</>
+                          ) : (
+                            <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => downloadArticle(articleMarkdown, `${title} - Article`, articleContainsHtml)}
+                        >
+                          <Download className="w-3 h-3 mr-1" /> Download
+                        </Button>
+                      </div>
                     </div>
-                  )
-                ) : (
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {previewText}
-                  </p>
-                )}
+                  )}
 
-                <div className="pt-2 space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start bg-transparent"
-                    onClick={() => copyToClipboard(preparedMarkdown, article.id, containsHtml)}
-                  >
-                    {copiedId === article.id ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-2" />
-                        Kopieer HTML
-                      </>
-                    )}
-                  </Button>
+                  {/* FAQ Section */}
+                  {faq && faqMarkdown && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary" />
+                          FAQ
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => toggleExpanded(faq.id)}
+                        >
+                          {faqExpanded ? (
+                            <><ChevronDown className="h-3 w-3 mr-1" /> Inklappen</>
+                          ) : (
+                            <><ChevronRight className="h-3 w-3 mr-1" /> Uitklappen</>
+                          )}
+                        </Button>
+                      </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start bg-transparent"
-                    onClick={() => downloadArticle(preparedMarkdown, title, containsHtml)}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Downloaden
-                  </Button>
+                      <div className="border rounded-lg p-4 bg-background/50">
+                        {faqExpanded ? (
+                          faqContainsHtml ? (
+                            <HtmlSection html={faqMarkdown} className={markdownClass} />
+                          ) : (
+                            <div className={markdownClass}>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                {faqMarkdown}
+                              </ReactMarkdown>
+                            </div>
+                          )
+                        ) : (
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {faqPreview}
+                          </p>
+                        )}
+                      </div>
 
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => copyToClipboard(faqMarkdown, faq.id, faqContainsHtml)}
+                        >
+                          {copiedId === faq.id ? (
+                            <><CheckCircle className="w-3 h-3 mr-1 text-green-500" /> Copied!</>
+                          ) : (
+                            <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => downloadArticle(faqMarkdown, `${title} - FAQ`, faqContainsHtml)}
+                        >
+                          <Download className="w-3 h-3 mr-1" /> Download
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Single Save Button for both */}
+                <div className="pt-4 border-t">
                   <Button
-                    variant="outline"
+                    variant="default"
                     size="sm"
-                    className="w-full justify-start bg-transparent"
-                    onClick={() => saveArticle(article, preparedMarkdown)}
-                    disabled={savingId === article.id || !selectedClient}
+                    className="w-full"
+                    onClick={() => saveArticlePair(sequence, article, faq)}
+                    disabled={savingId === `seq-${sequence}` || !selectedClient}
                   >
-                    {savingId === article.id ? (
+                    {savingId === `seq-${sequence}` ? (
                       <>
                         <Save className="w-4 h-4 mr-2 animate-pulse" />
                         Opslaan...
                       </>
-                    ) : savedId === article.id ? (
+                    ) : savedId === `seq-${sequence}` ? (
                       <>
                         <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
                         Opgeslagen!
