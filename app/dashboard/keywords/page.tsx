@@ -233,9 +233,13 @@ export default function KeywordsPage() {
           throw new Error(job.error || "Workflow error")
         }
 
-        if (typeof job.resultsVersion === "number" && job.resultsVersion !== lastVersion) {
+        // Only process if we have new results (version changed AND we have results)
+        if (typeof job.resultsVersion === "number" && 
+            job.resultsVersion !== lastVersion && 
+            job.results && 
+            job.results.length > 0) {
           lastVersion = job.resultsVersion
-          console.log(`📥 Processing results for version ${job.resultsVersion}`)
+          console.log(`📥 Processing ${job.results.length} results for version ${job.resultsVersion}`)
 
           const sections: ArticleSection[] = (job.results || []).flatMap((result: any, index: number) => {
             const sequence = result?.sequence ?? 1
