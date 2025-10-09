@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Archive, Search, Calendar, FileText, Download, Eye, Trash2, Filter } from "lucide-react"
+import { Archive, Search, Calendar, FileText, Download, Eye, Trash2, Filter, ChevronDown, ChevronUp, Hash, Tag } from "lucide-react"
 import { useClientContext } from "@/hooks/use-client-context"
 import { apiClient } from "@/lib/api-client"
 import { format } from "date-fns"
@@ -21,6 +21,8 @@ interface SavedArticle {
   article_type: string | null
   country: string | null
   language: string | null
+  additional_keywords: string[]
+  additional_headings: string[]
   created_at: string
   updated_at: string
 }
@@ -33,6 +35,7 @@ export default function ArchivePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("newest")
+  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (selectedClient) {
@@ -99,6 +102,18 @@ export default function ArchivePage() {
     setFilteredArticles(filtered)
   }
 
+  const toggleExpanded = (articleId: string) => {
+    setExpandedArticles(prev => {
+      const next = new Set(prev)
+      if (next.has(articleId)) {
+        next.delete(articleId)
+      } else {
+        next.add(articleId)
+      }
+      return next
+    })
+  }
+
   const downloadArticle = (article: SavedArticle) => {
     const content = `# ${article.title}\n\n${article.content_article || ''}\n\n---\n\n${article.content_faq || ''}`
     const blob = new Blob([content], { type: 'text/markdown' })
@@ -110,6 +125,12 @@ export default function ArchivePage() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  const createPreview = (content: string, maxLength: number = 150) => {
+    if (!content) return "Geen content beschikbaar"
+    const cleaned = content.replace(/[#*`]/g, '').trim()
+    return cleaned.length > maxLength ? cleaned.substring(0, maxLength) + '...' : cleaned
   }
 
   const deleteArticle = async (articleId: string) => {
@@ -234,78 +255,179 @@ export default function ArchivePage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredArticles.map((article) => (
-            <Card key={article.id} className="group hover:shadow-lg transition-all duration-300">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <Badge variant={article.article_type === 'transactioneel' ? 'default' : 'secondary'} className="text-xs">
-                    {article.article_type || 'Onbekend'}
-                  </Badge>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {format(new Date(article.created_at), 'dd MMM yyyy', { locale: nl })}
+          {filteredArticles.map((article) => {
+            const isExpanded = expandedArticles.has(article.id)
+            const articlePreview = article.content_article ? createPreview(article.content_article) : null
+            const faqPreview = article.content_faq ? createPreview(article.content_faq) : null
+            
+            return (
+              <Card key={article.id} className="group hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <Badge variant={article.article_type === 'transactioneel' ? 'default' : 'secondary'} className="text-xs">
+                      {article.article_type || 'Onbekend'}
+                    </Badge>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {format(new Date(article.created_at), 'dd MMM yyyy', { locale: nl })}
+                    </div>
                   </div>
-                </div>
-                <CardTitle className="text-lg leading-tight line-clamp-2">
-                  {article.title}
-                </CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-2">
-                  <Search className="h-3 w-3" />
-                  {article.focus_keyword}
-                </CardDescription>
-              </CardHeader>
+                  
+                  {/* Main Title */}
+                  <CardTitle className="text-lg leading-tight line-clamp-2 mb-3">
+                    {article.title}
+                  </CardTitle>
+                  
+                  {/* Focus Keyword - Bold */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Search className="h-4 w-4 text-primary" />
+                    <span className="font-bold text-primary">{article.focus_keyword}</span>
+                  </div>
 
-              <CardContent className="space-y-3">
-                {/* Content indicators */}
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  {article.content_article && (
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-3 w-3" />
-                      Artikel
+                  {/* Additional Keywords */}
+                  {article.additional_keywords && article.additional_keywords.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Tag className="h-3 w-3" />
+                        <span>Aanvullende zoekwoorden:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {article.additional_keywords.slice(0, 3).map((keyword, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {keyword}
+                          </Badge>
+                        ))}
+                        {article.additional_keywords.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{article.additional_keywords.length - 3}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   )}
-                  {article.content_faq && (
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-3 w-3" />
-                      FAQ
+
+                  {/* Additional Headings */}
+                  {article.additional_headings && article.additional_headings.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Hash className="h-3 w-3" />
+                        <span>Aanvullende headers:</span>
+                      </div>
+                      <div className="space-y-1">
+                        {article.additional_headings.slice(0, 3).map((heading, index) => (
+                          <div key={index} className="text-xs text-muted-foreground line-clamp-1">
+                            • {heading}
+                          </div>
+                        ))}
+                        {article.additional_headings.length > 3 && (
+                          <div className="text-xs text-muted-foreground">
+                            • +{article.additional_headings.length - 3} meer...
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                  {article.language && (
-                    <Badge variant="outline" className="text-xs">
-                      {article.language.toUpperCase()}
-                    </Badge>
-                  )}
-                  {article.country && (
-                    <Badge variant="outline" className="text-xs">
-                      {article.country}
-                    </Badge>
-                  )}
-                </div>
+                </CardHeader>
 
-                {/* Actions */}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadArticle(article)}
-                    className="w-full"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteArticle(article.id)}
-                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Verwijder
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <CardContent className="space-y-4">
+                  {/* Content indicators */}
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    {article.content_article && (
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        Artikel
+                      </div>
+                    )}
+                    {article.content_faq && (
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        FAQ
+                      </div>
+                    )}
+                    {article.language && (
+                      <Badge variant="outline" className="text-xs">
+                        {article.language.toUpperCase()}
+                      </Badge>
+                    )}
+                    {article.country && (
+                      <Badge variant="outline" className="text-xs">
+                        {article.country}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Expand/Collapse Content */}
+                  {(article.content_article || article.content_faq) && (
+                    <div className="space-y-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleExpanded(article.id)}
+                        className="w-full justify-between text-xs"
+                      >
+                        <span>{isExpanded ? 'Inhoud verbergen' : 'Inhoud bekijken'}</span>
+                        {isExpanded ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )}
+                      </Button>
+
+                      {isExpanded && (
+                        <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                          {article.content_article && (
+                            <div>
+                              <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+                                <FileText className="h-3 w-3" />
+                                Artikel Content
+                              </h4>
+                              <div className="text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto">
+                                {articlePreview}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {article.content_faq && (
+                            <div>
+                              <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+                                <FileText className="h-3 w-3" />
+                                FAQ Content
+                              </h4>
+                              <div className="text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto">
+                                {faqPreview}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadArticle(article)}
+                      className="w-full"
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteArticle(article.id)}
+                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Verwijder
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
