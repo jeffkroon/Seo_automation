@@ -49,10 +49,15 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         console.log('🔄 fetchClients data:', data)
         setClients(data.clients || [])
         
-        // Auto-select first client if none selected
+        // Only auto-select first client if no saved client exists
         if (!selectedClient && data.clients && data.clients.length > 0) {
-          console.log('🔄 Auto-selecting first client:', data.clients[0].naam)
-          setSelectedClient(data.clients[0])
+          const savedClientId = typeof window !== 'undefined' ? localStorage.getItem('selectedClientId') : null
+          if (!savedClientId) {
+            console.log('🔄 No saved client, auto-selecting first client:', data.clients[0].naam)
+            setSelectedClient(data.clients[0])
+          } else {
+            console.log('🔄 Saved client exists, will restore from localStorage')
+          }
         }
       } else {
         const errorData = await response.json().catch(() => ({}))
@@ -94,7 +99,11 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           if (client) {
             console.log('🔄 Restoring selected client from localStorage:', client.naam)
             setSelectedClient(client)
+          } else {
+            console.log('🔄 Saved client not found, keeping first client as default')
           }
+        } else {
+          console.log('🔄 No saved client, using first client as default')
         }
       } catch (e) {
         console.error('Error loading from localStorage:', e)
