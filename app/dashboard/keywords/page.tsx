@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { ContentGenerationForm } from "@/components/content-generation-form"
+import { BatchContentForm } from "@/components/batch-content-form"
 import { ArticleResults } from "@/components/article-results"
 import { LoadingState } from "@/components/loading-state"
 
-type SectionKind = 'article' | 'faq' | 'meta'
+type SectionKind = "article" | "faq" | "meta"
 
 interface ArticleSection {
   id: string
@@ -23,183 +23,222 @@ interface JobStatusState {
   lastUpdatedAt?: string
 }
 
+interface ContentPiece {
+  id: string
+  focusKeyword: string
+  country: string
+  language: string
+  webpageLink: string
+  company: string
+  additionalKeywords: string[]
+  additionalHeadings: string[]
+  articleType: string
+}
+
 export default function KeywordsPage() {
   const [articles, setArticles] = useState<ArticleSection[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
   const [jobStatus, setJobStatus] = useState<JobStatusState | null>(null)
 
-  const handleGenerate = async (formData: {
-    focusKeyword: string
-    country: string
-    language: string
-    webpageLink: string
-    company: string
-    additionalKeywords?: string
-    additionalHeadings?: string
-    articleType?: string
-  }) => {
+  const handleGenerate = async (contentPieces: ContentPiece[]) => {
     setIsLoading(true)
     setHasGenerated(false)
     setArticles([])
-    setJobStatus({ status: 'Workflow gestart', completedPairs: 0, isComplete: false })
+    setJobStatus({
+      status: "Workflow gestart",
+      completedPairs: 0,
+      isComplete: false,
+      totalPairsHint: contentPieces.length,
+    })
 
     try {
-      // Start the workflow and get jobId
-      const response = await fetch('/api/generate-articles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          "Focus Keyword": formData.focusKeyword,
-          "Country": formData.country,
-          "taal": formData.language,
-          "Link webpagina": formData.webpageLink,
-          "bedrijf": formData.company,
-          "Aanvullende Zoekwoorden": formData.additionalKeywords || "",
-          "Aanvullende Headings": formData.additionalHeadings || "",
-          "Soort Artikel": formData.articleType || "",
-        }),
-      })
+      // Process each content piece sequentially
+      // In production, you might want to batch these or process in parallel
+      const allJobIds: string[] = []
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      for (let i = 0; i < contentPieces.length; i++) {
+        const piece = contentPieces[i]
+
+        setJobStatus((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: `Verwerken content ${i + 1} van ${contentPieces.length}`,
+              }
+            : {
+                status: `Verwerken content ${i + 1} van ${contentPieces.length}`,
+                completedPairs: i,
+                isComplete: false,
+                totalPairsHint: contentPieces.length,
+              },
+        )
+
+        const response = await fetch("/api/generate-articles", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            "Focus Keyword": piece.focusKeyword,
+            Country: piece.country,
+            taal: piece.language,
+            "Link webpagina": piece.webpageLink,
+            bedrijf: piece.company,
+            "Aanvullende Zoekwoorden": piece.additionalKeywords.join(", "),
+            "Aanvullende Headings": piece.additionalHeadings.join(", "),
+            "Soort Artikel": piece.articleType,
+            sequence: i + 1, // Add sequence to track which piece this is
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        }
+
+        const responseData = await response.json()
+
+        if (!responseData.jobId) {
+          throw new Error(responseData.error || "Geen jobId ontvangen")
+        }
+
+        allJobIds.push(responseData.jobId)
       }
 
-      const responseData = await response.json()
-      
-      if (!responseData.jobId) {
-        throw new Error(responseData.error || 'Geen jobId ontvangen')
-      }
-
-      // Start polling for results
-      await pollForResults(responseData.jobId)
-      
+      // Poll for all results
+      await pollForAllResults(allJobIds)
     } catch (error) {
       console.error("Error generating articles:", error)
-      
-      let errorMessage = 'Er is een fout opgetreden bij het genereren van artikelen.'
-      
+
+      let errorMessage = "Er is een fout opgetreden bij het genereren van artikelen."
+
       if (error instanceof Error) {
-        if (error.message.includes('too many users')) {
-          errorMessage = 'De service is momenteel overbelast. Probeer het over een paar minuten opnieuw.'
-        } else if (error.message.includes('fetch')) {
-          errorMessage = 'Kan geen verbinding maken met de webhook. Controleer je internetverbinding en webhook URL.'
-        } else if (error.message.includes('HTTP error')) {
+        if (error.message.includes("too many users")) {
+          errorMessage = "De service is momenteel overbelast. Probeer het over een paar minuten opnieuw."
+        } else if (error.message.includes("fetch")) {
+          errorMessage = "Kan geen verbinding maken met de webhook. Controleer je internetverbinding en webhook URL."
+        } else if (error.message.includes("HTTP error")) {
           errorMessage = `Webhook error: ${error.message}. Controleer je n8n workflow.`
         } else {
           errorMessage = error.message
         }
       }
-      
+
       alert(errorMessage)
       setIsLoading(false)
     }
   }
 
-  const pollForResults = async (jobId: string) => {
-    let lastVersion = -1
+  const pollForAllResults = async (jobIds: string[]) => {
+    const lastVersions = new Map<string, number>()
+    jobIds.forEach((id) => lastVersions.set(id, -1))
+
     let isPolling = true
+    const completedJobs = new Set<string>()
 
     const poll = async () => {
       if (!isPolling) return
+
       try {
-        const response = await fetch(`/api/jobs/${jobId}`)
-        
-        if (!response.ok) {
-          throw new Error(`Status check failed: ${response.status}`)
-        }
+        // Poll all jobs in parallel
+        const results = await Promise.all(jobIds.map((jobId) => fetch(`/api/jobs/${jobId}`).then((res) => res.json())))
 
-        const job = await response.json()
-        console.log(`Polling job ${jobId}:`, job)
+        let totalCompleted = 0
+        const allSections: ArticleSection[] = []
 
-        if (job.status === 'error') {
-          throw new Error(job.error || 'Workflow error')
-        }
+        results.forEach((job, index) => {
+          const jobId = jobIds[index]
 
-        const sequences = new Set<number>()
-        if (Array.isArray(job.results)) {
-          job.results.forEach((result: any, index: number) => {
-            const sequence = result?.sequence ?? index + 1
-            sequences.add(sequence)
-          })
-        }
+          if (job.status === "error") {
+            throw new Error(job.error || "Workflow error")
+          }
 
-        setJobStatus({
-          status: job.status,
-          completedPairs: sequences.size,
-          isComplete: Boolean(job.isComplete),
-          totalPairsHint: job.totalPairs ?? job.expectedResults,
-          lastUpdatedAt: job.updatedAt,
+          if (job.isComplete) {
+            completedJobs.add(jobId)
+            totalCompleted++
+          }
+
+          const lastVersion = lastVersions.get(jobId) ?? -1
+
+          if (typeof job.resultsVersion === "number" && job.resultsVersion !== lastVersion) {
+            lastVersions.set(jobId, job.resultsVersion)
+
+            const sections: ArticleSection[] = (job.results || []).flatMap((result: any, resultIndex: number) => {
+              const sequence = result?.sequence ?? index + 1
+              const baseId = result?.id ?? `${jobId}-${sequence}`
+              const entries: ArticleSection[] = []
+
+              if (result?.article) {
+                entries.push({
+                  id: `${baseId}-article`,
+                  html: String(result.article).trim(),
+                  title: result.metaTitle?.trim() || `Artikel ${sequence}`,
+                  kind: "article",
+                  sequence,
+                })
+              }
+
+              if (result?.faqs) {
+                entries.push({
+                  id: `${baseId}-faq`,
+                  html: String(result.faqs).trim(),
+                  title: `Veelgestelde Vragen ${sequence}`,
+                  kind: "faq",
+                  sequence,
+                })
+              }
+
+              return entries
+            })
+
+            allSections.push(...sections)
+          }
         })
 
-        if (typeof job.resultsVersion === 'number' && job.resultsVersion !== lastVersion) {
-          lastVersion = job.resultsVersion
+        setJobStatus({
+          status: completedJobs.size === jobIds.length ? "Alle content gegenereerd" : "Content genereren",
+          completedPairs: completedJobs.size,
+          isComplete: completedJobs.size === jobIds.length,
+          totalPairsHint: jobIds.length,
+          lastUpdatedAt: new Date().toISOString(),
+        })
 
-          const sections: ArticleSection[] = (job.results || []).flatMap((result: any, index: number) => {
-            const sequence = result?.sequence ?? index + 1
-            const baseId = result?.id ?? `${jobId}-${sequence}`
-            const entries: ArticleSection[] = []
-
-            if (result?.article) {
-              entries.push({
-                id: `${baseId}-article`,
-                html: String(result.article).trim(),
-                title: result.metaTitle?.trim() || `Artikel ${sequence}`,
-                kind: 'article',
-                sequence,
-              })
-            }
-
-            if (result?.faqs) {
-              entries.push({
-                id: `${baseId}-faq`,
-                html: String(result.faqs).trim(),
-                title: `Veelgestelde Vragen ${sequence}`,
-                kind: 'faq',
-                sequence,
-              })
-            }
-
-            return entries
-          }).sort((a: ArticleSection, b: ArticleSection) => {
+        if (allSections.length > 0) {
+          const sortedSections = allSections.sort((a, b) => {
             if (a.sequence !== b.sequence) return a.sequence - b.sequence
             const kindWeight = { article: 0, faq: 1, meta: 2 } as const
             return kindWeight[a.kind] - kindWeight[b.kind]
           })
 
-          if (sections.length > 0) {
-            setArticles(sections)
-            setHasGenerated(true)
-          }
+          setArticles(sortedSections)
+          setHasGenerated(true)
         }
 
-        if (job.isComplete) {
+        if (completedJobs.size === jobIds.length) {
           setIsLoading(false)
-          setJobStatus((prev) => prev ? { ...prev, isComplete: true, status: job.status } : {
-            status: job.status,
-            completedPairs: sequences.size,
-            isComplete: true,
-          })
           isPolling = false
           return
         }
 
-        console.log(`Polling attempt for job ${jobId}, status: ${job.status}`)
         setTimeout(poll, 3000)
-        
       } catch (error) {
         console.error("Error polling for results:", error)
-        alert(`Error: ${error instanceof Error ? error.message : 'Onbekende fout'}`)
+        alert(`Error: ${error instanceof Error ? error.message : "Onbekende fout"}`)
         setIsLoading(false)
-        setJobStatus((prev) => prev ? { ...prev, status: 'error', isComplete: true } : { status: 'error', completedPairs: 0, isComplete: true })
+        setJobStatus((prev) =>
+          prev
+            ? { ...prev, status: "error", isComplete: true }
+            : {
+                status: "error",
+                completedPairs: 0,
+                isComplete: true,
+              },
+        )
         isPolling = false
       }
     }
 
-    // Start polling
     poll()
   }
 
@@ -208,11 +247,11 @@ export default function KeywordsPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Copywriter</h1>
         <p className="text-muted-foreground max-w-2xl">
-          Generate SEO-optimized articles with AI-driven content creation.
+          Genereer meerdere SEO-geoptimaliseerde artikelen met AI-gestuurde contentcreatie.
         </p>
       </div>
 
-      <ContentGenerationForm onGenerate={handleGenerate} isLoading={isLoading} />
+      <BatchContentForm onGenerate={handleGenerate} isLoading={isLoading} />
 
       {isLoading && (
         <LoadingState
