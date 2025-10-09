@@ -54,40 +54,84 @@ export async function POST(req: Request) {
 
     const client = clients[0]
 
-    // Save article
-    const savedArticles = await supabaseRest<any[]>(
-      'generated_articles',
-      {
-        method: 'POST',
-        headers: { 
-          'x-company-id': companyId,
-          'Prefer': 'return=representation'
-        },
-        body: {
-          company_id: companyId,
-          member_id: userId,
-          client_id: client_id,
-          focus_keyword: focus_keyword.trim(),
-          title: title?.trim() || null,
-          article: article?.trim() || null,
-          faqs: faqs?.trim() || null,
-          meta_title: meta_title?.trim() || null,
-          meta_description: meta_description?.trim() || null,
-          country: country?.trim() || null,
-          language: language?.trim() || null,
-          article_type: article_type?.trim() || null,
-          additional_keywords: additional_keywords || [],
-          additional_headings: additional_headings || [],
-          job_id: job_id || null
-        }
-      },
-    )
+    // Save article and FAQ as separate sections
+    const sectionsToSave: any[] = []
 
-    const savedArticle = Array.isArray(savedArticles) ? savedArticles[0] : savedArticles
+    // Add article section if exists
+    if (article && article.trim()) {
+      sectionsToSave.push({
+        company_id: companyId,
+        member_id: userId,
+        client_id: client_id,
+        section_type: 'article',
+        focus_keyword: focus_keyword.trim(),
+        title: title?.trim() || meta_title?.trim() || focus_keyword.trim(),
+        content: article.trim(),
+        meta_title: meta_title?.trim() || null,
+        meta_description: meta_description?.trim() || null,
+        country: country?.trim() || null,
+        language: language?.trim() || null,
+        article_type: article_type?.trim() || null,
+        additional_keywords: additional_keywords || [],
+        additional_headings: additional_headings || [],
+        job_id: job_id || null,
+        sequence: 1
+      })
+    }
+
+    // Add FAQ section if exists
+    if (faqs && faqs.trim()) {
+      sectionsToSave.push({
+        company_id: companyId,
+        member_id: userId,
+        client_id: client_id,
+        section_type: 'faq',
+        focus_keyword: focus_keyword.trim(),
+        title: `Veelgestelde Vragen - ${title?.trim() || focus_keyword.trim()}`,
+        content: faqs.trim(),
+        meta_title: meta_title?.trim() || null,
+        meta_description: meta_description?.trim() || null,
+        country: country?.trim() || null,
+        language: language?.trim() || null,
+        article_type: article_type?.trim() || null,
+        additional_keywords: additional_keywords || [],
+        additional_headings: additional_headings || [],
+        job_id: job_id || null,
+        sequence: 2
+      })
+    }
+
+    if (sectionsToSave.length === 0) {
+      return NextResponse.json({ error: 'Geen content om op te slaan' }, { status: 400 })
+    }
+
+    // Save all sections separately (Supabase REST API accepts arrays for bulk insert)
+    const SUPABASE_URL = process.env.SUPABASE_URL
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/generated_articles`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(sectionsToSave)
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Error saving sections:', errorText)
+      return NextResponse.json({ error: 'Failed to save sections' }, { status: 500 })
+    }
+
+    const savedSections = await response.json()
 
     return NextResponse.json({ 
-      article: savedArticle,
-      message: `Artikel opgeslagen voor ${client.naam}` 
+      sections: savedSections,
+      count: sectionsToSave.length,
+      message: `${sectionsToSave.length} sectie(s) opgeslagen voor ${client.naam}` 
     }, { status: 201 })
   } catch (error: any) {
     console.error('Error in POST /api/articles:', error)
