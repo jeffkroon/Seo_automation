@@ -91,29 +91,23 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clients, isMounted])
 
-  // Don't render until mounted to prevent hydration mismatch
-  if (!isMounted) {
-    return (
-      <ClientContext.Provider value={{
-        selectedClient: null,
-        setSelectedClient: () => {},
-        clients: [],
-        isLoading: true,
-        refreshClients: async () => {}
-      }}>
-        {children}
-      </ClientContext.Provider>
-    )
+  // Always render the same structure to prevent hook count mismatch
+  const contextValue = !isMounted ? {
+    selectedClient: null,
+    setSelectedClient: () => {},
+    clients: [],
+    isLoading: true,
+    refreshClients: async () => {}
+  } : {
+    selectedClient,
+    setSelectedClient,
+    clients,
+    isLoading,
+    refreshClients: fetchClients
   }
 
   return (
-    <ClientContext.Provider value={{
-      selectedClient,
-      setSelectedClient,
-      clients,
-      isLoading,
-      refreshClients: fetchClients
-    }}>
+    <ClientContext.Provider value={contextValue}>
       {children}
     </ClientContext.Provider>
   )
