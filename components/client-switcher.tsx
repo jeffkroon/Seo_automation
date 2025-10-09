@@ -39,7 +39,8 @@ export function ClientSwitcher() {
   }, [selectedClient, clients, isLoading, open])
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <div className="relative">
+      <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -69,7 +70,7 @@ export function ClientSwitcher() {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0 border-primary/20 shadow-xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent className="w-[300px] p-0 border-primary/20 shadow-xl z-50" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <Command>
           <CommandInput placeholder="Zoek client..." className="border-0" />
           <CommandList>
@@ -128,6 +129,7 @@ export function ClientSwitcher() {
         </Command>
       </PopoverContent>
     </Popover>
+    </div>
   )
 }
 
