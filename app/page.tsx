@@ -20,9 +20,6 @@ export default function HomePage() {
             <Link href="/auth/login">
               <Button variant="ghost">Sign In</Button>
             </Link>
-            <Link href="/auth/register">
-              <Button>Get Started</Button>
-            </Link>
           </div>
         </div>
       </header>
@@ -44,15 +41,6 @@ export default function HomePage() {
             comprehensive reporting. Built for agencies and professionals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register">
-              <Button
-                size="lg"
-                className="bg-white text-blue-700 hover:bg-slate-50 hover:text-blue-800 font-semibold shadow-lg"
-              >
-                Start Free Trial
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </Link>
             <Button size="lg" variant="outline">
               Watch Demo
             </Button>

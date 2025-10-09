@@ -154,13 +154,40 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
 
   const fetchTeamMembers = async () => {
     try {
+      console.log('🔍 Fetching team members...')
       const response = await apiClient(`/api/admin/users`)
       if (response.ok) {
         const data = await response.json()
-        setTeamMembers(data.users || [])
+        console.log('📊 Users API response:', data)
+        const memberships = data.memberships || []
+        
+        // Fetch user details for all memberships
+        if (memberships.length > 0) {
+          const userIds = memberships.map((m: any) => m.user_id)
+          console.log('🔍 Fetching details for user IDs:', userIds)
+          
+          const userDetailsResponse = await apiClient('/api/admin/user-details', {
+            method: 'POST',
+            body: JSON.stringify({ userIds })
+          })
+          
+          if (userDetailsResponse.ok) {
+            const userDetailsData = await userDetailsResponse.json()
+            console.log('✅ User details fetched:', userDetailsData.userDetails)
+            setTeamMembers(userDetailsData.userDetails || [])
+          } else {
+            console.error('❌ Failed to fetch user details:', userDetailsResponse.status)
+            setTeamMembers([])
+          }
+        } else {
+          console.log('⚠️ No memberships found')
+          setTeamMembers([])
+        }
+      } else {
+        console.error('❌ Failed to fetch users:', response.status)
       }
     } catch (error) {
-      console.error('Error fetching team members:', error)
+      console.error('❌ Error fetching team members:', error)
     }
   }
 

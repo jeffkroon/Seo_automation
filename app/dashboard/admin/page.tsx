@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Mail, Shield, Trash2, UserPlus, Send, Copy, CheckCircle, Clock } from "lucide-react"
+import { Plus, Users, Mail, Shield, Trash2, UserPlus, Send, Copy, CheckCircle, Clock, AlertCircle, Check } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -17,6 +17,7 @@ interface CompanyUser {
   users: {
     id: string
     email: string
+    email_confirmed_at?: string | null
   }
 }
 
@@ -171,6 +172,57 @@ export default function AdminUsersPage() {
     } catch (error: any) {
       console.error("Delete user error:", error)
       setError(`Fout bij verwijderen gebruiker: ${error.message || 'Onbekende fout'}`)
+    }
+  }
+
+  const verifyUser = async (userId: string) => {
+    if (!confirm('Weet je zeker dat je deze gebruiker wilt verifiëren?')) return
+    
+    try {
+      setError("")
+      setSuccess("")
+      
+      const response = await apiClient('/api/admin/verify-user', {
+        method: 'POST',
+        body: JSON.stringify({ userId, action: 'verify' })
+      })
+      
+      if (response.ok) {
+        setSuccess('Gebruiker succesvol geverifieerd!')
+        fetchUsers()
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Fout bij verifiëren gebruiker')
+      }
+    } catch (error: any) {
+      console.error("Verify user error:", error)
+      setError(`Fout bij verifiëren gebruiker: ${error.message || 'Onbekende fout'}`)
+    }
+  }
+
+  const resendVerification = async (userId: string) => {
+    try {
+      setError("")
+      setSuccess("")
+      
+      const response = await apiClient('/api/admin/verify-user', {
+        method: 'POST',
+        body: JSON.stringify({ userId, action: 'resend' })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setSuccess(`Verificatie link gegenereerd voor ${data.email}`)
+        if (data.verification_link) {
+          setCopiedLink(data.verification_link)
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Fout bij genereren verificatie link')
+      }
+    } catch (error: any) {
+      console.error("Resend verification error:", error)
+      setError(`Fout bij genereren verificatie link: ${error.message || 'Onbekende fout'}`)
     }
   }
 
@@ -372,37 +424,78 @@ export default function AdminUsersPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {users.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Mail className="h-5 w-5 text-primary" />
+              {users.map((member) => {
+                const isVerified = !!member.users.email_confirmed_at
+                return (
+                  <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Mail className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{member.users.email}</p>
+                          {isVerified ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" title="Email geverifieerd" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-600" title="Email niet geverifieerd" />
+                          )}
+                        </div>
+                        <div className="flex gap-2 mt-1">
+                          <Badge 
+                            variant={member.role === 'owner' ? 'default' : member.role === 'admin' ? 'secondary' : 'outline'}
+                          >
+                            {member.role === 'owner' ? 'Eigenaar' : 
+                             member.role === 'admin' ? 'Admin' : 'Gebruiker'}
+                          </Badge>
+                          {!isVerified && (
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                              Niet geverifieerd
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{member.users.email}</p>
-                      <Badge 
-                        variant={member.role === 'owner' ? 'default' : member.role === 'admin' ? 'secondary' : 'outline'}
-                        className="mt-1"
-                      >
-                        {member.role === 'owner' ? 'Eigenaar' : 
-                         member.role === 'admin' ? 'Admin' : 'Gebruiker'}
-                      </Badge>
+                    
+                    <div className="flex gap-2">
+                      {!isVerified && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-green-600 hover:text-green-700"
+                            onClick={() => verifyUser(member.users.id)}
+                            title="Handmatig verifiëren"
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Verifiëren
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => resendVerification(member.users.id)}
+                            title="Nieuwe verificatie link genereren"
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Link
+                          </Button>
+                        </>
+                      )}
+                      {member.role !== 'owner' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => removeUser(member.users.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Verwijderen
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  
-                  {member.role !== 'owner' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => removeUser(member.users.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Verwijderen
-                    </Button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
