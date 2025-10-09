@@ -32,16 +32,17 @@ export async function POST(req: Request) {
           
           if (authError) {
             console.error(`Error fetching user ${userId}:`, authError)
-            return { id: userId, email: `user-${userId.substring(0, 8)}` }
+            return { id: userId, email: `user-${userId.substring(0, 8)}`, email_confirmed_at: null }
           }
           
           return {
             id: userId,
-            email: authUser?.user?.email || `user-${userId.substring(0, 8)}`
+            email: authUser?.user?.email || `user-${userId.substring(0, 8)}`,
+            email_confirmed_at: authUser?.user?.email_confirmed_at || null
           }
         } catch (error) {
           console.error(`Error fetching user ${userId}:`, error)
-          return { id: userId, email: `user-${userId.substring(0, 8)}` }
+          return { id: userId, email: `user-${userId.substring(0, 8)}`, email_confirmed_at: null }
         }
       })
     )

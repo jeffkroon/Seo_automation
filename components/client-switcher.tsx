@@ -99,22 +99,6 @@ export function ClientSwitcher() {
                   </CommandItem>
                 ))}
               </CommandGroup>
-              <CommandGroup heading="Acties" className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                <CommandItem
-                  onSelect={() => {
-                    router.push('/dashboard/admin/clients')
-                    setOpen(false)
-                  }}
-                  className="text-sm rounded-md my-0.5 hover:bg-primary/10 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500/20 to-green-500/5 flex items-center justify-center">
-                      <Plus className="h-4 w-4 text-green-600" />
-                    </div>
-                    <span className="ml-2 font-medium">Nieuwe Client</span>
-                  </div>
-                </CommandItem>
-              </CommandGroup>
             </CommandList>
           </Command>
         </div>

@@ -176,3 +176,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const companyId = req.headers.get('x-company-id')
+    const body = await req.json()
+    
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
+    }
+
+    const { invitationId } = body
+
+    if (!invitationId) {
+      return NextResponse.json({ error: 'Invitation ID is verplicht' }, { status: 400 })
+    }
+
+    // Delete invitation
+    await supabaseRest(
+      'invitations',
+      {
+        method: 'DELETE',
+        headers: { 'x-company-id': companyId },
+        searchParams: {
+          id: `eq.${invitationId}`,
+          company_id: `eq.${companyId}`
+        }
+      }
+    )
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Uitnodiging succesvol verwijderd.' 
+    })
+  } catch (error: any) {
+    console.error('Error deleting invitation:', error)
+    return NextResponse.json({ error: error?.message || 'Onbekende fout' }, { status: 500 })
+  }
+}

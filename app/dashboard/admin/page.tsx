@@ -226,6 +226,31 @@ export default function AdminUsersPage() {
     }
   }
 
+  const deleteInvitation = async (invitationId: string) => {
+    if (!confirm('Weet je zeker dat je deze uitnodiging wilt verwijderen?')) return
+    
+    try {
+      setError("")
+      setSuccess("")
+      
+      const response = await apiClient('/api/admin/invitations', {
+        method: 'DELETE',
+        body: JSON.stringify({ invitationId })
+      })
+      
+      if (response.ok) {
+        setSuccess('Uitnodiging succesvol verwijderd!')
+        fetchUsers()
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Fout bij verwijderen uitnodiging')
+      }
+    } catch (error: any) {
+      console.error("Delete invitation error:", error)
+      setError(`Fout bij verwijderen uitnodiging: ${error.message || 'Onbekende fout'}`)
+    }
+  }
+
   useEffect(() => {
     // Only fetch if user is owner
     if (user && user.role === 'owner') {
@@ -394,9 +419,20 @@ export default function AdminUsersPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-yellow-600">
-                    Wachtend
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-yellow-600">
+                      Wachtend
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => deleteInvitation(invitation.id)}
+                      title="Uitnodiging verwijderen"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

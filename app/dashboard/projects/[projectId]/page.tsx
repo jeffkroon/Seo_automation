@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
 
 interface Project {
   id: string
@@ -684,34 +685,42 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Article Content */}
-                {selectedArticle.content_article && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-lg font-semibold">
-                      <div className="h-3 w-3 rounded-full bg-green-500" />
-                      <span>Artikel Content</span>
-                    </div>
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {selectedArticle.content_article}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                )}
+        {selectedArticle.content_article && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-lg font-semibold">
+              <div className="h-3 w-3 rounded-full bg-green-500" />
+              <span>Artikel Content</span>
+            </div>
+            <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
+              {/<\/?[a-z][\s\S]*>/i.test(selectedArticle.content_article) ? (
+                <HtmlSection html={selectedArticle.content_article} className="prose prose-sm max-w-none dark:prose-invert" />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedArticle.content_article}
+                </ReactMarkdown>
+              )}
+            </div>
+          </div>
+        )}
 
                 {/* FAQ Content */}
-                {selectedArticle.content_faq && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-lg font-semibold">
-                      <div className="h-3 w-3 rounded-full bg-blue-500" />
-                      <span>FAQ Content</span>
-                    </div>
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {selectedArticle.content_faq}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                )}
+        {selectedArticle.content_faq && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-lg font-semibold">
+              <div className="h-3 w-3 rounded-full bg-blue-500" />
+              <span>FAQ Content</span>
+            </div>
+            <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
+              {/<\/?[a-z][\s\S]*>/i.test(selectedArticle.content_faq) ? (
+                <HtmlSection html={selectedArticle.content_faq} className="prose prose-sm max-w-none dark:prose-invert" />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedArticle.content_faq}
+                </ReactMarkdown>
+              )}
+            </div>
+          </div>
+        )}
 
                 {/* Metadata */}
                 <div className="space-y-3 pt-4 border-t">
