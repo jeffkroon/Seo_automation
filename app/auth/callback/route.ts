@@ -26,15 +26,27 @@ export async function GET(request: Request) {
   // Handle token-based verification (Supabase email verification flow)
   if (token && type === 'signup') {
     try {
+      console.log('Attempting token verification for:', { token: token.substring(0, 10) + '...', type })
+      
       // Use verifyOtp for email verification tokens
       const { data, error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'signup'
       })
       
+      console.log('Token verification result:', { 
+        success: !error, 
+        error: error?.message,
+        hasUser: !!data?.user,
+        userId: data?.user?.id 
+      })
+      
       if (!error && data.user) {
+        console.log('Token verification successful, redirecting to dashboard')
         // Redirect to dashboard after successful verification
         return NextResponse.redirect(`https://lionfish-app-es8ks.ondigitalocean.app${next}`)
+      } else {
+        console.log('Token verification failed:', error?.message)
       }
     } catch (error) {
       console.error('Token verification error:', error)
