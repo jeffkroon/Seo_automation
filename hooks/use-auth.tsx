@@ -8,7 +8,7 @@ interface User {
   email: string
   companyId: string
   companyName: string
-  role: "admin" | "user"
+  role: "owner" | "admin" | "user" | "viewer"
 }
 
 interface AuthContextType {
