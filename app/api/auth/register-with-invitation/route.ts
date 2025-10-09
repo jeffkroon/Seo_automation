@@ -35,16 +35,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Uitnodiging is verlopen' }, { status: 410 })
     }
 
-    // Create user account
+    // Create user account with email verification
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toLowerCase(),
       password: password,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://lionfish-app-es8ks.ondigitalocean.app'}/auth/confirm`
+      }
     })
 
     if (authError) throw authError
 
     if (!authData.user) {
       return NextResponse.json({ error: 'Kon gebruiker niet aanmaken' }, { status: 500 })
+    }
+
+    // Check if email verification is required
+    if (!authData.user.email_confirmed_at) {
+      return NextResponse.json({ 
+        error: 'EMAIL_VERIFICATION_REQUIRED',
+        message: 'Registratie succesvol! Check je email voor de verificatie link en klik erop voordat je kunt inloggen.'
+      }, { status: 200 })
     }
 
     // Note: No need to create user record since we don't have a separate users table

@@ -88,7 +88,14 @@ export function RegisterForm() {
       throw new Error(errorData.error || 'Registration failed')
     }
     
-    return response.json()
+    const data = await response.json()
+    
+    // Check if email verification is required
+    if (data.error === 'EMAIL_VERIFICATION_REQUIRED') {
+      throw new Error('EMAIL_VERIFICATION_REQUIRED')
+    }
+    
+    return data
   }
 
   return (
