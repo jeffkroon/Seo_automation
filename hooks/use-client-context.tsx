@@ -67,6 +67,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== 'undefined' && selectedClient) {
       try {
+        console.log('💾 Saving selected client to localStorage:', selectedClient.naam, selectedClient.id)
         localStorage.setItem('selectedClientId', selectedClient.id)
       } catch (e) {
         console.error('Error saving to localStorage:', e)
@@ -90,7 +91,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading from localStorage:', e)
       }
     }
-  }, [clients, isMounted, selectedClient])
+  }, [clients, isMounted]) // Remove selectedClient from dependencies to prevent loop
 
   // Always render the same structure to prevent hook count mismatch
   const contextValue = !isMounted ? {
