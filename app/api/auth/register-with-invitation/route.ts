@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       email: email.toLowerCase(),
       password: password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://lionfish-app-es8ks.ondigitalocean.app'}/auth/callback`
+        emailRedirectTo: `https://lionfish-app-es8ks.ondigitalocean.app/auth/callback`
       }
     })
 
