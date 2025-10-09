@@ -35,12 +35,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Uitnodiging is verlopen' }, { status: 410 })
     }
 
+    const requestUrl = new URL(req.url)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? requestUrl.origin
+    const emailRedirectTo = `${baseUrl}/auth/callback`
+
     // Create user account with email verification
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toLowerCase(),
       password: password,
       options: {
-        emailRedirectTo: `https://lionfish-app-es8ks.ondigitalocean.app/auth/callback`
+        emailRedirectTo
       }
     })
 
@@ -50,18 +54,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Kon gebruiker niet aanmaken' }, { status: 500 })
     }
 
-    // Check if email verification is required
-    if (!authData.user.email_confirmed_at) {
-      return NextResponse.json({ 
-        error: 'EMAIL_VERIFICATION_REQUIRED',
-        message: 'Registratie succesvol! Check je email voor de verificatie link en klik erop voordat je kunt inloggen.'
-      }, { status: 200 })
-    }
+    const emailVerificationRequired = !authData.user.email_confirmed_at
 
-    // Note: No need to create user record since we don't have a separate users table
-    // The auth.user is sufficient for our schema
-
-    // Create membership
     try {
       await supabaseRest(
         'memberships',
@@ -94,6 +88,13 @@ export async function POST(req: Request) {
     } catch (updateError) {
       console.error('Error updating invitation:', updateError)
       // Non-critical error
+    }
+
+    if (emailVerificationRequired) {
+      return NextResponse.json({ 
+        error: 'EMAIL_VERIFICATION_REQUIRED',
+        message: 'Registratie succesvol! Check je email voor de verificatie link en klik erop voordat je kunt inloggen.'
+      }, { status: 200 })
     }
 
     return NextResponse.json({ 

@@ -21,6 +21,47 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const PENDING_COMPANY_STORAGE_KEY = "seo-factory-pending-company"
+
+type PendingCompany = {
+  name: string
+  domain: string
+}
+
+const generateCompanyDomain = (companyName: string) => {
+  const sanitized = companyName.toLowerCase().replace(/[^a-z0-9]/g, "")
+  return sanitized.length > 0 ? `${sanitized}.com` : "company.com"
+}
+
+const getPendingCompanyFromStorage = (): PendingCompany | null => {
+  if (typeof window === "undefined") return null
+
+  try {
+    const raw = window.localStorage.getItem(PENDING_COMPANY_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as PendingCompany
+    if (!parsed?.name) return null
+    return parsed
+  } catch (error) {
+    console.error("Failed to parse pending company from storage:", error)
+    return null
+  }
+}
+
+const setPendingCompanyInStorage = (pending: PendingCompany) => {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(PENDING_COMPANY_STORAGE_KEY, JSON.stringify(pending))
+  } catch (error) {
+    console.warn("Unable to persist pending company information:", error)
+  }
+}
+
+const clearPendingCompanyInStorage = () => {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(PENDING_COMPANY_STORAGE_KEY)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -93,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Get user's companies and memberships
-      const { data: memberships } = await supabase
+      let { data: memberships, error: membershipsError } = await supabase
         .from('memberships')
         .select(`
           role,
@@ -104,8 +145,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `)
         .eq('user_id', data.user.id)
 
+      if (membershipsError) {
+        throw membershipsError
+      }
+
       if (!memberships || memberships.length === 0) {
-        throw new Error('No company membership found')
+        const pendingCompany =
+          data.user.user_metadata?.pending_company_name
+            ? {
+                name: String(data.user.user_metadata.pending_company_name),
+                domain:
+                  String(data.user.user_metadata.pending_company_domain ?? "") ||
+                  generateCompanyDomain(String(data.user.user_metadata.pending_company_name)),
+              }
+            : getPendingCompanyFromStorage()
+
+        if (!pendingCompany?.name) {
+          throw new Error('No company membership found')
+        }
+
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .insert({
+            name: pendingCompany.name,
+            domain: pendingCompany.domain,
+            created_by: data.user.id,
+          })
+          .select()
+          .single()
+
+        if (companyError) {
+          console.error('Company creation error:', companyError)
+          throw new Error('Kon geen bedrijf aanmaken voor deze gebruiker')
+        }
+
+        const { error: membershipError } = await supabase
+          .from('memberships')
+          .insert({
+            user_id: data.user.id,
+            company_id: company.id,
+            role: 'owner',
+          })
+
+        if (membershipError) {
+          console.error('Membership creation error:', membershipError)
+          throw new Error('Kon geen membership aanmaken voor deze gebruiker')
+        }
+
+        clearPendingCompanyInStorage()
+
+        const refetched = await supabase
+          .from('memberships')
+          .select(`
+            role,
+            companies (
+              id,
+              name
+            )
+          `)
+          .eq('user_id', data.user.id)
+
+        if (refetched.error) {
+          console.error('Membership lookup error after creation:', refetched.error)
+          throw new Error('Kon membership gegevens niet ophalen')
+        }
+
+        memberships = refetched.data ?? []
+
+        if (!memberships.length) {
+          throw new Error('No company membership found')
+        }
       }
 
       // Use first company for now (later add company switcher)
@@ -129,57 +238,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, password: string, companyName: string) => {
     try {
       // Register user with Supabase Auth - REQUIRE email verification
+      const normalizedEmail = email.trim().toLowerCase()
+      const normalizedCompanyName = companyName.trim()
+      const redirectTo =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/callback`
+          : `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/auth/callback`
+      const generatedDomain = generateCompanyDomain(normalizedCompanyName)
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: `https://lionfish-app-es8ks.ondigitalocean.app/auth/callback`
-        }
+          emailRedirectTo: redirectTo.startsWith('http') ? redirectTo : undefined,
+          data: {
+            pending_company_name: normalizedCompanyName,
+            pending_company_domain: generatedDomain,
+          },
+        },
       })
 
       if (authError) throw authError
       if (!authData.user) throw new Error('User creation failed')
 
-      // Check if email is already confirmed (shouldn't happen in normal flow)
-      if (!authData.user.email_confirmed_at) {
-        // User needs to verify email first
+      setPendingCompanyInStorage({
+        name: normalizedCompanyName,
+        domain: generatedDomain,
+      })
+
+      if (!authData.session) {
         throw new Error('EMAIL_VERIFICATION_REQUIRED')
       }
 
-      // Create company
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: companyName,
-          domain: `${companyName.toLowerCase().replace(/\s+/g, '')}.com`, // Generate domain from company name
-          created_by: authData.user.id,
-        })
-        .select()
-        .single()
-
-      if (companyError) throw companyError
-
-      // Create membership (user becomes owner of the company)
-      const { error: membershipError } = await supabase
-        .from('memberships')
-        .insert({
-          user_id: authData.user.id,
-          company_id: company.id,
-          role: 'owner',
-        })
-
-      if (membershipError) throw membershipError
-
-      const user: User = {
-        id: authData.user.id,
-        email: authData.user.email!,
-        companyId: company.id,
-        companyName: company.name,
-        role: "admin", // Owner has admin rights
-      }
-
-      setUser(user)
-      localStorage.setItem("seo-factory-user", JSON.stringify(user))
+      await login(normalizedEmail, password)
     } catch (error) {
       console.error('Registration error:', error)
       throw error
