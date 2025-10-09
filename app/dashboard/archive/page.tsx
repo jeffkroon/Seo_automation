@@ -257,71 +257,88 @@ export default function ArchivePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredArticles.map((article) => {
             const isExpanded = expandedArticles.has(article.id)
-            const articlePreview = article.content_article ? createPreview(article.content_article) : null
-            const faqPreview = article.content_faq ? createPreview(article.content_faq) : null
+            const articlePreview = article.content_article ? createPreview(article.content_article, 200) : null
+            const faqPreview = article.content_faq ? createPreview(article.content_faq, 200) : null
             
             return (
-              <Card key={article.id} className="group hover:shadow-lg transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <Badge variant={article.article_type === 'transactioneel' ? 'default' : 'secondary'} className="text-xs">
-                      {article.article_type || 'Onbekend'}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Card key={article.id} className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-0 bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  {/* Header with badge and date */}
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={article.article_type === 'transactioneel' ? 'default' : 'secondary'} 
+                        className="text-xs font-medium px-2 py-1"
+                      >
+                        {article.article_type || 'Onbekend'}
+                      </Badge>
+                      {article.language && (
+                        <Badge variant="outline" className="text-xs px-2 py-1">
+                          {article.language.toUpperCase()}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                       <Calendar className="h-3 w-3" />
                       {format(new Date(article.created_at), 'dd MMM yyyy', { locale: nl })}
                     </div>
                   </div>
                   
                   {/* Main Title */}
-                  <CardTitle className="text-lg leading-tight line-clamp-2 mb-3">
+                  <CardTitle className="text-xl leading-tight line-clamp-2 mb-4 font-bold">
                     {article.title}
                   </CardTitle>
                   
-                  {/* Focus Keyword - Bold */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <Search className="h-4 w-4 text-primary" />
-                    <span className="font-bold text-primary">{article.focus_keyword}</span>
+                  {/* Focus Keyword - Prominent */}
+                  <div className="flex items-center gap-2 mb-4 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Search className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Hoofdkeyword</div>
+                      <div className="font-bold text-primary text-lg">{article.focus_keyword}</div>
+                    </div>
                   </div>
 
-                  {/* Additional Keywords */}
+                  {/* Additional Keywords - Beautiful tags */}
                   {article.additional_keywords && article.additional_keywords.length > 0 && (
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Tag className="h-3 w-3" />
-                        <span>Aanvullende zoekwoorden:</span>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Tag className="h-4 w-4" />
+                        <span>Aanvullende zoekwoorden</span>
                       </div>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-2">
                         {article.additional_keywords.slice(0, 3).map((keyword, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={index} variant="secondary" className="text-xs px-2 py-1 bg-muted/50 hover:bg-muted/70 transition-colors">
                             {keyword}
                           </Badge>
                         ))}
                         {article.additional_keywords.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{article.additional_keywords.length - 3}
+                          <Badge variant="outline" className="text-xs px-2 py-1">
+                            +{article.additional_keywords.length - 3} meer
                           </Badge>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Additional Headings */}
+                  {/* Additional Headings - Clean list */}
                   {article.additional_headings && article.additional_headings.length > 0 && (
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Hash className="h-3 w-3" />
-                        <span>Aanvullende headers:</span>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Hash className="h-4 w-4" />
+                        <span>Aanvullende headers</span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 pl-2">
                         {article.additional_headings.slice(0, 3).map((heading, index) => (
-                          <div key={index} className="text-xs text-muted-foreground line-clamp-1">
-                            • {heading}
+                          <div key={index} className="text-sm text-muted-foreground line-clamp-1 flex items-center gap-2">
+                            <div className="h-1 w-1 rounded-full bg-primary/50 flex-shrink-0" />
+                            {heading}
                           </div>
                         ))}
                         {article.additional_headings.length > 3 && (
-                          <div className="text-xs text-muted-foreground">
-                            • +{article.additional_headings.length - 3} meer...
+                          <div className="text-sm text-muted-foreground/70 italic">
+                            +{article.additional_headings.length - 3} meer headers...
                           </div>
                         )}
                       </div>
@@ -330,70 +347,69 @@ export default function ArchivePage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Content indicators */}
-                  <div className="flex gap-2 text-xs text-muted-foreground">
+                  {/* Content indicators - Modern pills */}
+                  <div className="flex gap-2">
                     {article.content_article && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
                         <FileText className="h-3 w-3" />
                         Artikel
                       </div>
                     )}
                     {article.content_faq && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
                         <FileText className="h-3 w-3" />
                         FAQ
                       </div>
                     )}
-                    {article.language && (
-                      <Badge variant="outline" className="text-xs">
-                        {article.language.toUpperCase()}
-                      </Badge>
-                    )}
                     {article.country && (
-                      <Badge variant="outline" className="text-xs">
+                      <div className="px-2 py-1 bg-muted/50 text-muted-foreground rounded-full text-xs font-medium">
                         {article.country}
-                      </Badge>
+                      </div>
                     )}
                   </div>
 
-                  {/* Expand/Collapse Content */}
+                  {/* Expand/Collapse Content - Beautiful button */}
                   {(article.content_article || article.content_faq) && (
                     <div className="space-y-3">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => toggleExpanded(article.id)}
-                        className="w-full justify-between text-xs"
+                        className="w-full justify-between h-10 border-dashed hover:border-solid transition-all"
                       >
-                        <span>{isExpanded ? 'Inhoud verbergen' : 'Inhoud bekijken'}</span>
-                        {isExpanded ? (
-                          <ChevronUp className="h-3 w-3" />
-                        ) : (
-                          <ChevronDown className="h-3 w-3" />
-                        )}
+                        <span className="font-medium">
+                          {isExpanded ? 'Inhoud verbergen' : 'Inhoud bekijken'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
                       </Button>
 
                       {isExpanded && (
-                        <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                        <div className="space-y-4 p-4 bg-gradient-to-br from-muted/20 to-muted/10 rounded-xl border border-muted/50">
                           {article.content_article && (
-                            <div>
-                              <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
-                                <FileText className="h-3 w-3" />
-                                Artikel Content
-                              </h4>
-                              <div className="text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <div className="h-2 w-2 rounded-full bg-green-500" />
+                                <span>Artikel Content</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground leading-relaxed max-h-40 overflow-y-auto bg-white/50 p-3 rounded-lg">
                                 {articlePreview}
                               </div>
                             </div>
                           )}
                           
                           {article.content_faq && (
-                            <div>
-                              <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
-                                <FileText className="h-3 w-3" />
-                                FAQ Content
-                              </h4>
-                              <div className="text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                <span>FAQ Content</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground leading-relaxed max-h-40 overflow-y-auto bg-white/50 p-3 rounded-lg">
                                 {faqPreview}
                               </div>
                             </div>
@@ -403,24 +419,24 @@ export default function ArchivePage() {
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="grid grid-cols-2 gap-2 pt-2">
+                  {/* Actions - Modern buttons */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => downloadArticle(article)}
-                      className="w-full"
+                      className="w-full h-9 font-medium hover:bg-primary/5 hover:border-primary/20 transition-all"
                     >
-                      <Download className="h-3 w-3 mr-1" />
+                      <Download className="h-4 w-4 mr-2" />
                       Download
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => deleteArticle(article.id)}
-                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="w-full h-9 font-medium text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200 transition-all"
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
+                      <Trash2 className="h-4 w-4 mr-2" />
                       Verwijder
                     </Button>
                   </div>
