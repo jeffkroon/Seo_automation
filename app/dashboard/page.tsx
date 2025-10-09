@@ -82,17 +82,51 @@ export default function DashboardPage() {
     }
   }
 
+  const detectBrowser = () => {
+    const ua = navigator.userAgent
+    if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome'
+    if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari'
+    if (ua.includes('Firefox')) return 'Firefox'
+    if (ua.includes('Edg')) return 'Edge'
+    return 'een browser'
+  }
+
+  const detectDeviceType = () => {
+    const ua = navigator.userAgent
+    if (/mobile|android|iphone|ipad|tablet/i.test(ua)) return 'mobile'
+    return 'desktop'
+  }
+
+  const isDarkMode = () => {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+
+  const isReturningUser = () => {
+    const hasVisited = localStorage.getItem('hasVisitedDashboard')
+    if (!hasVisited) {
+      localStorage.setItem('hasVisitedDashboard', 'true')
+      return false
+    }
+    return true
+  }
+
   const generateAIGreeting = async (statsData: DashboardStats) => {
     try {
       setIsLoadingGreeting(true)
       const timeOfDay = getTimeOfDay()
+      const hour = new Date().getHours()
       
       const response = await apiClient('/api/dashboard/greeting', {
         method: 'POST',
         body: JSON.stringify({
           userEmail: user?.email || '',
           timeOfDay,
-          stats: statsData
+          stats: statsData,
+          browser: detectBrowser(),
+          isDarkMode: isDarkMode(),
+          isReturning: isReturningUser(),
+          deviceType: detectDeviceType(),
+          hour
         })
       })
       
@@ -102,11 +136,18 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error generating greeting:', error)
-      // Fallback greeting with name extraction
+      // Fallback greeting with context
       const timeOfDay = getTimeOfDay()
+      const hour = new Date().getHours()
       const emailPrefix = user?.email?.split('@')[0] || 'daar'
       const firstName = emailPrefix.split(/[._-]/)[0].charAt(0).toUpperCase() + emailPrefix.split(/[._-]/)[0].slice(1)
-      setAiGreeting(`Goed${timeOfDay} ${firstName}! 👋 Klaar om vandaag weer geweldige content te maken?`)
+      
+      // Brutale fallback
+      if (hour >= 22 || hour < 6) {
+        setAiGreeting(`${firstName}, ${detectBrowser()}, ${isDarkMode() ? 'dark mode' : 'light mode'}, ${hour}:00 uur — dedication level: maximum 🔥`)
+      } else {
+        setAiGreeting(`Goed${timeOfDay} ${firstName}! 👋 ${isReturningUser() ? 'Welkom terug!' : 'Welkom!'} Klaar om content te maken?`)
+      }
     } finally {
       setIsLoadingGreeting(false)
     }
