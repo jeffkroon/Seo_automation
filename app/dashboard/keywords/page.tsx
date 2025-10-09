@@ -61,7 +61,7 @@ export default function KeywordsPage() {
     const savedJobs = localStorage.getItem('activeJobs')
     if (savedJobs) {
       try {
-        const jobs = JSON.parse(savedJobs) as Array<{ jobId: string; pieceId: string }>
+        const jobs = JSON.parse(savedJobs) as Array<{ jobId: string; pieceId: string; pieceData?: ContentPiece }>
         
         if (jobs.length > 0) {
           console.log('Hervatten van actieve jobs:', jobs)
@@ -74,14 +74,24 @@ export default function KeywordsPage() {
           const mapping = new Map(jobs.map(j => [j.jobId, j.pieceId]))
           setJobToPieceMap(mapping)
           
-          // Create/restore content pieces with the correct IDs
+          // Create/restore content pieces with the saved data
           setContentPieces(prev => {
             // If we only have one empty piece, replace it with pieces from jobs
             if (prev.length === 1 && !prev[0].focusKeyword) {
-              return jobs.map(({ pieceId }) => ({
-                ...createEmptyPiece(),
-                id: pieceId  // Use the saved piece ID!
-              }))
+              return jobs.map(({ pieceId, pieceData }) => {
+                if (pieceData) {
+                  // Restore the full piece data!
+                  return {
+                    ...pieceData,
+                    generatedArticles: []  // Clear generated articles (will be refetched)
+                  }
+                }
+                // Fallback: create empty piece with saved ID
+                return {
+                  ...createEmptyPiece(),
+                  id: pieceId
+                }
+              })
             }
             return prev
           })
@@ -176,9 +186,16 @@ export default function KeywordsPage() {
       }
     }
     
+    // Find the piece data
+    const piece = contentPieces.find(p => p.id === pieceId)
+    
     // Add new job if not already there
     if (!jobs.find((j: any) => j.jobId === jobId)) {
-      jobs.push({ jobId, pieceId })
+      jobs.push({ 
+        jobId, 
+        pieceId,
+        pieceData: piece  // Save the full piece data!
+      })
       localStorage.setItem('activeJobs', JSON.stringify(jobs))
     }
   }

@@ -64,6 +64,7 @@ export function ClientSwitcher() {
                 <CommandItem
                   key={client.id}
                   onSelect={() => {
+                    console.log('🔄 Client selected:', client.naam, client.id)
                     setSelectedClient(client)
                     setOpen(false)
                   }}

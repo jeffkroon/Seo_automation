@@ -74,14 +74,15 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedClient])
 
-  // Load selected client from localStorage
+  // Load selected client from localStorage (only once when clients are loaded)
   useEffect(() => {
-    if (typeof window !== 'undefined' && isMounted && clients.length > 0) {
+    if (typeof window !== 'undefined' && isMounted && clients.length > 0 && !selectedClient) {
       try {
         const savedClientId = localStorage.getItem('selectedClientId')
         if (savedClientId) {
           const client = clients.find(c => c.id === savedClientId)
-          if (client && client.id !== selectedClient?.id) {
+          if (client) {
+            console.log('🔄 Restoring selected client from localStorage:', client.naam)
             setSelectedClient(client)
           }
         }
@@ -89,7 +90,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading from localStorage:', e)
       }
     }
-  }, [clients, isMounted])
+  }, [clients, isMounted, selectedClient])
 
   // Always render the same structure to prevent hook count mismatch
   const contextValue = !isMounted ? {
