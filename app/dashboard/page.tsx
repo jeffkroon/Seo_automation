@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useClientContext } from "@/hooks/use-client-context"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
+import { ScrambleText } from "@/components/ascii-text"
 
 interface DashboardStats {
   totalArticles: number
@@ -298,20 +299,20 @@ export default function DashboardPage() {
               <p className="text-lg text-muted-foreground">Persoonlijke boodschap aan het genereren...</p>
             </div>
           ) : aiGreeting ? (
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0 shadow-lg">
-                <TrendingUp className="h-6 w-6 text-primary-foreground" />
+            <div className="space-y-4">
+              <div className="text-2xl font-bold tracking-tight">
+                <ScrambleText 
+                  text={aiGreeting}
+                  speed={[8, 22]}
+                  className="text-foreground"
+                />
               </div>
-              <div className="flex-1">
-                <p className="text-xl font-medium leading-relaxed">
-                  {aiGreeting}
-                </p>
-                {selectedClient && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    📊 Bekijk je statistieken voor {selectedClient.naam}
-                  </p>
-                )}
-              </div>
+              {selectedClient && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <TrendingUp className="h-4 w-4" />
+                  <p>Statistieken voor {selectedClient.naam}</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-start gap-4">

@@ -28,6 +28,7 @@ import { Suspense } from "react"
 import { ClientSwitcher } from "@/components/client-switcher"
 import { useAuth } from "@/hooks/use-auth"
 import { ClientProvider } from "@/hooks/use-client-context"
+import { ScrambleText } from "@/components/ascii-text"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home, hideForViewer: true },
@@ -81,7 +82,9 @@ export default function DashboardLayout({
                 <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
                   <Search className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-lg font-semibold text-sidebar-foreground">SearchFactory</span>
+                <span className="text-lg font-semibold text-sidebar-foreground">
+                  <ScrambleText text="SearchFactory" speed={[6, 16]} />
+                </span>
               </Link>
               <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
                 <X className="h-4 w-4" />
