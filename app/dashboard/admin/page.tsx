@@ -143,6 +143,8 @@ export default function AdminUsersPage() {
         const data = await response.json()
         setSuccess('Uitnodiging succesvol aangemaakt!')
         setInviteEmail("")
+        setInviteRole("user")
+        setInviteClientIds([])
         fetchUsers()
         
         // Show invitation link
@@ -499,7 +501,8 @@ export default function AdminUsersPage() {
                     <div>
                       <p className="font-medium">{invitation.email}</p>
                       <Badge variant="secondary" className="mt-1">
-                        {invitation.role === 'admin' ? 'Admin' : 'Gebruiker'}
+                        {invitation.role === 'admin' ? 'Admin' : 
+                         invitation.role === 'viewer' ? 'Viewer' : 'Gebruiker'}
                       </Badge>
                       <p className="text-xs text-muted-foreground mt-1">
                         Verstuurd: {new Date(invitation.created_at).toLocaleDateString('nl-NL')}
