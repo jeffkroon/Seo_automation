@@ -8,12 +8,14 @@ interface ScrambleTextProps {
   text: string
   speed?: [number, number]
   className?: string
+  delay?: number
 }
 
 export function ScrambleText({ 
   text, 
   speed = [8, 20], 
-  className = "" 
+  className = "",
+  delay = 0
 }: ScrambleTextProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const frame = useRef(0)
@@ -63,32 +65,38 @@ export function ScrambleText({
   }
 
   useEffect(() => {
-    const el = ref.current
-    const from = el?.textContent ?? ""
-    const len = Math.max(from.length, text.length)
-    
-    queue.current = []
-    for (let i = 0; i < len; i++) {
-      const start = Math.floor(Math.random() * 10)
-      const end = start + rand(speed[0], speed[1])
-      queue.current.push({
-        from: from[i] || "",
-        to: text[i] || "",
-        start,
-        end,
-        char: ""
-      })
+    const startAnimation = () => {
+      const el = ref.current
+      const from = el?.textContent ?? ""
+      const len = Math.max(from.length, text.length)
+      
+      queue.current = []
+      for (let i = 0; i < len; i++) {
+        const start = Math.floor(Math.random() * 10)
+        const end = start + rand(speed[0], speed[1])
+        queue.current.push({
+          from: from[i] || "",
+          to: text[i] || "",
+          start,
+          end,
+          char: ""
+        })
+      }
+      
+      frame.current = 0
+      if (raf.current) cancelAnimationFrame(raf.current)
+      raf.current = requestAnimationFrame(renderFrame)
     }
-    
-    frame.current = 0
-    if (raf.current) cancelAnimationFrame(raf.current)
-    raf.current = requestAnimationFrame(renderFrame)
+
+    // Add delay if specified
+    const timer = setTimeout(startAnimation, delay)
     
     return () => {
+      clearTimeout(timer)
       if (raf.current) cancelAnimationFrame(raf.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, speed[0], speed[1]])
+  }, [text, speed[0], speed[1], delay])
 
   return <span ref={ref} className={className}></span>
 }
