@@ -9,17 +9,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Clock, Target, FileText, BarChart3, MoreHorizontal } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Clock, Target, FileText, BarChart3, MoreHorizontal, Trash2, Pause, Play, Edit } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 interface Schedule {
   id: string
   focus_keyword: string
+  extra_keywords?: string[]
+  extra_headings?: string[]
   article_type: string
   interval_seconds: number
   active: boolean
   last_run_at?: string
   next_run_at?: string
   created_at: string
+  website_url?: string
+  language?: string
+  country?: string
 }
 
 export default function SchedulersPage() {
@@ -69,9 +76,70 @@ export default function SchedulersPage() {
     const hours = Math.floor(seconds / 3600)
     const days = Math.floor(hours / 24)
     
-    if (days > 0) return `Every ${days} day${days > 1 ? 's' : ''}`
-    if (hours > 0) return `Every ${hours} hour${hours > 1 ? 's' : ''}`
-    return `Every ${seconds / 60} minutes`
+    if (days > 0) return `Elke ${days} dag${days > 1 ? 'en' : ''}`
+    if (hours > 0) return `Elke ${hours} uur`
+    return `Elke ${seconds / 60} minuten`
+  }
+
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    if (!confirm('Weet je zeker dat je deze scheduler wilt verwijderen?')) return
+
+    try {
+      const response = await apiClient(`/api/schedules/${scheduleId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Succes",
+          description: "Scheduler is verwijderd!"
+        })
+        fetchSchedules()
+      } else {
+        toast({
+          title: "Fout",
+          description: "Kon scheduler niet verwijderen.",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting schedule:', error)
+      toast({
+        title: "Fout",
+        description: "Er ging iets mis.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleToggleSchedule = async (scheduleId: string, currentActive: boolean) => {
+    try {
+      const response = await apiClient(`/api/schedules/${scheduleId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active: !currentActive })
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Succes",
+          description: `Scheduler ${!currentActive ? 'geactiveerd' : 'gepauzeerd'}!`
+        })
+        fetchSchedules()
+      } else {
+        toast({
+          title: "Fout",
+          description: "Kon scheduler niet updaten.",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error toggling schedule:', error)
+      toast({
+        title: "Fout",
+        description: "Er ging iets mis.",
+        variant: "destructive"
+      })
+    }
   }
 
   if (!selectedClient) {
@@ -124,24 +192,76 @@ export default function SchedulersPage() {
                 return (
                   <div
                     key={schedule.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg"
+                    className="p-4 border border-border rounded-lg space-y-3"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-muted rounded-lg">
-                        <TypeIcon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-medium">{schedule.focus_keyword}</h3>
-                          <Badge variant={schedule.active ? "default" : "secondary"}>
-                            {schedule.active ? "Actief" : "Paused"}
-                          </Badge>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4 flex-1">
+                        <div className="p-2 bg-muted rounded-lg">
+                          <TypeIcon className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            {formatInterval(schedule.interval_seconds)}
-                          </p>
-                          <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold text-lg">{schedule.focus_keyword}</h3>
+                            <Badge variant={schedule.active ? "default" : "secondary"}>
+                              {schedule.active ? "Actief" : "Gepauzeerd"}
+                            </Badge>
+                            <Badge variant="outline" className="capitalize">
+                              {schedule.article_type}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Interval:</span>{" "}
+                              <span className="font-medium">{formatInterval(schedule.interval_seconds)}</span>
+                            </div>
+                            {schedule.website_url && (
+                              <div>
+                                <span className="text-muted-foreground">Website:</span>{" "}
+                                <span className="font-medium text-xs">{schedule.website_url}</span>
+                              </div>
+                            )}
+                            {schedule.language && (
+                              <div>
+                                <span className="text-muted-foreground">Taal:</span>{" "}
+                                <span className="font-medium uppercase">{schedule.language}</span>
+                              </div>
+                            )}
+                            {schedule.country && (
+                              <div>
+                                <span className="text-muted-foreground">Land:</span>{" "}
+                                <span className="font-medium uppercase">{schedule.country}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {schedule.extra_keywords && schedule.extra_keywords.length > 0 && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">Extra Keywords:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {schedule.extra_keywords.map((keyword, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {keyword}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {schedule.extra_headings && schedule.extra_headings.length > 0 && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">Extra Koppen:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {schedule.extra_headings.map((heading, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {heading}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground pt-1">
                             {schedule.last_run_at && (
                               <span>Laatst: {new Date(schedule.last_run_at).toLocaleString('nl-NL')}</span>
                             )}
@@ -151,13 +271,39 @@ export default function SchedulersPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-3">
-                      <Switch checked={schedule.active} />
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          checked={schedule.active}
+                          onCheckedChange={() => handleToggleSchedule(schedule.id, schedule.active)}
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleToggleSchedule(schedule.id, schedule.active)}>
+                              {schedule.active ? (
+                                <>
+                                  <Pause className="h-4 w-4 mr-2" />
+                                  Pauzeren
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="h-4 w-4 mr-2" />
+                                  Activeren
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteSchedule(schedule.id)} className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Verwijderen
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 )

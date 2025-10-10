@@ -12,8 +12,11 @@ import { apiClient } from "@/lib/api-client"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import ReactMarkdown from "react-markdown"
+import type { Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
+import { cn } from "@/lib/utils"
+import { useMemo } from "react"
 
 interface SavedArticle {
   id: string
@@ -41,6 +44,70 @@ export default function ArchivePage() {
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
   const [selectedArticle, setSelectedArticle] = useState<SavedArticle | null>(null)
+
+  // Markdown components - exact zoals ArticleResults
+  const markdownComponents = useMemo<Components>(() => ({
+    h1: ({ node, className, ...props }) => (
+      <h1 {...props} className={cn("text-2xl font-bold mb-4 text-foreground", className)} />
+    ),
+    h2: ({ node, className, ...props }) => (
+      <h2 {...props} className={cn("text-xl font-semibold mb-3 mt-6 text-foreground", className)} />
+    ),
+    h3: ({ node, className, ...props }) => (
+      <h3 {...props} className={cn("text-lg font-semibold mb-2 mt-4 text-foreground", className)} />
+    ),
+    h4: ({ node, className, ...props }) => (
+      <h4 {...props} className={cn("text-base font-semibold mb-2 mt-4 text-foreground", className)} />
+    ),
+    p: ({ node, className, ...props }) => (
+      <p {...props} className={cn("mb-4 leading-relaxed text-foreground", className)} />
+    ),
+    ul: ({ node, className, ...props }) => (
+      <ul {...props} className={cn("mb-4 ml-6 list-disc space-y-2 text-foreground", className)} />
+    ),
+    ol: ({ node, className, ...props }) => (
+      <ol {...props} className={cn("mb-4 ml-6 list-decimal space-y-2 text-foreground", className)} />
+    ),
+    li: ({ node, className, ...props }) => (
+      <li {...props} className={cn("leading-relaxed text-foreground", className)} />
+    ),
+    blockquote: ({ node, className, ...props }) => (
+      <blockquote {...props} className={cn("border-l-4 border-primary/40 pl-4 italic text-muted-foreground mb-4", className)} />
+    ),
+    strong: ({ node, className, ...props }) => (
+      <strong {...props} className={cn("font-semibold text-foreground", className)} />
+    ),
+    em: ({ node, className, ...props }) => (
+      <em {...props} className={cn("italic text-foreground", className)} />
+    ),
+    a: ({ node, className, ...props }) => (
+      <a {...props} className={cn("text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary", className)} target={props.target ?? "_blank"} rel={props.rel ?? "noopener noreferrer"} />
+    ),
+    code: ({ node, className, ...props }) => {
+      const isInline = !className?.includes('language-')
+      return isInline ? (
+        <code {...props} className={cn("bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground", className)} />
+      ) : (
+        <code {...props} className={cn("block bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono text-foreground", className)} />
+      )
+    },
+    pre: ({ node, className, ...props }) => (
+      <pre {...props} className={cn("bg-muted p-4 rounded-lg overflow-x-auto mb-4", className)} />
+    ),
+    table: ({ node, className, ...props }) => (
+      <div className="overflow-x-auto mb-4">
+        <table {...props} className={cn("min-w-full border-collapse border border-border", className)} />
+      </div>
+    ),
+    th: ({ node, className, ...props }) => (
+      <th {...props} className={cn("border border-border bg-muted px-4 py-2 text-left font-semibold text-foreground", className)} />
+    ),
+    td: ({ node, className, ...props }) => (
+      <td {...props} className={cn("border border-border px-4 py-2 text-foreground", className)} />
+    ),
+  }), [])
+
+  const markdownClass = "prose prose-sm max-w-none dark:prose-invert"
 
   useEffect(() => {
     if (selectedClient) {
@@ -468,13 +535,15 @@ export default function ArchivePage() {
               <div className="h-3 w-3 rounded-full bg-green-500" />
               <span>Artikel Content</span>
             </div>
-            <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
+            <div className="bg-white/50 p-6 rounded-lg border">
               {/<\/?[a-z][\s\S]*>/i.test(selectedArticle.content_article) ? (
-                <HtmlSection html={selectedArticle.content_article} className="prose prose-sm max-w-none dark:prose-invert" />
+                <HtmlSection html={selectedArticle.content_article} className={markdownClass} />
               ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {selectedArticle.content_article}
-                </ReactMarkdown>
+                <div className={markdownClass}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {selectedArticle.content_article}
+                  </ReactMarkdown>
+                </div>
               )}
             </div>
           </div>
@@ -487,13 +556,15 @@ export default function ArchivePage() {
               <div className="h-3 w-3 rounded-full bg-blue-500" />
               <span>FAQ Content</span>
             </div>
-            <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 p-6 rounded-lg border">
+            <div className="bg-white/50 p-6 rounded-lg border">
               {/<\/?[a-z][\s\S]*>/i.test(selectedArticle.content_faq) ? (
-                <HtmlSection html={selectedArticle.content_faq} className="prose prose-sm max-w-none dark:prose-invert" />
+                <HtmlSection html={selectedArticle.content_faq} className={markdownClass} />
               ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {selectedArticle.content_faq}
-                </ReactMarkdown>
+                <div className={markdownClass}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {selectedArticle.content_faq}
+                  </ReactMarkdown>
+                </div>
               )}
             </div>
           </div>
