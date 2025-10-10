@@ -1,35 +1,79 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, CheckCircle, AlertCircle, Calendar } from "lucide-react"
 
-export function SchedulerStats() {
+interface Schedule {
+  id: string
+  focus_keyword: string
+  active: boolean
+  last_run_at?: string
+  next_run_at?: string
+}
+
+interface SchedulerStatsProps {
+  schedules: Schedule[]
+}
+
+export function SchedulerStats({ schedules }: SchedulerStatsProps) {
+  // Calculate stats from real data
+  const activeSchedules = schedules.filter(s => s.active).length
+  
+  // Count completed today (schedules that ran in last 24 hours)
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const completedToday = schedules.filter(s => {
+    if (!s.last_run_at) return false
+    const lastRun = new Date(s.last_run_at)
+    return lastRun >= todayStart
+  }).length
+
+  // Find next scheduled run
+  const upcomingSchedules = schedules
+    .filter(s => s.active && s.next_run_at)
+    .sort((a, b) => {
+      const aTime = new Date(a.next_run_at!).getTime()
+      const bTime = new Date(b.next_run_at!).getTime()
+      return aTime - bTime
+    })
+  
+  const nextRun = upcomingSchedules[0]
+  const nextRunTime = nextRun?.next_run_at 
+    ? new Date(nextRun.next_run_at).toLocaleTimeString('nl-NL', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    : '-'
+  const nextRunKeyword = nextRun?.focus_keyword || 'Geen geplande runs'
+
   const stats = [
     {
-      title: "Active Schedules",
-      value: "12",
-      description: "Currently running",
+      title: "Actieve Schedulers",
+      value: activeSchedules.toString(),
+      description: "Momenteel actief",
       icon: Clock,
       color: "text-blue-600",
     },
     {
-      title: "Completed Today",
-      value: "47",
-      description: "Jobs finished",
+      title: "Gedraaid Vandaag",
+      value: completedToday.toString(),
+      description: "Voltooide taken",
       icon: CheckCircle,
       color: "text-green-600",
     },
     {
-      title: "Failed Jobs",
-      value: "3",
-      description: "Need attention",
+      title: "Totaal Schedulers",
+      value: schedules.length.toString(),
+      description: "Voor deze client",
       icon: AlertCircle,
-      color: "text-red-600",
+      color: "text-purple-600",
     },
     {
-      title: "Next Run",
-      value: "2:30 PM",
-      description: "Rank tracking",
+      title: "Volgende Run",
+      value: nextRunTime,
+      description: nextRunKeyword.substring(0, 25),
       icon: Calendar,
-      color: "text-purple-600",
+      color: "text-orange-600",
     },
   ]
 
@@ -38,12 +82,12 @@ export function SchedulerStats() {
       {stats.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">{stat.title}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
             <stat.icon className={`h-4 w-4 ${stat.color}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-            <p className="text-xs text-slate-500">{stat.description}</p>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-muted-foreground truncate">{stat.description}</p>
           </CardContent>
         </Card>
       ))}

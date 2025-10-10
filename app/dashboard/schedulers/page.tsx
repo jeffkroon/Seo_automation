@@ -99,7 +99,7 @@ export default function SchedulersPage() {
         </Button>
       </div>
 
-      <SchedulerStats />
+      <SchedulerStats schedules={schedules} />
 
       <Card>
         <CardHeader>
