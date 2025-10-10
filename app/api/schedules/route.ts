@@ -4,16 +4,28 @@ import { supabaseRest } from '@/lib/supabase-rest'
 export async function GET(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
+    const url = new URL(req.url)
+    const clientId = url.searchParams.get('client_id')
     
     if (!companyId) {
       return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
+    }
+
+    // Build search params
+    const searchParams: Record<string, string> = {
+      order: 'created_at.desc'
+    }
+    
+    // Filter by client_id if provided
+    if (clientId) {
+      searchParams.client_id = `eq.${clientId}`
     }
 
     const schedules = await supabaseRest<any[]>(
       'schedules',
       { 
         headers: { 'x-company-id': companyId },
-        searchParams: { order: 'created_at.desc' } 
+        searchParams
       },
     )
 
@@ -65,6 +77,9 @@ export async function POST(req: Request) {
     if (!companyId) {
       return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
+    if (!body.clientId) {
+      return NextResponse.json({ error: 'clientId is verplicht' }, { status: 400 })
+    }
     if (!body.focusKeyword) {
       return NextResponse.json({ error: 'focusKeyword is verplicht' }, { status: 400 })
     }
@@ -86,6 +101,7 @@ export async function POST(req: Request) {
 
     const schedule = {
       company_id: body.companyId,
+      client_id: body.clientId,
       focus_keyword: body.focusKeyword,
       extra_keywords: Array.isArray(body.extraKeywords) ? body.extraKeywords : body.extraKeywords?.split(',').map((v: string) => v.trim()).filter(Boolean) ?? [],
       extra_headings: Array.isArray(body.extraHeadings) ? body.extraHeadings : body.extraHeadings?.split(',').map((v: string) => v.trim()).filter(Boolean) ?? [],

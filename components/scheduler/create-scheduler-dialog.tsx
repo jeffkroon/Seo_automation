@@ -3,201 +3,241 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useClientContext } from "@/hooks/use-client-context"
+import { useAuth } from "@/hooks/use-auth"
+import { apiClient } from "@/lib/api-client"
+import { toast } from "@/hooks/use-toast"
 
 interface CreateSchedulerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onScheduleCreated?: () => void
 }
 
-export function CreateSchedulerDialog({ open, onOpenChange }: CreateSchedulerDialogProps) {
-  const [name, setName] = useState("")
-  const [type, setType] = useState("")
-  const [schedule, setSchedule] = useState("")
-  const [projects, setProjects] = useState<string[]>([])
-  const [isActive, setIsActive] = useState(true)
-  const [description, setDescription] = useState("")
+export function CreateSchedulerDialog({ open, onOpenChange, onScheduleCreated }: CreateSchedulerDialogProps) {
+  const { selectedClient } = useClientContext()
+  const { user } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const [focusKeyword, setFocusKeyword] = useState("")
+  const [extraKeywords, setExtraKeywords] = useState("")
+  const [extraHeadings, setExtraHeadings] = useState("")
+  const [articleType, setArticleType] = useState("informative")
+  const [language, setLanguage] = useState("nl")
+  const [country, setCountry] = useState("nl")
+  const [intervalDays, setIntervalDays] = useState("1")
 
-  const schedulePresets = [
-    { label: "Every hour", value: "0 * * * *" },
-    { label: "Daily at 6 AM", value: "0 6 * * *" },
-    { label: "Daily at 9 AM", value: "0 9 * * *" },
-    { label: "Weekly (Mondays)", value: "0 9 * * 1" },
-    { label: "Weekly (Fridays)", value: "0 9 * * 5" },
-    { label: "Monthly (1st)", value: "0 9 1 * *" },
-    { label: "Custom", value: "custom" },
-  ]
-
-  const taskTypes = [
-    { label: "Rank Tracking", value: "rank_tracking", description: "Monitor keyword positions" },
-    { label: "SERP Analysis", value: "serp_analysis", description: "Analyze search results" },
-    { label: "Content Generation", value: "content_generation", description: "Generate SEO content" },
-    { label: "Competitor Analysis", value: "competitor_analysis", description: "Track competitor rankings" },
-    { label: "Keyword Research", value: "keyword_research", description: "Discover new keywords" },
-  ]
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle scheduler creation logic here
-    console.log("Creating scheduler:", { name, type, schedule, projects, isActive, description })
-    onOpenChange(false)
-    // Reset form
-    setName("")
-    setType("")
-    setSchedule("")
-    setProjects([])
-    setIsActive(true)
-    setDescription("")
+    
+    if (!selectedClient || !user?.companyId) {
+      toast({
+        title: "Fout",
+        description: "Selecteer een client om een scheduler aan te maken.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!focusKeyword.trim()) {
+      toast({
+        title: "Fout",
+        description: "Focus keyword is verplicht.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsLoading(true)
+    
+    try {
+      const intervalSeconds = parseInt(intervalDays) * 24 * 60 * 60
+      
+      const response = await apiClient('/api/schedules', {
+        method: 'POST',
+        body: JSON.stringify({
+          companyId: user.companyId,
+          clientId: selectedClient.id,
+          focusKeyword: focusKeyword.trim(),
+          extraKeywords: extraKeywords.split(',').map(k => k.trim()).filter(Boolean),
+          extraHeadings: extraHeadings.split(',').map(h => h.trim()).filter(Boolean),
+          articleType,
+          language,
+          country,
+          companyName: selectedClient.naam,
+          websiteUrl: selectedClient.website_url || '',
+          intervalSeconds,
+          active: true
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Succes",
+          description: "Scheduler is aangemaakt!"
+        })
+        onScheduleCreated?.()
+        onOpenChange(false)
+        resetForm()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Fout",
+          description: error.error || "Kon scheduler niet aanmaken.",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error creating scheduler:', error)
+      toast({
+        title: "Fout",
+        description: "Er ging iets mis bij het aanmaken van de scheduler.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setFocusKeyword("")
+    setExtraKeywords("")
+    setExtraHeadings("")
+    setArticleType("informative")
+    setLanguage("nl")
+    setCountry("nl")
+    setIntervalDays("1")
+  }
+
+  const handleOpenChange = (newOpen: boolean) => {
+    onOpenChange(newOpen)
+    if (!newOpen) {
+      resetForm()
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create New Schedule</DialogTitle>
-          <DialogDescription>Set up automated SEO tasks to run on a schedule.</DialogDescription>
+          <DialogTitle>Nieuwe Scheduler</DialogTitle>
+          <DialogDescription>
+            Maak een automatische content scheduler voor {selectedClient?.naam}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="focusKeyword">Focus Keyword *</Label>
+            <Input
+              id="focusKeyword"
+              placeholder="bijv. SEO content schrijven"
+              value={focusKeyword}
+              onChange={(e) => setFocusKeyword(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="extraKeywords">Extra Keywords (optioneel)</Label>
+            <Textarea
+              id="extraKeywords"
+              placeholder="Gescheiden door komma's, bijv: content marketing, blog schrijven"
+              value={extraKeywords}
+              onChange={(e) => setExtraKeywords(e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="extraHeadings">Extra Koppen (optioneel)</Label>
+            <Textarea
+              id="extraHeadings"
+              placeholder="Gescheiden door komma's, bijv: Voordelen, Tips, Conclusie"
+              value={extraHeadings}
+              onChange={(e) => setExtraHeadings(e.target.value)}
+              rows={2}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Schedule Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Daily Rank Tracking"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+              <Label htmlFor="articleType">Type Artikel</Label>
+              <Select value={articleType} onValueChange={setArticleType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="informative">Informatief</SelectItem>
+                  <SelectItem value="tutorial">Tutorial</SelectItem>
+                  <SelectItem value="listicle">Lijstartikel</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type">Task Type</Label>
-              <Select value={type} onValueChange={setType}>
+              <Label htmlFor="intervalDays">Interval (dagen)</Label>
+              <Select value={intervalDays} onValueChange={setIntervalDays}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select task type" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {taskTypes.map((taskType) => (
-                    <SelectItem key={taskType.value} value={taskType.value}>
-                      {taskType.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="1">Dagelijks</SelectItem>
+                  <SelectItem value="7">Wekelijks</SelectItem>
+                  <SelectItem value="14">Tweewekelijks</SelectItem>
+                  <SelectItem value="30">Maandelijks</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {type && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Task Configuration</CardTitle>
-                <CardDescription>{taskTypes.find((t) => t.value === type)?.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Projects</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select projects to include" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Projects</SelectItem>
-                      <SelectItem value="ecommerce">E-commerce Store</SelectItem>
-                      <SelectItem value="blog">Tech Blog</SelectItem>
-                      <SelectItem value="local">Local Business</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="language">Taal</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nl">Nederlands</SelectItem>
+                  <SelectItem value="en">Engels</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                {type === "rank_tracking" && (
-                  <div className="space-y-2">
-                    <Label>Search Engines</Label>
-                    <div className="flex space-x-4">
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" defaultChecked />
-                        <span className="text-sm">Google</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input type="checkbox" />
-                        <span className="text-sm">Bing</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {type === "serp_analysis" && (
-                  <div className="space-y-2">
-                    <Label>Analysis Depth</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select depth" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="top10">Top 10 Results</SelectItem>
-                        <SelectItem value="top20">Top 20 Results</SelectItem>
-                        <SelectItem value="top50">Top 50 Results</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="schedule">Schedule</Label>
-            <Select value={schedule} onValueChange={setSchedule}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select schedule" />
-              </SelectTrigger>
-              <SelectContent>
-                {schedulePresets.map((preset) => (
-                  <SelectItem key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {schedule === "custom" && (
-              <div className="mt-2">
-                <Input placeholder="Enter cron expression (e.g., 0 6 * * *)" />
-                <p className="text-xs text-slate-500 mt-1">Use cron format: minute hour day month weekday</p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="country">Land</Label>
+              <Select value={country} onValueChange={setCountry}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nl">Nederland</SelectItem>
+                  <SelectItem value="en">Verenigd Koninkrijk</SelectItem>
+                  <SelectItem value="us">Verenigde Staten</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Add notes about this schedule..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch id="active" checked={isActive} onCheckedChange={setIsActive} />
-            <Label htmlFor="active">Start schedule immediately</Label>
-          </div>
-
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
+              Annuleren
             </Button>
-            <Button type="submit">Create Schedule</Button>
-          </div>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Bezig..." : "Scheduler Aanmaken"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
+
