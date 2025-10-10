@@ -335,52 +335,68 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totaal Artikelen</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <ScrambleText text="Totaal Artikelen" speed={[5, 15]} delay={600} />
+            </CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalArticles || 0}</div>
+            <div className="text-2xl font-bold">
+              <ScrambleText text={(stats?.totalArticles || 0).toString()} speed={[4, 12]} delay={700} />
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats?.articlesThisMonth || 0} deze maand
+              <ScrambleText text={`${stats?.articlesThisMonth || 0} deze maand`} speed={[4, 10]} delay={800} />
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Projecten</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <ScrambleText text="Projecten" speed={[5, 15]} delay={650} />
+            </CardTitle>
             <Folder className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalProjects || 0}</div>
+            <div className="text-2xl font-bold">
+              <ScrambleText text={(stats?.totalProjects || 0).toString()} speed={[4, 12]} delay={750} />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Actieve projecten
+              <ScrambleText text="Actieve projecten" speed={[4, 10]} delay={850} />
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clients</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <ScrambleText text="Clients" speed={[5, 15]} delay={700} />
+            </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalClients || 0}</div>
+            <div className="text-2xl font-bold">
+              <ScrambleText text={(stats?.totalClients || 0).toString()} speed={[4, 12]} delay={800} />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Totaal aantal clients
+              <ScrambleText text="Totaal aantal clients" speed={[4, 10]} delay={900} />
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Actieve Schedulers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <ScrambleText text="Actieve Schedulers" speed={[5, 15]} delay={750} />
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeSchedules || 0}</div>
+            <div className="text-2xl font-bold">
+              <ScrambleText text={(stats?.activeSchedules || 0).toString()} speed={[4, 12]} delay={850} />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Geplande taken
+              <ScrambleText text="Geplande taken" speed={[4, 10]} delay={950} />
             </p>
           </CardContent>
         </Card>
