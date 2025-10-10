@@ -32,7 +32,7 @@ export function CreateSchedulerDialog({ open, onOpenChange, onScheduleCreated }:
   const [newKeyword, setNewKeyword] = useState("")
   const [headings, setHeadings] = useState<string[]>([])
   const [newHeading, setNewHeading] = useState("")
-  const [articleType, setArticleType] = useState("informative")
+  const [articleType, setArticleType] = useState("informatief")
   const [language, setLanguage] = useState("nl")
   const [country, setCountry] = useState("nl")
   const [intervalDays, setIntervalDays] = useState("1")
@@ -152,7 +152,7 @@ export function CreateSchedulerDialog({ open, onOpenChange, onScheduleCreated }:
     setNewKeyword("")
     setHeadings([])
     setNewHeading("")
-    setArticleType("informative")
+    setArticleType("informatief")
     setLanguage("nl")
     setCountry("nl")
     setIntervalDays("1")
@@ -320,13 +320,13 @@ export function CreateSchedulerDialog({ open, onOpenChange, onScheduleCreated }:
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="informative">Informatief</SelectItem>
-                  <SelectItem value="tutorial">Tutorial</SelectItem>
-                  <SelectItem value="listicle">Lijstartikel</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="comparison">Vergelijking</SelectItem>
+                  <SelectItem value="informatief">Informatief</SelectItem>
+                  <SelectItem value="transactioneel">Transactioneel</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Informatief: educatief. Transactioneel: verkoopgericht
+              </p>
             </div>
           </div>
 
