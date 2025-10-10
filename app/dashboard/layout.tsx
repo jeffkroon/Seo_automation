@@ -83,7 +83,7 @@ export default function DashboardLayout({
                   <Search className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <span className="text-lg font-semibold text-sidebar-foreground">
-                  <ScrambleText text="SearchFactory" speed={[6, 16]} delay={300} />
+                  <ScrambleText text="SearchFactory" speed={[6, 16]} delay={600} />
                 </span>
               </Link>
               <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
