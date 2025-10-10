@@ -117,13 +117,14 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
     a: ({ node, className, ...props }) => (
       <a {...props} className={cn("text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary", className)} target={props.target ?? "_blank"} rel={props.rel ?? "noopener noreferrer"} />
     ),
-    code: ({ node, className, inline, ...props }) => (
-      inline ? (
+    code: ({ node, className, ...props }) => {
+      const isInline = !className?.includes('language-')
+      return isInline ? (
         <code {...props} className={cn("bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground", className)} />
       ) : (
         <code {...props} className={cn("block bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono text-foreground", className)} />
       )
-    ),
+    },
     pre: ({ node, className, ...props }) => (
       <pre {...props} className={cn("bg-muted p-4 rounded-lg overflow-x-auto mb-4", className)} />
     ),
@@ -516,6 +517,40 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
                   </CardHeader>
 
                   <CardContent className="space-y-4">
+                    {/* Additional Keywords */}
+                    {article.additional_keywords && Array.isArray(article.additional_keywords) && article.additional_keywords.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Hash className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground">Extra Keywords</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {article.additional_keywords.map((keyword, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Headings */}
+                    {article.additional_headings && Array.isArray(article.additional_headings) && article.additional_headings.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground">Extra Koppen</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {article.additional_headings.map((heading, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {heading}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* View Full Content Button */}
                     <Button
                       variant="outline"

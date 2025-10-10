@@ -235,7 +235,7 @@ export default function SchedulersPage() {
                             )}
                           </div>
 
-                          {schedule.extra_keywords && schedule.extra_keywords.length > 0 && (
+                          {schedule.extra_keywords && Array.isArray(schedule.extra_keywords) && schedule.extra_keywords.length > 0 && (
                             <div>
                               <span className="text-xs text-muted-foreground">Extra Keywords:</span>
                               <div className="flex flex-wrap gap-1 mt-1">
@@ -248,7 +248,7 @@ export default function SchedulersPage() {
                             </div>
                           )}
 
-                          {schedule.extra_headings && schedule.extra_headings.length > 0 && (
+                          {schedule.extra_headings && Array.isArray(schedule.extra_headings) && schedule.extra_headings.length > 0 && (
                             <div>
                               <span className="text-xs text-muted-foreground">Extra Koppen:</span>
                               <div className="flex flex-wrap gap-1 mt-1">
