@@ -56,7 +56,7 @@ export default function AdminUsersPage() {
       const [usersResponse, invitationsResponse, clientsResponse] = await Promise.all([
         apiClient('/api/admin/users'),
         apiClient('/api/admin/invitations'),
-        apiClient('/api/clients')
+        apiClient('/api/admin/clients')
       ])
       
       if (usersResponse.ok) {

@@ -8,6 +8,8 @@ export async function GET(req: Request) {
     const userId = req.headers.get('x-user-id')
     const userRole = req.headers.get('x-user-role')
     
+    console.log('🔄 GET /api/admin/clients:', { companyId, userId, userRole })
+    
     if (!companyId) {
       return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
@@ -46,6 +48,7 @@ export async function GET(req: Request) {
       },
     )
 
+    console.log('🔄 Clients fetched:', clients?.length || 0, 'clients')
     return NextResponse.json({ clients: clients || [] })
   } catch (error: any) {
     console.error('Error in GET /api/admin/clients:', error)
