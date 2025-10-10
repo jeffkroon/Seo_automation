@@ -57,6 +57,7 @@ export async function POST(req: Request) {
     const emailVerificationRequired = !authData.user.email_confirmed_at
 
     try {
+      // Create membership
       await supabaseRest(
         'memberships',
         {
@@ -68,6 +69,27 @@ export async function POST(req: Request) {
           }
         }
       )
+
+      // Create viewer_clients records for viewers with multiple clients
+      if (invitation.role === 'viewer' && invitation.client_ids && Array.isArray(invitation.client_ids)) {
+        for (const clientId of invitation.client_ids) {
+          try {
+            await supabaseRest(
+              'viewer_clients',
+              {
+                method: 'POST',
+                body: {
+                  user_id: authData.user.id,
+                  client_id: clientId,
+                  company_id: invitation.company_id
+                }
+              }
+            )
+          } catch (viewerClientError) {
+            console.error('Error creating viewer_client:', viewerClientError)
+          }
+        }
+      }
     } catch (membershipError) {
       console.error('Error creating membership:', membershipError)
       // This is critical, but we'll continue

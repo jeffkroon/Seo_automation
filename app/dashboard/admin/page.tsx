@@ -31,14 +31,21 @@ interface Invitation {
   invitation_link?: string
 }
 
+interface Client {
+  id: string
+  naam: string
+}
+
 export default function AdminUsersPage() {
   const { user } = useAuth()
   const [users, setUsers] = useState<CompanyUser[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isInviting, setIsInviting] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("user")
+  const [inviteClientIds, setInviteClientIds] = useState<string[]>([])
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
@@ -46,9 +53,10 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
-      const [usersResponse, invitationsResponse] = await Promise.all([
+      const [usersResponse, invitationsResponse, clientsResponse] = await Promise.all([
         apiClient('/api/admin/users'),
-        apiClient('/api/admin/invitations')
+        apiClient('/api/admin/invitations'),
+        apiClient('/api/clients')
       ])
       
       if (usersResponse.ok) {
@@ -94,6 +102,11 @@ export default function AdminUsersPage() {
         const data = await invitationsResponse.json()
         setInvitations(data.invitations || [])
       }
+
+      if (clientsResponse.ok) {
+        const data = await clientsResponse.json()
+        setClients(data.clients || [])
+      }
     } catch (error) {
       setError('Fout bij ophalen gebruikers')
     } finally {
@@ -105,6 +118,12 @@ export default function AdminUsersPage() {
   const sendInvitation = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inviteEmail.trim()) return
+
+    // Validate viewer has at least one client selected
+    if (inviteRole === 'viewer' && inviteClientIds.length === 0) {
+      setError('Selecteer minimaal één client voor de viewer rol')
+      return
+    }
     
     try {
       setIsInviting(true)
@@ -115,7 +134,8 @@ export default function AdminUsersPage() {
         method: 'POST',
         body: JSON.stringify({ 
           email: inviteEmail.trim(),
-          role: inviteRole 
+          role: inviteRole,
+          clientIds: inviteRole === 'viewer' ? inviteClientIds : null
         })
       })
       
@@ -251,6 +271,32 @@ export default function AdminUsersPage() {
     }
   }
 
+  const updateUserRole = async (userId: string, newRole: string) => {
+    try {
+      setError("")
+      setSuccess("")
+      
+      const response = await apiClient('/api/admin/users/update-role', {
+        method: 'PATCH',
+        body: JSON.stringify({ userId, role: newRole })
+      })
+
+      if (response.ok) {
+        setSuccess(`Rol succesvol aangepast!`)
+        setTimeout(() => setSuccess(''), 3000)
+        fetchUsers()
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Fout bij aanpassen rol')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch (error: any) {
+      console.error('Error updating user role:', error)
+      setError(`Fout bij aanpassen rol: ${error.message || 'Onbekende fout'}`)
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
   useEffect(() => {
     // Only fetch if user is owner
     if (user && user.role === 'owner') {
@@ -312,7 +358,7 @@ export default function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={sendInvitation} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="invite-email">Email Adres</Label>
                 <Input
@@ -338,22 +384,66 @@ export default function AdminUsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="flex items-end">
-                <Button type="submit" disabled={isInviting} className="w-full">
-                  {isInviting ? (
-                    <>
-                      <Send className="h-4 w-4 mr-2 animate-spin" />
-                      Versturen...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Uitnodiging Versturen
-                    </>
-                  )}
-                </Button>
+            </div>
+
+            {/* Show client selector if viewer role is selected */}
+            {inviteRole === 'viewer' && (
+              <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <Label>Clients voor Viewer *</Label>
+                <p className="text-xs text-yellow-700 mb-2">
+                  Selecteer één of meerdere clients. De viewer krijgt alleen toegang tot projecten en content van deze clients.
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {clients.map((client) => (
+                    <label 
+                      key={client.id} 
+                      className="flex items-center gap-3 p-3 border rounded-lg bg-white hover:bg-yellow-50/50 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={inviteClientIds.includes(client.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setInviteClientIds([...inviteClientIds, client.id])
+                          } else {
+                            setInviteClientIds(inviteClientIds.filter(id => id !== client.id))
+                          }
+                        }}
+                        className="h-4 w-4 text-primary rounded border-gray-300 focus:ring-primary"
+                      />
+                      <span className="font-medium">{client.naam}</span>
+                    </label>
+                  ))}
+                </div>
+                {inviteClientIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {inviteClientIds.map(clientId => {
+                      const client = clients.find(c => c.id === clientId)
+                      return client ? (
+                        <Badge key={clientId} variant="secondary">
+                          {client.naam}
+                        </Badge>
+                      ) : null
+                    })}
+                  </div>
+                )}
               </div>
+            )}
+              
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isInviting}>
+                {isInviting ? (
+                  <>
+                    <Send className="h-4 w-4 mr-2 animate-spin" />
+                    Versturen...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Uitnodiging Versturen
+                  </>
+                )}
+              </Button>
             </div>
           </form>
 
@@ -373,12 +463,9 @@ export default function AdminUsersPage() {
                   size="sm" 
                   onClick={() => copyToClipboard(copiedLink)}
                   variant="outline"
+                  title="Kopieer link"
                 >
-                  {copiedLink === copiedLink ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
+                  <Copy className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -473,19 +560,33 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{member.users.email}</p>
                           {isVerified ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" title="Email geverifieerd" />
+                            <div title="Email geverifieerd">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            </div>
                           ) : (
-                            <AlertCircle className="h-4 w-4 text-yellow-600" title="Email niet geverifieerd" />
+                            <div title="Email niet geverifieerd">
+                              <AlertCircle className="h-4 w-4 text-yellow-600" />
+                            </div>
                           )}
                         </div>
-                        <div className="flex gap-2 mt-1">
-                      <Badge 
-                        variant={member.role === 'owner' ? 'default' : member.role === 'admin' ? 'secondary' : 'outline'}
-                      >
-                        {member.role === 'owner' ? 'Eigenaar' : 
-                         member.role === 'admin' ? 'Admin' : 
-                         member.role === 'viewer' ? 'Viewer' : 'Gebruiker'}
-                      </Badge>
+                        <div className="flex gap-2 mt-1 items-center">
+                          {member.role === 'owner' ? (
+                            <Badge variant="default">Eigenaar</Badge>
+                          ) : (
+                            <Select 
+                              value={member.role} 
+                              onValueChange={(newRole) => updateUserRole(member.users.id, newRole)}
+                            >
+                              <SelectTrigger className="h-7 w-32 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="user">Gebruiker</SelectItem>
+                                <SelectItem value="viewer">Viewer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
                           {!isVerified && (
                             <Badge variant="outline" className="text-yellow-600 border-yellow-600">
                               Niet geverifieerd

@@ -41,10 +41,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
 
-    const { email, role = 'user' } = body
+    const { email, role = 'user', clientIds } = body
 
     if (!email) {
       return NextResponse.json({ error: 'Email is verplicht' }, { status: 400 })
+    }
+
+    // Validate viewer has at least one client
+    if (role === 'viewer' && (!clientIds || clientIds.length === 0)) {
+      return NextResponse.json({ error: 'Minimaal één client is verplicht voor viewer rol' }, { status: 400 })
     }
 
     // Skip user existence check - we'll handle this during registration
@@ -72,18 +77,25 @@ export async function POST(req: Request) {
     const token = randomBytes(32).toString('hex')
 
     // Create invitation
+    const invitationBody: any = {
+      email: email.toLowerCase(),
+      company_id: companyId,
+      invited_by: req.headers.get('x-user-id') || 'unknown',
+      role: role,
+      token: token
+    }
+
+    // Add client_ids for viewers
+    if (role === 'viewer' && clientIds && clientIds.length > 0) {
+      invitationBody.client_ids = clientIds
+    }
+
     const invitation = await supabaseRest(
       'invitations',
       {
         method: 'POST',
         headers: { 'x-company-id': companyId },
-        body: {
-          email: email.toLowerCase(),
-          company_id: companyId,
-          invited_by: req.headers.get('x-user-id') || 'unknown',
-          role: role,
-          token: token
-        }
+        body: invitationBody
       }
     )
 

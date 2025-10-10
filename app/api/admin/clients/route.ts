@@ -5,13 +5,31 @@ import { supabaseRest } from '@/lib/supabase-rest'
 export async function GET(req: Request) {
   try {
     const companyId = req.headers.get('x-company-id')
+    const userId = req.headers.get('x-user-id')
     const userRole = req.headers.get('x-user-role')
     
     if (!companyId) {
       return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
 
-    // Check if user is owner or admin
+    // Viewers: only show their assigned clients
+    if (userRole === 'viewer' && userId) {
+      const viewerClients = await supabaseRest<any[]>(
+        'viewer_clients',
+        {
+          headers: { 'x-company-id': companyId },
+          searchParams: {
+            user_id: `eq.${userId}`,
+            select: 'client_id,clients(id,naam,website_url,notities)'
+          }
+        }
+      )
+
+      const clients = viewerClients?.map((vc: any) => vc.clients).filter(Boolean) || []
+      return NextResponse.json({ clients })
+    }
+
+    // Owners and admins: show all company clients
     if (userRole !== 'owner' && userRole !== 'admin') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
