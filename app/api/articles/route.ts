@@ -57,6 +57,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Geen content om op te slaan' }, { status: 400 })
     }
 
+    // Ensure arrays are properly formatted
+    const cleanAdditionalKeywords = Array.isArray(additional_keywords) 
+      ? additional_keywords.filter(k => k && typeof k === 'string' && k.trim()) 
+      : []
+    const cleanAdditionalHeadings = Array.isArray(additional_headings) 
+      ? additional_headings.filter(h => h && typeof h === 'string' && h.trim()) 
+      : []
+
     // Save article and FAQ in single row with separate columns
     const articleData = {
       company_id: companyId,
@@ -69,8 +77,8 @@ export async function POST(req: Request) {
       country: country?.trim() || null,
       language: language?.trim() || null,
       article_type: article_type?.trim() || null,
-      additional_keywords: additional_keywords || [],
-      additional_headings: additional_headings || [],
+      additional_keywords: cleanAdditionalKeywords,
+      additional_headings: cleanAdditionalHeadings,
       job_id: job_id || null,
     }
 

@@ -269,6 +269,14 @@ export default function SchedulersPage() {
       const faqContent = faqs ? transformMarkdown(faqs) : null
       const title = schedule?.focus_keyword || 'Untitled'
       
+      // Ensure arrays are properly formatted for PostgreSQL
+      const additionalKeywords = Array.isArray(schedule?.extra_keywords) 
+        ? schedule.extra_keywords.filter(k => k && k.trim()) 
+        : []
+      const additionalHeadings = Array.isArray(schedule?.extra_headings) 
+        ? schedule.extra_headings.filter(h => h && h.trim()) 
+        : []
+
       const response = await apiClient('/api/articles', {
         method: 'POST',
         body: JSON.stringify({
@@ -281,8 +289,8 @@ export default function SchedulersPage() {
           country: schedule?.country || 'nl',
           language: schedule?.language || 'nl',
           article_type: schedule?.article_type || 'informatief',
-          additional_keywords: schedule?.extra_keywords || [],
-          additional_headings: schedule?.extra_headings || [],
+          additional_keywords: additionalKeywords,
+          additional_headings: additionalHeadings,
         })
       })
 
