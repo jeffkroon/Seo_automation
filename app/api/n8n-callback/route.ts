@@ -11,6 +11,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Check if jobId is in URL or headers
+    const url = new URL(req.url);
+    const jobIdFromUrl = url.searchParams.get('jobId');
+    const jobIdFromHeader = req.headers.get('x-job-id');
+    
+    console.log('🔍 Looking for jobId in:', {
+      url: req.url,
+      jobIdFromUrl,
+      jobIdFromHeader,
+      allHeaders: Object.fromEntries(req.headers.entries())
+    });
+
     let body;
     try {
       body = await req.json();
@@ -23,9 +35,13 @@ export async function POST(req: Request) {
     console.log('=== END RAW BODY ===');
     
     // Handle different response formats
-    const { jobId, status, html, generatedAt, error, message, error_code, output } = body;
+    const { jobId, status, html, generatedAt, error, message, error_code, output, id } = body;
+    
+    // Try to get jobId from different possible sources
+    const actualJobId = jobId || id || body.job_id || body.jobID || jobIdFromUrl || jobIdFromHeader;
+    
     console.log('Parsed callback data:', { 
-      jobId, 
+      jobId: actualJobId, 
       status, 
       htmlLength: html?.length, 
       outputLength: output?.length, 
@@ -36,14 +52,17 @@ export async function POST(req: Request) {
       allKeys: Object.keys(body)
     });
     
-    if (!jobId) return NextResponse.json({ error: 'jobId ontbreekt' }, { status: 400 });
+    if (!actualJobId) {
+      console.error('❌ No jobId found in callback body:', body);
+      return NextResponse.json({ error: 'jobId ontbreekt in callback' }, { status: 400 });
+    }
 
     // Handle webhook errors - support both 'error' and 'message' fields
     if (status === 'error' || error || (message && error_code)) {
       const errorMessage = error || message || 'Onbekende fout';
       const errorDetails = error_code ? `[${error_code}] ${errorMessage}` : errorMessage;
-      console.error('❌ WEBHOOK ERROR - Job failed:', jobId, errorDetails);
-      failJob(jobId, errorDetails);
+      console.error('❌ WEBHOOK ERROR - Job failed:', actualJobId, errorDetails);
+      failJob(actualJobId, errorDetails);
       return NextResponse.json({ ok: true, status: 'error', error: errorDetails });
     }
 
@@ -79,12 +98,12 @@ export async function POST(req: Request) {
 
     entries.forEach((entry, index) => {
       if (!entry.article && !entry.faqs) {
-        console.warn(`Skipping empty entry for job ${jobId}`)
+        console.warn(`Skipping empty entry for job ${actualJobId}`)
         return
       }
       const isLastEntry = index === entries.length - 1
       try {
-        storeJobResult(jobId, {
+        storeJobResult(actualJobId, {
           article: entry.article,
           faqs: entry.faqs,
           metaTitle: entry.metaTitle,
@@ -93,15 +112,15 @@ export async function POST(req: Request) {
           sequence: entry.sequence,
           markComplete: markComplete && isLastEntry,
         })
-        console.log(`Successfully stored entry ${index + 1} for job ${jobId}`)
+        console.log(`Successfully stored entry ${index + 1} for job ${actualJobId}`)
       } catch (storeError) {
-        console.error(`Failed to store entry ${index + 1} for job ${jobId}:`, storeError)
+        console.error(`Failed to store entry ${index + 1} for job ${actualJobId}:`, storeError)
         throw storeError
       }
     })
 
     console.log('Stored job results:', {
-      jobId,
+      jobId: actualJobId,
       entries: entries.length,
       markComplete,
     })
