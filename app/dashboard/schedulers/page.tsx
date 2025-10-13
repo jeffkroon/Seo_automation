@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Clock, Target, FileText, BarChart3, MoreHorizontal, Trash2, Pause, Play, Edit } from "lucide-react"
+import { Plus, Clock, Target, FileText, BarChart3, MoreHorizontal, Trash2, Pause, Play, Edit, Save, CheckCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 interface Schedule {
@@ -27,6 +27,12 @@ interface Schedule {
   website_url?: string
   language?: string
   country?: string
+  latestArticle?: {
+    id: string
+    article?: string
+    faqs?: string
+    generated_at: string
+  } | null
 }
 
 export default function SchedulersPage() {
@@ -34,6 +40,8 @@ export default function SchedulersPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (selectedClient?.id) {
@@ -109,6 +117,59 @@ export default function SchedulersPage() {
         description: "Er ging iets mis.",
         variant: "destructive"
       })
+    }
+  }
+
+  const handleSaveArticle = async (scheduleId: string, article: string, faqs?: string) => {
+    if (!selectedClient) {
+      toast({
+        title: "Fout",
+        description: "Selecteer eerst een client om het artikel op te slaan",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setSavingId(scheduleId)
+    try {
+      const response = await apiClient('/api/articles', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: `Artikel voor ${scheduleId}`,
+          content: article,
+          faqs: faqs || '',
+          clientId: selectedClient.id,
+          focusKeyword: schedules.find(s => s.id === scheduleId)?.focus_keyword || '',
+          country: schedules.find(s => s.id === scheduleId)?.country || 'nl',
+          language: schedules.find(s => s.id === scheduleId)?.language || 'nl',
+          articleType: schedules.find(s => s.id === scheduleId)?.article_type || 'informatief'
+        })
+      })
+
+      if (response.ok) {
+        setSavedId(scheduleId)
+        setTimeout(() => setSavedId(null), 3000)
+        toast({
+          title: "Succes",
+          description: "Artikel opgeslagen in het archief!"
+        })
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Fout",
+          description: errorData.error || "Fout bij opslaan artikel",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error saving article:', error)
+      toast({
+        title: "Fout",
+        description: "Onbekende fout bij opslaan artikel",
+        variant: "destructive"
+      })
+    } finally {
+      setSavingId(null)
     }
   }
 
@@ -257,6 +318,70 @@ export default function SchedulersPage() {
                                     {heading}
                                   </Badge>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Latest Generated Content */}
+                          {schedule.latestArticle && (
+                            <div className="border-t pt-3 mt-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs text-muted-foreground">Laatste generatie:</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(schedule.latestArticle.generated_at).toLocaleString('nl-NL')}
+                                </span>
+                              </div>
+                              
+                              {schedule.latestArticle.article && (
+                                <div className="mb-2">
+                                  <span className="text-xs text-muted-foreground">Artikel:</span>
+                                  <div className="text-xs bg-muted p-2 rounded mt-1 max-h-20 overflow-hidden">
+                                    {schedule.latestArticle.article.substring(0, 200)}
+                                    {schedule.latestArticle.article.length > 200 && '...'}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {schedule.latestArticle.faqs && (
+                                <div>
+                                  <span className="text-xs text-muted-foreground">FAQ:</span>
+                                  <div className="text-xs bg-muted p-2 rounded mt-1 max-h-20 overflow-hidden">
+                                    {schedule.latestArticle.faqs.substring(0, 200)}
+                                    {schedule.latestArticle.faqs.length > 200 && '...'}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Save Button */}
+                              <div className="flex justify-end mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSaveArticle(
+                                    schedule.id, 
+                                    schedule.latestArticle!.article!, 
+                                    schedule.latestArticle!.faqs
+                                  )}
+                                  disabled={savingId === schedule.id || !selectedClient}
+                                  className="text-xs"
+                                >
+                                  {savingId === schedule.id ? (
+                                    <>
+                                      <Save className="w-3 h-3 mr-1 animate-pulse" />
+                                      Opslaan...
+                                    </>
+                                  ) : savedId === schedule.id ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                                      Opgeslagen!
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="w-3 h-3 mr-1" />
+                                      Opslaan
+                                    </>
+                                  )}
+                                </Button>
                               </div>
                             </div>
                           )}
