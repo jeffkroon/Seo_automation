@@ -240,17 +240,28 @@ export default function KeywordsPage() {
         }
 
         const job = await response.json()
-        console.log(`Polling job ${jobId}:`, job)
-        console.log(`🔍 Version check:`, { 
-          resultsVersion: job.resultsVersion, 
-          lastVersion, 
-          willProcess: job.resultsVersion !== lastVersion,
-          resultsCount: job.results?.length || 0
+        console.log(`🔄 Polling job ${jobId}:`, {
+          status: job.status,
+          isComplete: job.isComplete,
+          error: job.error,
+          resultsCount: job.results?.length || 0,
+          resultsVersion: job.resultsVersion
         })
 
+        // Stop polling ONLY if webhook returned an error
         if (job.status === "error") {
+          console.error(`❌ Job ${jobId} failed:`, job.error)
           removeActiveJob(jobId)
-          throw new Error(job.error || "Workflow error")
+          setLoadingPieceIds(prev => {
+            const next = new Set(prev)
+            next.delete(pieceId)
+            return next
+          })
+          isPolling = false
+          
+          // Show error to user
+          alert(`❌ Content generatie mislukt:\n\n${job.error || "Onbekende fout van de workflow"}`)
+          return
         }
 
         // Only process if we have new results (version changed AND we have results)
