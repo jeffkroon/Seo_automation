@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     console.log('=== END RAW BODY ===');
     
     // Handle different response formats
-    const { jobId, status, html, generatedAt, error, output } = body;
+    const { jobId, status, html, generatedAt, error, message, error_code, output } = body;
     console.log('Parsed callback data:', { 
       jobId, 
       status, 
@@ -31,15 +31,20 @@ export async function POST(req: Request) {
       outputLength: output?.length, 
       generatedAt, 
       error,
+      message,
+      error_code,
       allKeys: Object.keys(body)
     });
     
     if (!jobId) return NextResponse.json({ error: 'jobId ontbreekt' }, { status: 400 });
 
-    if (status === 'error' || error) {
-      console.log('Job failed:', jobId, error);
-      failJob(jobId, error || 'Onbekende fout');
-      return NextResponse.json({ ok: true });
+    // Handle webhook errors - support both 'error' and 'message' fields
+    if (status === 'error' || error || (message && error_code)) {
+      const errorMessage = error || message || 'Onbekende fout';
+      const errorDetails = error_code ? `[${error_code}] ${errorMessage}` : errorMessage;
+      console.error('❌ WEBHOOK ERROR - Job failed:', jobId, errorDetails);
+      failJob(jobId, errorDetails);
+      return NextResponse.json({ ok: true, status: 'error', error: errorDetails });
     }
 
     const entries: Array<{ article?: string; faqs?: string; metaTitle?: string; metaDescription?: string; generatedAt?: string; sequence?: number }> = []
