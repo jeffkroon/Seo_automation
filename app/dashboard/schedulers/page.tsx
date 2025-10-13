@@ -10,8 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Clock, Target, FileText, BarChart3, MoreHorizontal, Trash2, Pause, Play, Edit, Save, CheckCircle } from "lucide-react"
+import { Plus, Clock, Target, FileText, BarChart3, MoreHorizontal, Trash2, Pause, Play, Edit, Save, CheckCircle, ChevronDown, ChevronRight, Copy, Download } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import ReactMarkdown from "react-markdown"
+import type { Components } from "react-markdown"
+import remarkGfm from "remark-gfm"
+import HtmlSection, { sanitizeHtml } from "@/components/HtmlSection"
+import { cn } from "@/lib/utils"
 
 interface Schedule {
   id: string
@@ -42,6 +47,125 @@ export default function SchedulersPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
+  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set())
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  // Markdown components (same as article-results)
+  const markdownComponents = {
+    h1: ({ node, className, ...props }: any) => (
+      <h1 {...props} className={cn("text-2xl font-bold mb-4 text-foreground", className)} />
+    ),
+    h2: ({ node, className, ...props }: any) => (
+      <h2 {...props} className={cn("text-xl font-semibold mb-3 text-foreground", className)} />
+    ),
+    h3: ({ node, className, ...props }: any) => (
+      <h3 {...props} className={cn("text-lg font-medium mb-2 text-foreground", className)} />
+    ),
+    h4: ({ node, className, ...props }: any) => (
+      <h4 {...props} className={cn("text-base font-medium mb-2 text-foreground", className)} />
+    ),
+    p: ({ node, className, ...props }: any) => (
+      <p {...props} className={cn("mb-4 text-foreground leading-relaxed", className)} />
+    ),
+    ul: ({ node, className, ...props }: any) => (
+      <ul {...props} className={cn("list-disc list-inside mb-4 space-y-1", className)} />
+    ),
+    ol: ({ node, className, ...props }: any) => (
+      <ol {...props} className={cn("list-decimal list-inside mb-4 space-y-1", className)} />
+    ),
+    li: ({ node, className, ...props }: any) => (
+      <li {...props} className={cn("text-foreground", className)} />
+    ),
+    blockquote: ({ node, className, ...props }: any) => (
+      <blockquote {...props} className={cn("border-l-4 border-primary pl-4 italic mb-4 text-muted-foreground", className)} />
+    ),
+    strong: ({ node, className, ...props }: any) => (
+      <strong {...props} className={cn("font-semibold text-foreground", className)} />
+    ),
+    em: ({ node, className, ...props }: any) => (
+      <em {...props} className={cn("italic text-foreground", className)} />
+    ),
+    a: ({ node, className, ...props }: any) => (
+      <a {...props} className={cn("text-primary hover:underline", className)} />
+    ),
+    code: ({ node, className, children, ...props }: any) => {
+      const isInline = !className?.includes('language-')
+      return isInline ? (
+        <code {...props} className={cn("bg-muted px-1 py-0.5 rounded text-sm font-mono", className)}>
+          {children}
+        </code>
+      ) : (
+        <code {...props} className={cn("block bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto", className)}>
+          {children}
+        </code>
+      )
+    },
+    pre: ({ node, className, ...props }: any) => (
+      <pre {...props} className={cn("bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto mb-4", className)} />
+    ),
+    table: ({ node, className, ...props }: any) => (
+      <table {...props} className={cn("w-full border-collapse border border-border mb-4", className)} />
+    ),
+    th: ({ node, className, ...props }: any) => (
+      <th {...props} className={cn("border border-border px-4 py-2 bg-muted font-semibold text-left", className)} />
+    ),
+    td: ({ node, className, ...props }: any) => (
+      <td {...props} className={cn("border border-border px-4 py-2", className)} />
+    ),
+  }
+
+  // Helper functions
+  const transformMarkdown = (markdown: string): string => {
+    let cleaned = markdown.replace(/^\s*DO NOT wrap in ```html```\s*/i, "").trim()
+    const fenceMatch = cleaned.match(/^```(\w+)?\n([\s\S]*)\n```$/)
+    if (fenceMatch) {
+      const language = fenceMatch[1]?.toLowerCase()
+      if (!language || ["markdown", "md", "html"].includes(language)) {
+        cleaned = fenceMatch[2].trim()
+      }
+    }
+    return cleaned
+  }
+
+  const createPreview = (markdown: string, maxLength = 220): string => {
+    const cleaned = transformMarkdown(markdown)
+    const textOnly = cleaned.replace(/<[^>]*>/g, "").replace(/[#*`_~\[\]()]/g, "")
+    return textOnly.length > maxLength ? textOnly.substring(0, maxLength) + "..." : textOnly
+  }
+
+  const toggleExpanded = (articleId: string) => {
+    setExpandedArticles(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(articleId)) {
+        newSet.delete(articleId)
+      } else {
+        newSet.add(articleId)
+      }
+      return newSet
+    })
+  }
+
+  const copyToClipboard = async (content: string, articleId: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedId(articleId)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
+
+  const downloadArticle = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filename}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   useEffect(() => {
     if (selectedClient?.id) {
@@ -90,7 +214,12 @@ export default function SchedulersPage() {
   }
 
   const handleDeleteSchedule = async (scheduleId: string) => {
-    if (!confirm('Weet je zeker dat je deze scheduler wilt verwijderen?')) return
+    const schedule = schedules.find(s => s.id === scheduleId)
+    const scheduleName = schedule?.focus_keyword || 'deze scheduler'
+    
+    if (!confirm(`Weet je zeker dat je "${scheduleName}" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.`)) {
+      return
+    }
 
     try {
       const response = await apiClient(`/api/schedules/${scheduleId}`, {
@@ -100,13 +229,14 @@ export default function SchedulersPage() {
       if (response.ok) {
         toast({
           title: "Succes",
-          description: "Scheduler is verwijderd!"
+          description: `Scheduler "${scheduleName}" succesvol verwijderd`
         })
         fetchSchedules()
       } else {
+        const errorData = await response.json()
         toast({
           title: "Fout",
-          description: "Kon scheduler niet verwijderen.",
+          description: errorData.error || "Fout bij verwijderen scheduler",
           variant: "destructive"
         })
       }
@@ -114,7 +244,7 @@ export default function SchedulersPage() {
       console.error('Error deleting schedule:', error)
       toast({
         title: "Fout",
-        description: "Er ging iets mis.",
+        description: "Onbekende fout bij verwijderen scheduler",
         variant: "destructive"
       })
     }
@@ -122,52 +252,52 @@ export default function SchedulersPage() {
 
   const handleSaveArticle = async (scheduleId: string, article: string, faqs?: string) => {
     if (!selectedClient) {
-      toast({
-        title: "Fout",
-        description: "Selecteer eerst een client om het artikel op te slaan",
-        variant: "destructive"
-      })
+      alert('Selecteer eerst een client om het artikel op te slaan')
       return
     }
 
-    setSavingId(scheduleId)
+    if (!article && !faqs) {
+      alert('Geen content om op te slaan')
+      return
+    }
+
     try {
+      setSavingId(scheduleId)
+      
+      const schedule = schedules.find(s => s.id === scheduleId)
+      const articleContent = article ? transformMarkdown(article) : null
+      const faqContent = faqs ? transformMarkdown(faqs) : null
+      const title = schedule?.focus_keyword || 'Untitled'
+      
       const response = await apiClient('/api/articles', {
         method: 'POST',
         body: JSON.stringify({
-          title: `Artikel voor ${scheduleId}`,
-          content: article,
-          faqs: faqs || '',
-          clientId: selectedClient.id,
-          focusKeyword: schedules.find(s => s.id === scheduleId)?.focus_keyword || '',
-          country: schedules.find(s => s.id === scheduleId)?.country || 'nl',
-          language: schedules.find(s => s.id === scheduleId)?.language || 'nl',
-          articleType: schedules.find(s => s.id === scheduleId)?.article_type || 'informatief'
+          client_id: selectedClient.id,
+          focus_keyword: title,
+          title: title,
+          article: articleContent,
+          faqs: faqContent,
+          meta_title: title,
+          country: schedule?.country || 'nl',
+          language: schedule?.language || 'nl',
+          article_type: schedule?.article_type || 'informatief',
+          additional_keywords: schedule?.extra_keywords || [],
+          additional_headings: schedule?.extra_headings || [],
         })
       })
 
       if (response.ok) {
+        const data = await response.json()
         setSavedId(scheduleId)
         setTimeout(() => setSavedId(null), 3000)
-        toast({
-          title: "Succes",
-          description: "Artikel opgeslagen in het archief!"
-        })
+        alert(data.message || 'Artikel opgeslagen!')
       } else {
         const errorData = await response.json()
-        toast({
-          title: "Fout",
-          description: errorData.error || "Fout bij opslaan artikel",
-          variant: "destructive"
-        })
+        alert(errorData.error || 'Fout bij opslaan')
       }
     } catch (error) {
-      console.error('Error saving article:', error)
-      toast({
-        title: "Fout",
-        description: "Onbekende fout bij opslaan artikel",
-        variant: "destructive"
-      })
+      console.error('Failed to save:', error)
+      alert('Fout bij opslaan artikel')
     } finally {
       setSavingId(null)
     }
@@ -324,65 +454,165 @@ export default function SchedulersPage() {
 
                           {/* Latest Generated Content */}
                           {schedule.latestArticle && (
-                            <div className="border-t pt-3 mt-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-muted-foreground">Laatste generatie:</span>
+                            <div className="border-t pt-4 mt-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-medium text-muted-foreground">Laatste generatie:</span>
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(schedule.latestArticle.generated_at).toLocaleString('nl-NL')}
                                 </span>
                               </div>
                               
+                              {/* Article Section */}
                               {schedule.latestArticle.article && (
-                                <div className="mb-2">
-                                  <span className="text-xs text-muted-foreground">Artikel:</span>
-                                  <div className="text-xs bg-muted p-2 rounded mt-1 max-h-20 overflow-hidden">
-                                    {schedule.latestArticle.article.substring(0, 200)}
-                                    {schedule.latestArticle.article.length > 200 && '...'}
+                                <div className="space-y-3 mb-4">
+                                  <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                                      <FileText className="w-4 h-4 text-primary" />
+                                      Artikel
+                                    </h3>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-7"
+                                      onClick={() => toggleExpanded(`${schedule.id}-article`)}
+                                    >
+                                      {expandedArticles.has(`${schedule.id}-article`) ? (
+                                        <><ChevronDown className="h-3 w-3 mr-1" /> Inklappen</>
+                                      ) : (
+                                        <><ChevronRight className="h-3 w-3 mr-1" /> Uitklappen</>
+                                      )}
+                                    </Button>
+                                  </div>
+
+                                  <div className="border rounded-lg p-4 bg-background/50">
+                                    {expandedArticles.has(`${schedule.id}-article`) ? (
+                                      <div className="prose prose-sm max-w-none">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                          {transformMarkdown(schedule.latestArticle.article)}
+                                        </ReactMarkdown>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {createPreview(schedule.latestArticle.article)}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => copyToClipboard(transformMarkdown(schedule.latestArticle!.article!), `${schedule.id}-article`)}
+                                    >
+                                      {copiedId === `${schedule.id}-article` ? (
+                                        <><CheckCircle className="w-3 h-3 mr-1 text-green-500" /> Copied!</>
+                                      ) : (
+                                        <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => downloadArticle(transformMarkdown(schedule.latestArticle!.article!), `${schedule.focus_keyword} - Article`)}
+                                    >
+                                      <Download className="w-3 h-3 mr-1" /> Download
+                                    </Button>
                                   </div>
                                 </div>
                               )}
                               
+                              {/* FAQ Section */}
                               {schedule.latestArticle.faqs && (
-                                <div>
-                                  <span className="text-xs text-muted-foreground">FAQ:</span>
-                                  <div className="text-xs bg-muted p-2 rounded mt-1 max-h-20 overflow-hidden">
-                                    {schedule.latestArticle.faqs.substring(0, 200)}
-                                    {schedule.latestArticle.faqs.length > 200 && '...'}
+                                <div className="space-y-3 mb-4">
+                                  <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                                      <FileText className="w-4 h-4 text-primary" />
+                                      FAQ
+                                    </h3>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-7"
+                                      onClick={() => toggleExpanded(`${schedule.id}-faq`)}
+                                    >
+                                      {expandedArticles.has(`${schedule.id}-faq`) ? (
+                                        <><ChevronDown className="h-3 w-3 mr-1" /> Inklappen</>
+                                      ) : (
+                                        <><ChevronRight className="h-3 w-3 mr-1" /> Uitklappen</>
+                                      )}
+                                    </Button>
+                                  </div>
+
+                                  <div className="border rounded-lg p-4 bg-background/50">
+                                    {expandedArticles.has(`${schedule.id}-faq`) ? (
+                                      <div className="prose prose-sm max-w-none">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                          {transformMarkdown(schedule.latestArticle.faqs)}
+                                        </ReactMarkdown>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {createPreview(schedule.latestArticle.faqs)}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => copyToClipboard(transformMarkdown(schedule.latestArticle!.faqs!), `${schedule.id}-faq`)}
+                                    >
+                                      {copiedId === `${schedule.id}-faq` ? (
+                                        <><CheckCircle className="w-3 h-3 mr-1 text-green-500" /> Copied!</>
+                                      ) : (
+                                        <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => downloadArticle(transformMarkdown(schedule.latestArticle!.faqs!), `${schedule.focus_keyword} - FAQ`)}
+                                    >
+                                      <Download className="w-3 h-3 mr-1" /> Download
+                                    </Button>
                                   </div>
                                 </div>
                               )}
                               
                               {/* Save Button */}
-                              <div className="flex justify-end mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleSaveArticle(
-                                    schedule.id, 
-                                    schedule.latestArticle!.article!, 
-                                    schedule.latestArticle!.faqs
-                                  )}
-                                  disabled={savingId === schedule.id || !selectedClient}
-                                  className="text-xs"
-                                >
-                                  {savingId === schedule.id ? (
-                                    <>
-                                      <Save className="w-3 h-3 mr-1 animate-pulse" />
-                                      Opslaan...
-                                    </>
-                                  ) : savedId === schedule.id ? (
-                                    <>
-                                      <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
-                                      Opgeslagen!
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Save className="w-3 h-3 mr-1" />
-                                      Opslaan
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleSaveArticle(
+                                  schedule.id, 
+                                  schedule.latestArticle!.article!, 
+                                  schedule.latestArticle!.faqs
+                                )}
+                                disabled={savingId === schedule.id || !selectedClient}
+                              >
+                                {savingId === schedule.id ? (
+                                  <>
+                                    <Save className="w-4 h-4 mr-2 animate-pulse" />
+                                    Opslaan...
+                                  </>
+                                ) : savedId === schedule.id ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                                    Opgeslagen!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {selectedClient ? `Opslaan voor ${selectedClient.naam}` : 'Selecteer client'}
+                                  </>
+                                )}
+                              </Button>
                             </div>
                           )}
 
@@ -404,12 +634,15 @@ export default function SchedulersPage() {
                         />
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleToggleSchedule(schedule.id, schedule.active)}>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem 
+                              onClick={() => handleToggleSchedule(schedule.id, schedule.active)}
+                              className="cursor-pointer"
+                            >
                               {schedule.active ? (
                                 <>
                                   <Pause className="h-4 w-4 mr-2" />
@@ -422,7 +655,49 @@ export default function SchedulersPage() {
                                 </>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteSchedule(schedule.id)} className="text-destructive">
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                // TODO: Implement edit functionality
+                                toast({
+                                  title: "Info",
+                                  description: "Bewerken functionaliteit komt binnenkort beschikbaar"
+                                })
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Bewerken
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                // TODO: Implement duplicate functionality
+                                toast({
+                                  title: "Info", 
+                                  description: "Dupliceren functionaliteit komt binnenkort beschikbaar"
+                                })
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Dupliceren
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                // TODO: Implement run now functionality
+                                toast({
+                                  title: "Info",
+                                  description: "Nu uitvoeren functionaliteit komt binnenkort beschikbaar"
+                                })
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Play className="h-4 w-4 mr-2" />
+                              Nu uitvoeren
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteSchedule(schedule.id)} 
+                              className="text-destructive cursor-pointer focus:text-destructive"
+                            >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Verwijderen
                             </DropdownMenuItem>
