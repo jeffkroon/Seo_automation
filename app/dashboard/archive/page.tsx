@@ -391,12 +391,12 @@ export default function ArchivePage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {article.additional_keywords.slice(0, 3).map((keyword, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs px-2 py-1 bg-muted/50 hover:bg-muted/70 transition-colors">
+                          <Badge key={index} variant="secondary" className="text-xs px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                             {keyword}
                           </Badge>
                         ))}
                         {article.additional_keywords.length > 3 && (
-                          <Badge variant="outline" className="text-xs px-2 py-1">
+                          <Badge variant="outline" className="text-xs px-2 py-1 border-gray-300 text-gray-700">
                             +{article.additional_keywords.length - 3} meer
                           </Badge>
                         )}
@@ -413,13 +413,13 @@ export default function ArchivePage() {
                       </div>
                       <div className="space-y-1 pl-2">
                         {article.additional_headings.slice(0, 3).map((heading, index) => (
-                          <div key={index} className="text-sm text-muted-foreground line-clamp-1 flex items-center gap-2">
-                            <div className="h-1 w-1 rounded-full bg-primary/50 flex-shrink-0" />
+                          <div key={index} className="text-sm text-gray-700 line-clamp-1 flex items-center gap-2">
+                            <div className="h-1 w-1 rounded-full bg-gray-500 flex-shrink-0" />
                             {heading}
                           </div>
                         ))}
                         {article.additional_headings.length > 3 && (
-                          <div className="text-sm text-muted-foreground/70 italic">
+                          <div className="text-sm text-gray-500 italic">
                             +{article.additional_headings.length - 3} meer headers...
                           </div>
                         )}
@@ -598,7 +598,7 @@ export default function ArchivePage() {
                       <span className="font-medium text-muted-foreground">Aanvullende zoekwoorden:</span>
                       <div className="flex flex-wrap gap-2">
                         {selectedArticle.additional_keywords.map((keyword, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                          <Badge key={index} variant="secondary" className="text-xs bg-primary/10 text-primary">
                             {keyword}
                           </Badge>
                         ))}
@@ -612,7 +612,7 @@ export default function ArchivePage() {
                       <span className="font-medium text-muted-foreground">Aanvullende headers:</span>
                       <div className="space-y-1">
                         {selectedArticle.additional_headings.map((heading, index) => (
-                          <div key={index} className="text-sm text-muted-foreground">
+                          <div key={index} className="text-sm text-gray-700">
                             • {heading}
                           </div>
                         ))}
