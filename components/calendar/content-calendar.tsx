@@ -68,7 +68,7 @@ interface CalendarDay {
 }
 
 export function ContentCalendar() {
-  const { selectedClient } = useClientContext()
+  const { selectedClient, clients, isLoading: clientsLoading } = useClientContext()
   const { user } = useAuth()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [scheduleTemplates, setScheduleTemplates] = useState<ScheduleTemplate[]>([])
@@ -104,8 +104,8 @@ export function ContentCalendar() {
   
   // Reddit specific fields
   const [searchType, setSearchType] = useState("posts")
-  const [maxResults, setMaxResults] = useState(25)
-  const [dateRange, setDateRange] = useState("week")
+  const [maxResults, setMaxResults] = useState(15)
+  const [dateRange, setDateRange] = useState("month")
 
   // Helper functions for keywords and headings
   const addKeyword = () => {
@@ -349,7 +349,16 @@ export function ContentCalendar() {
   }
 
   const handleSave = async () => {
-    if (!selectedClient || !title.trim() || !focusKeyword.trim()) {
+    if (!selectedClient) {
+      toast({
+        title: "Geen client geselecteerd",
+        description: "Selecteer eerst een client om een template aan te maken",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!title.trim() || !focusKeyword.trim()) {
       toast({
         title: "Fout",
         description: "Titel en focus keyword zijn verplicht",
@@ -647,10 +656,21 @@ export function ContentCalendar() {
       <Card>
         <CardContent className="p-6 text-center">
           <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Selecteer een Client</h3>
-          <p className="text-muted-foreground">
+          <h3 className="text-lg font-semibold mb-2">Geen client geselecteerd</h3>
+          <p className="text-muted-foreground mb-4">
             Selecteer eerst een client om de content kalender te bekijken.
           </p>
+          <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+            <p><strong>Debug info:</strong></p>
+            <p>Clients loaded: {clients.length}</p>
+            <p>Loading: {clientsLoading ? 'Yes' : 'No'}</p>
+            <p>Selected client: {selectedClient ? 'Client selected' : 'None'}</p>
+            {clients.length === 0 && !clientsLoading && (
+              <p className="text-red-500 mt-2">
+                Geen clients gevonden. Ga naar /dashboard/admin/clients om een client aan te maken.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     )
@@ -1040,49 +1060,14 @@ export function ContentCalendar() {
 
             {/* Reddit specific fields */}
             {templateType === "reddit" && !editingEvent && (
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="search-type">Search Type</Label>
-                  <Select value={searchType} onValueChange={setSearchType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="posts">Posts</SelectItem>
-                      <SelectItem value="comments">Comments</SelectItem>
-                      <SelectItem value="subreddits">Subreddits</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="max-results">Max Results</Label>
-                  <Input
-                    id="max-results"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={maxResults}
-                    onChange={(e) => setMaxResults(parseInt(e.target.value) || 25)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="date-range">Date Range</Label>
-                  <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hour">Hour</SelectItem>
-                      <SelectItem value="day">Day</SelectItem>
-                      <SelectItem value="week">Week</SelectItem>
-                      <SelectItem value="month">Month</SelectItem>
-                      <SelectItem value="year">Year</SelectItem>
-                      <SelectItem value="all">All Time</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="keyword">Keyword/Query *</Label>
+                <Input
+                  id="keyword"
+                  placeholder="Voer keyword/query in..."
+                  value={focusKeyword}
+                  onChange={(e) => setFocusKeyword(e.target.value)}
+                />
               </div>
             )}
 
@@ -1112,65 +1097,71 @@ export function ContentCalendar() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="article-type">Artikel Type</Label>
-                <Select value={articleType} onValueChange={setArticleType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="informatief">Informatief</SelectItem>
-                    <SelectItem value="transactioneel">Transactioneel</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Only show these fields for content templates, not for Reddit */}
+            {templateType === "content" && !editingEvent && (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="article-type">Artikel Type</Label>
+                  <Select value={articleType} onValueChange={setArticleType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="informatief">Informatief</SelectItem>
+                      <SelectItem value="transactioneel">Transactioneel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="language">Taal</Label>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nl">Nederlands</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="de">Deutsch</SelectItem>
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="country">Land</Label>
+                  <Select value={country} onValueChange={setCountry}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nl">Nederland</SelectItem>
+                      <SelectItem value="be">België</SelectItem>
+                      <SelectItem value="de">Duitsland</SelectItem>
+                      <SelectItem value="fr">Frankrijk</SelectItem>
+                      <SelectItem value="es">Spanje</SelectItem>
+                      <SelectItem value="us">Verenigde Staten</SelectItem>
+                      <SelectItem value="uk">Verenigd Koninkrijk</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="language">Taal</Label>
-                <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nl">Nederlands</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="de">Deutsch</SelectItem>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="es">Español</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="country">Land</Label>
-                <Select value={country} onValueChange={setCountry}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nl">Nederland</SelectItem>
-                    <SelectItem value="be">België</SelectItem>
-                    <SelectItem value="de">Duitsland</SelectItem>
-                    <SelectItem value="fr">Frankrijk</SelectItem>
-                    <SelectItem value="es">Spanje</SelectItem>
-                    <SelectItem value="us">Verenigde Staten</SelectItem>
-                    <SelectItem value="uk">Verenigd Koninkrijk</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="website-url">Website URL</Label>
-              <Input
-                id="website-url"
-                type="url"
-                placeholder="https://example.com"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-              />
-            </div>
+            {/* Only show website URL for content templates, not for Reddit */}
+            {templateType === "content" && !editingEvent && (
+              <div className="space-y-2">
+                <Label htmlFor="website-url">Website URL</Label>
+                <Input
+                  id="website-url"
+                  type="url"
+                  placeholder="https://example.com"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex justify-between">

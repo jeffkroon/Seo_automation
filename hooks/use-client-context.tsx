@@ -61,10 +61,15 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.warn('Failed to fetch clients:', response.status, errorData)
+        console.error('❌ Failed to fetch clients:', response.status, errorData)
+        console.error('❌ Response headers:', Object.fromEntries(response.headers.entries()))
       }
     } catch (error) {
-      console.error('Error fetching clients:', error)
+      console.error('❌ Error fetching clients:', error)
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
     } finally {
       setIsLoading(false)
       console.log('🔄 fetchClients finished, isLoading set to false')
