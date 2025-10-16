@@ -81,7 +81,7 @@ export function ContentCalendar() {
   const [editingTemplate, setEditingTemplate] = useState<ScheduleTemplate | null>(null)
   const [selectedArticle, setSelectedArticle] = useState<any>(null)
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
-  const [draggedTemplate, setDraggedTemplate] = useState<ScheduleTemplate | null>(null)
+  const [draggedTemplate, setDraggedTemplate] = useState<ScheduleTemplate | RedditTemplate | null>(null)
   
   // Form states
   const [title, setTitle] = useState("")
@@ -173,7 +173,9 @@ export function ContentCalendar() {
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
-    setScheduledDate(date.toISOString().split('T')[0])
+    // Use local date to avoid timezone issues
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    setScheduledDate(dateStr)
     setIsDialogOpen(true)
   }
 
@@ -222,21 +224,23 @@ export function ContentCalendar() {
     
     if (!draggedTemplate || !selectedClient) return
 
-    const dateStr = date.toISOString().split('T')[0]
+    // Use local date to avoid timezone issues
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     
     try {
       // Check if it's a Reddit template or Schedule template
-      if ('search_type' in draggedTemplate) {
-        // Reddit template
+      if (draggedTemplate && 'search_type' in draggedTemplate) {
+        // Reddit template - cast to RedditTemplate
+        const redditTemplate = draggedTemplate as RedditTemplate
         const redditData = {
-          title: draggedTemplate.title,
-          description: draggedTemplate.description,
+          title: redditTemplate.title,
+          description: redditTemplate.description,
           scheduled_date: dateStr,
           scheduled_time: '09:00',
-          search_type: draggedTemplate.search_type,
-          keyword: draggedTemplate.keyword,
-          max_results: draggedTemplate.max_results,
-          date_range: draggedTemplate.date_range,
+          search_type: redditTemplate.search_type,
+          keyword: redditTemplate.keyword,
+          max_results: redditTemplate.max_results,
+          date_range: redditTemplate.date_range,
           client_id: selectedClient.id,
           company_id: user?.companyId
         }
@@ -261,19 +265,20 @@ export function ContentCalendar() {
           })
         }
       } else {
-        // Schedule template
+        // Schedule template - cast to ScheduleTemplate
+        const scheduleTemplate = draggedTemplate as ScheduleTemplate
         const eventData = {
-          title: draggedTemplate.title,
-          description: draggedTemplate.description,
+          title: scheduleTemplate.title,
+          description: scheduleTemplate.description,
           scheduled_date: dateStr,
           scheduled_time: '09:00',
-          focus_keyword: draggedTemplate.focus_keyword,
-          extra_keywords: draggedTemplate.extra_keywords,
-          extra_headings: draggedTemplate.extra_headings,
-          article_type: draggedTemplate.article_type,
-          language: draggedTemplate.language,
-          country: draggedTemplate.country,
-          website_url: draggedTemplate.website_url,
+          focus_keyword: scheduleTemplate.focus_keyword,
+          extra_keywords: scheduleTemplate.extra_keywords,
+          extra_headings: scheduleTemplate.extra_headings,
+          article_type: scheduleTemplate.article_type,
+          language: scheduleTemplate.language,
+          country: scheduleTemplate.country,
+          website_url: scheduleTemplate.website_url,
           client_id: selectedClient.id,
           company_id: user?.companyId
         }

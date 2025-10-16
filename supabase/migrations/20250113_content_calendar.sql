@@ -160,6 +160,8 @@ SECURITY DEFINER
 AS $$
 DECLARE
   current_time TIMESTAMP WITH TIME ZONE := NOW();
+  current_date_only DATE := current_time::DATE;
+  current_time_only TIME := current_time::TIME;
 BEGIN
   -- Update reddit requests to 'generating' status and return them
   RETURN QUERY
@@ -175,8 +177,8 @@ BEGIN
       WHERE 
         r.active = true 
         AND r.status = 'scheduled'
-        AND r.scheduled_date <= current_time::DATE
-        AND r.scheduled_time <= current_time::TIME
+        AND r.scheduled_date <= current_date_only
+        AND r.scheduled_time <= current_time_only
         AND r.next_run_at <= current_time
         AND (p_company_id IS NULL OR r.company_id = p_company_id)
       ORDER BY r.next_run_at ASC
@@ -230,6 +232,8 @@ SECURITY DEFINER
 AS $$
 DECLARE
   current_time TIMESTAMP WITH TIME ZONE := NOW();
+  current_date_only DATE := current_time::DATE;
+  current_time_only TIME := current_time::TIME;
 BEGIN
   -- Update schedules to 'generating' status and return them
   RETURN QUERY
@@ -245,8 +249,8 @@ BEGIN
       WHERE 
         s.active = true 
         AND s.status = 'scheduled'
-        AND s.scheduled_date <= current_time::DATE
-        AND s.scheduled_time <= current_time::TIME
+        AND s.scheduled_date <= current_date_only
+        AND s.scheduled_time <= current_time_only
         AND s.next_run_at <= current_time
       ORDER BY s.next_run_at ASC
       LIMIT p_limit
