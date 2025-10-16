@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Title, focus_keyword en client_id zijn verplicht' }, { status: 400 })
     }
 
-    // Create calendar event (schedule)
+    // Create calendar event (schedule) - eenmalig, geen interval
     const eventData = {
       company_id: companyId,
       client_id: client_id,
@@ -86,9 +86,8 @@ export async function POST(req: Request) {
       website_url: website_url?.trim() || null,
       status: 'scheduled',
       active: true,
-      next_run_at: new Date().toISOString(),
-      interval_seconds: 86400, // Default to daily (24 hours)
-      days_of_week: [0, 1, 2, 3, 4, 5, 6] // All days of week
+      next_run_at: new Date().toISOString()
+      // Geen interval_seconds of days_of_week voor eenmalige events
     }
     
     console.log('📅 Creating calendar event with data:', eventData)

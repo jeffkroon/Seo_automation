@@ -192,7 +192,7 @@ export function ContentCalendar() {
       const date = new Date(startDate)
       date.setDate(startDate.getDate() + i)
       
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       const dayEvents = events.filter(event => event.scheduled_date === dateStr)
       
       // Debug logging for events
@@ -1015,8 +1015,8 @@ export function ContentCalendar() {
               />
             </div>
 
-            {/* Extra Keywords and Headings - only for content templates */}
-            {templateType === "content" && !editingEvent && (
+            {/* Extra Keywords and Headings - for content templates and events */}
+            {(templateType === "content" || editingEvent) && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="extra-keywords">Extra Keywords</Label>
@@ -1125,8 +1125,8 @@ export function ContentCalendar() {
               </div>
             )}
 
-            {/* Only show these fields for content templates, not for Reddit */}
-            {templateType === "content" && !editingEvent && (
+            {/* Show these fields for content templates and events, not for Reddit */}
+            {(templateType === "content" || editingEvent) && (
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="article-type">Artikel Type</Label>
@@ -1177,8 +1177,8 @@ export function ContentCalendar() {
               </div>
             )}
 
-            {/* Only show website URL for content templates, not for Reddit */}
-            {templateType === "content" && !editingEvent && (
+            {/* Show website URL for content templates and events, not for Reddit */}
+            {(templateType === "content" || editingEvent) && (
               <div className="space-y-2">
                 <Label htmlFor="website-url">Website URL</Label>
                 <Input

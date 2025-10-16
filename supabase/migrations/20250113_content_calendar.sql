@@ -160,8 +160,8 @@ SECURITY DEFINER
 AS $$
 DECLARE
   current_time TIMESTAMP WITH TIME ZONE := NOW();
-  current_date_only DATE := current_time::DATE;
-  current_time_only TIME := current_time::TIME;
+  current_date_only DATE := CURRENT_DATE;
+  current_time_only TIME := current_time::TIME WITHOUT TIME ZONE;
 BEGIN
   -- Update reddit requests to 'generating' status and return them
   RETURN QUERY
@@ -208,10 +208,11 @@ END;
 $$;
 
 -- Drop existing function first if it exists
+DROP FUNCTION IF EXISTS claim_due_schedules(INTEGER, DATE);
 DROP FUNCTION IF EXISTS claim_due_schedules(INTEGER);
 
 -- Function to claim due schedules for n8n processing
-CREATE OR REPLACE FUNCTION claim_due_schedules(p_limit INTEGER DEFAULT 10)
+CREATE OR REPLACE FUNCTION claim_due_schedules(p_limit INTEGER DEFAULT 10, p_date DATE DEFAULT NULL)
 RETURNS TABLE (
   id UUID,
   company_id UUID,
@@ -232,8 +233,8 @@ SECURITY DEFINER
 AS $$
 DECLARE
   current_time TIMESTAMP WITH TIME ZONE := NOW();
-  current_date_only DATE := current_time::DATE;
-  current_time_only TIME := current_time::TIME;
+  current_date_only DATE := COALESCE(p_date, CURRENT_DATE);
+  current_time_only TIME := current_time::TIME WITHOUT TIME ZONE;
 BEGIN
   -- Update schedules to 'generating' status and return them
   RETURN QUERY
