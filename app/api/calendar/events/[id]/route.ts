@@ -1,122 +1,104 @@
 // app/api/calendar/events/[id]/route.ts
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { supabaseRest } from '@/lib/supabase-rest'
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   try {
-    const supabase = createClient()
+    const companyId = req.headers.get('x-company-id')
+    const userId = req.headers.get('x-user-id')
+    const userRole = req.headers.get('x-user-role')
     
-    // Get user from session
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
 
-    const eventId = params.id
+    const eventId = ctx.params.id
     const body = await req.json()
-    const {
-      title,
-      description,
-      scheduled_date,
-      scheduled_time,
-      focus_keyword,
-      extra_keywords = [],
-      extra_headings = [],
-      article_type,
-      language,
-      country,
-      website_url
+    const { 
+      title, 
+      description, 
+      scheduled_date, 
+      scheduled_time, 
+      focus_keyword, 
+      extra_keywords, 
+      extra_headings, 
+      article_type, 
+      language, 
+      country, 
+      website_url 
     } = body
 
-    // Get user's company
-    const { data: membership } = await supabase
-      .from('memberships')
-      .select('company_id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!membership) {
-      return NextResponse.json({ error: 'User not found in any company' }, { status: 404 })
+    if (!title || !focus_keyword) {
+      return NextResponse.json({ error: 'Title en focus_keyword zijn verplicht' }, { status: 400 })
     }
 
-    // Update calendar event
-    const { data: event, error } = await supabase
-      .from('schedules')
-      .update({
-        title,
-        description,
-        scheduled_date,
-        scheduled_time: scheduled_time || '09:00:00',
-        focus_keyword,
-        extra_keywords: Array.isArray(extra_keywords) ? extra_keywords : [],
-        extra_headings: Array.isArray(extra_headings) ? extra_headings : [],
-        article_type: article_type || 'informatief',
-        language: language || 'nl',
-        country: country || 'nl',
-        website_url,
-        // Update next_run_at to the new scheduled date/time
-        next_run_at: scheduled_date ? new Date(`${scheduled_date}T${scheduled_time || '09:00:00'}`).toISOString() : undefined,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', eventId)
-      .eq('company_id', membership.company_id)
-      .select()
-      .single()
+    // Update calendar event (schedule)
+    const events = await supabaseRest<any[]>(
+      'schedules',
+      {
+        method: 'PATCH',
+        headers: { 
+          'x-company-id': companyId,
+          'Prefer': 'return=representation'
+        },
+        searchParams: {
+          id: `eq.${eventId}`,
+          company_id: `eq.${companyId}`
+        },
+        body: {
+          title: title.trim(),
+          description: description?.trim() || null,
+          scheduled_date: scheduled_date,
+          scheduled_time: scheduled_time,
+          focus_keyword: focus_keyword.trim(),
+          extra_keywords: extra_keywords || [],
+          extra_headings: extra_headings || [],
+          article_type: article_type || 'informatief',
+          language: language || 'nl',
+          country: country || 'nl',
+          website_url: website_url?.trim() || null,
+          updated_at: new Date().toISOString()
+        }
+      },
+    )
 
-    if (error) {
-      console.error('Error updating calendar event:', error)
-      return NextResponse.json({ error: 'Failed to update event' }, { status: 500 })
-    }
-
-    if (!event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
-    }
+    const event = Array.isArray(events) ? events[0] : events
 
     return NextResponse.json({ event })
-  } catch (error) {
-    console.error('Update calendar event API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Error in PATCH /api/calendar/events/[id]:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, ctx: { params: { id: string } }) {
   try {
-    const supabase = createClient()
+    const companyId = req.headers.get('x-company-id')
+    const userId = req.headers.get('x-user-id')
+    const userRole = req.headers.get('x-user-role')
     
-    // Get user from session
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!companyId) {
+      return NextResponse.json({ error: 'X-Company-Id header is verplicht' }, { status: 400 })
     }
 
-    const eventId = params.id
+    const eventId = ctx.params.id
 
-    // Get user's company
-    const { data: membership } = await supabase
-      .from('memberships')
-      .select('company_id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!membership) {
-      return NextResponse.json({ error: 'User not found in any company' }, { status: 404 })
-    }
-
-    // Delete calendar event
-    const { error } = await supabase
-      .from('schedules')
-      .delete()
-      .eq('id', eventId)
-      .eq('company_id', membership.company_id)
-
-    if (error) {
-      console.error('Error deleting calendar event:', error)
-      return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 })
-    }
+    // Delete calendar event (schedule)
+    await supabaseRest(
+      'schedules',
+      {
+        method: 'DELETE',
+        headers: { 'x-company-id': companyId },
+        searchParams: {
+          id: `eq.${eventId}`,
+          company_id: `eq.${companyId}`
+        }
+      },
+    )
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Delete calendar event API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Error in DELETE /api/calendar/events/[id]:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
