@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, CalendarDays, Plus, Edit, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Target, FileText, GripVertical, Eye, X, Download } from "lucide-react"
+import { Calendar, CalendarDays, Plus, Edit, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Target, FileText, GripVertical, Eye, X, Download, Hash, MessageSquare } from "lucide-react"
 import { useClientContext } from "@/hooks/use-client-context"
 import { useAuth } from "@/hooks/use-auth"
 import { apiClient } from "@/lib/api-client"
@@ -96,6 +96,39 @@ export function ContentCalendar() {
   const [country, setCountry] = useState("nl")
   const [websiteUrl, setWebsiteUrl] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Template type and additional fields
+  const [templateType, setTemplateType] = useState<"content" | "reddit">("content")
+  const [newKeyword, setNewKeyword] = useState("")
+  const [newHeading, setNewHeading] = useState("")
+  
+  // Reddit specific fields
+  const [searchType, setSearchType] = useState("posts")
+  const [maxResults, setMaxResults] = useState(25)
+  const [dateRange, setDateRange] = useState("week")
+
+  // Helper functions for keywords and headings
+  const addKeyword = () => {
+    if (newKeyword.trim() && !extraKeywords.includes(newKeyword.trim())) {
+      setExtraKeywords([...extraKeywords, newKeyword.trim()])
+      setNewKeyword("")
+    }
+  }
+
+  const removeKeyword = (keywordToRemove: string) => {
+    setExtraKeywords(extraKeywords.filter(k => k !== keywordToRemove))
+  }
+
+  const addHeading = () => {
+    if (newHeading.trim() && !extraHeadings.includes(newHeading.trim())) {
+      setExtraHeadings([...extraHeadings, newHeading.trim()])
+      setNewHeading("")
+    }
+  }
+
+  const removeHeading = (headingToRemove: string) => {
+    setExtraHeadings(extraHeadings.filter(h => h !== headingToRemove))
+  }
 
   const fetchEvents = async () => {
     if (!selectedClient) return
@@ -556,10 +589,16 @@ export function ContentCalendar() {
     setFocusKeyword("")
     setExtraKeywords([])
     setExtraHeadings([])
+    setNewKeyword("")
+    setNewHeading("")
     setArticleType("informatief")
     setLanguage("nl")
     setCountry("nl")
     setWebsiteUrl("")
+    setTemplateType("content")
+    setSearchType("posts")
+    setMaxResults(25)
+    setDateRange("week")
   }
 
   const getStatusIcon = (status: string) => {
@@ -680,10 +719,19 @@ export function ContentCalendar() {
             </div>
           ) : (
             <div className="grid grid-cols-7 gap-1">
-              {/* Day headers */}
-              {['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'].map((day) => (
-                <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                  {day}
+              {/* Day headers with full day names */}
+              {[
+                { short: 'Ma', full: 'Maandag' },
+                { short: 'Di', full: 'Dinsdag' },
+                { short: 'Wo', full: 'Woensdag' },
+                { short: 'Do', full: 'Donderdag' },
+                { short: 'Vr', full: 'Vrijdag' },
+                { short: 'Za', full: 'Zaterdag' },
+                { short: 'Zo', full: 'Zondag' }
+              ].map((day) => (
+                <div key={day.short} className="p-3 text-center bg-muted rounded-lg">
+                  <div className="text-sm font-semibold text-foreground">{day.short}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{day.full}</div>
                 </div>
               ))}
               
@@ -692,9 +740,9 @@ export function ContentCalendar() {
                 <div
                   key={index}
                   className={cn(
-                    "min-h-[120px] p-2 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors",
+                    "min-h-[120px] p-3 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg",
                     !day.isCurrentMonth && "bg-gray-50 text-gray-400",
-                    day.isToday && "bg-primary/10 border-primary"
+                    day.isToday && "bg-primary/10 border-primary ring-2 ring-primary/20"
                   )}
                   onClick={() => handleDateClick(day.date)}
                   onDragOver={handleDragOver}
@@ -881,6 +929,33 @@ export function ContentCalendar() {
               </div>
             </div>
 
+            {/* Template Type Selector - only for new templates */}
+            {!editingEvent && (
+              <div className="space-y-2">
+                <Label>Template Type *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={templateType === "content" ? "default" : "outline"}
+                    onClick={() => setTemplateType("content")}
+                    className="h-12 flex flex-col items-center gap-2"
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span className="text-sm">Content Template</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={templateType === "reddit" ? "default" : "outline"}
+                    onClick={() => setTemplateType("reddit")}
+                    className="h-12 flex flex-col items-center gap-2"
+                  >
+                    <MessageSquare className="h-5 w-5" />
+                    <span className="text-sm">Reddit Analyse</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="description">Beschrijving</Label>
               <Textarea
@@ -891,6 +966,125 @@ export function ContentCalendar() {
                 rows={3}
               />
             </div>
+
+            {/* Extra Keywords and Headings - only for content templates */}
+            {templateType === "content" && !editingEvent && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="extra-keywords">Extra Keywords</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="extra-keywords"
+                      placeholder="Voeg extra keyword toe..."
+                      value={newKeyword}
+                      onChange={(e) => setNewKeyword(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
+                    />
+                    <Button type="button" onClick={addKeyword} size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {extraKeywords.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {extraKeywords.map((keyword, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          <Hash className="h-3 w-3" />
+                          {keyword}
+                          <button
+                            type="button"
+                            onClick={() => removeKeyword(keyword)}
+                            className="ml-1 hover:text-red-500"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="extra-headings">Extra Headings</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="extra-headings"
+                      placeholder="Voeg extra heading toe..."
+                      value={newHeading}
+                      onChange={(e) => setNewHeading(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHeading())}
+                    />
+                    <Button type="button" onClick={addHeading} size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {extraHeadings.length > 0 && (
+                    <div className="space-y-1 mt-2">
+                      {extraHeadings.map((heading, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <div className="h-1 w-1 rounded-full bg-gray-500 flex-shrink-0" />
+                          <span className="flex-1">{heading}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeHeading(heading)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Reddit specific fields */}
+            {templateType === "reddit" && !editingEvent && (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="search-type">Search Type</Label>
+                  <Select value={searchType} onValueChange={setSearchType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="posts">Posts</SelectItem>
+                      <SelectItem value="comments">Comments</SelectItem>
+                      <SelectItem value="subreddits">Subreddits</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="max-results">Max Results</Label>
+                  <Input
+                    id="max-results"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={maxResults}
+                    onChange={(e) => setMaxResults(parseInt(e.target.value) || 25)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="date-range">Date Range</Label>
+                  <Select value={dateRange} onValueChange={setDateRange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hour">Hour</SelectItem>
+                      <SelectItem value="day">Day</SelectItem>
+                      <SelectItem value="week">Week</SelectItem>
+                      <SelectItem value="month">Month</SelectItem>
+                      <SelectItem value="year">Year</SelectItem>
+                      <SelectItem value="all">All Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             {/* Only show date/time fields for events */}
             {editingEvent && (
