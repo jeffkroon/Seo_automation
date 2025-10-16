@@ -23,6 +23,7 @@ import {
   Users,
   Building2,
   Folder,
+  Clock,
 } from "lucide-react"
 import { Suspense } from "react"
 import { ClientSwitcher } from "@/components/client-switcher"
@@ -35,10 +36,11 @@ const navigation = [
   { name: "Copywriter", href: "/dashboard/keywords", icon: Search, hideForViewer: true },
   { name: "Content Archief", href: "/dashboard/archive", icon: FileText },
   { name: "Projecten", href: "/dashboard/projects", icon: Folder },
-  { name: "Schedulers", href: "/dashboard/schedulers", icon: Calendar, hideForViewer: true },
+  { name: "Content Kalender", href: "/dashboard/calendar", icon: Calendar, hideForViewer: true },
+  { name: "Schedulers", href: "/dashboard/schedulers", icon: Clock, hideForViewer: true },
   { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp, hideForViewer: true },
-  { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresOwner: true },
-  { name: "Gebruikers", href: "/dashboard/admin", icon: Users, requiresOwner: true },
+  { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresAdmin: true },
+  { name: "Gebruikers", href: "/dashboard/admin", icon: Users, requiresAdmin: true },
 ]
 
 export default function DashboardLayout({
@@ -94,8 +96,8 @@ export default function DashboardLayout({
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-2">
               {navigation.map((item) => {
-                // Hide admin/owner-only links for non-owners
-                if (item.requiresOwner && user?.role !== 'owner' && user?.role !== 'admin') {
+                // Hide admin/owner-only links for non-admins
+                if (item.requiresAdmin && user?.role !== 'owner' && user?.role !== 'admin') {
                   return null
                 }
                 

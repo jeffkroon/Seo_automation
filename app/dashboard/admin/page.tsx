@@ -300,14 +300,14 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
-    // Only fetch if user is owner
-    if (user && user.role === 'owner') {
+    // Only fetch if user is owner or admin
+    if (user && (user.role === 'owner' || user.role === 'admin')) {
       fetchUsers()
     }
   }, [user])
 
-  // Check if user has owner rights - AFTER all hooks
-  if (!user || user.role !== 'owner') {
+  // Check if user has owner/admin rights - AFTER all hooks
+  if (!user || (user.role !== 'owner' && user.role !== 'admin')) {
     return (
       <div className="p-6">
         <Card>
@@ -315,7 +315,7 @@ export default function AdminUsersPage() {
             <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Toegang Geweigerd</h2>
             <p className="text-muted-foreground">
-              Alleen bedrijfseigenaren kunnen gebruikers beheren.
+              Alleen bedrijfseigenaren en admins kunnen gebruikers beheren.
             </p>
           </CardContent>
         </Card>
@@ -573,7 +573,7 @@ export default function AdminUsersPage() {
                           )}
                         </div>
                         <div className="flex gap-2 mt-1 items-center">
-                          {member.role === 'owner' ? (
+                          {member.role === 'owner' && user?.role !== 'admin' ? (
                             <Badge variant="default">Eigenaar</Badge>
                           ) : (
                             <Select 
@@ -584,6 +584,7 @@ export default function AdminUsersPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="owner">Eigenaar</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
                                 <SelectItem value="user">Gebruiker</SelectItem>
                                 <SelectItem value="viewer">Viewer</SelectItem>
@@ -623,7 +624,7 @@ export default function AdminUsersPage() {
                           </Button>
                         </>
                       )}
-                      {member.role !== 'owner' && (
+                      {(member.role !== 'owner' || user?.role === 'admin') && (
                         <Button 
                           variant="outline" 
                           size="sm" 
