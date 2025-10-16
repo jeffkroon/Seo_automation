@@ -139,6 +139,8 @@ export function ContentCalendar() {
       
       if (response.ok) {
         const data = await response.json()
+        console.log('📅 Events fetched:', data.events?.length || 0, 'events')
+        console.log('📅 Events data:', data.events)
         setEvents(data.events || [])
       } else {
         toast({
@@ -193,6 +195,11 @@ export function ContentCalendar() {
       const dateStr = date.toISOString().split('T')[0]
       const dayEvents = events.filter(event => event.scheduled_date === dateStr)
       
+      // Debug logging for events
+      if (dayEvents.length > 0) {
+        console.log(`📅 ${dateStr}: ${dayEvents.length} events`, dayEvents)
+      }
+      
       days.push({
         date,
         events: dayEvents,
@@ -220,7 +227,7 @@ export function ContentCalendar() {
     setScheduledTime(event.scheduled_time)
     setFocusKeyword(event.focus_keyword)
     setExtraKeywords(event.extra_keywords || [])
-    setExtraHeadings(event.extra_headings || [])
+    setExtraHeadings(typeof event.extra_headings === 'string' ? JSON.parse(event.extra_headings) : (event.extra_headings || []))
     setArticleType(event.article_type)
     setLanguage(event.language)
     setCountry(event.country)
@@ -234,7 +241,7 @@ export function ContentCalendar() {
     setDescription(template.description || "")
     setFocusKeyword(template.focus_keyword)
     setExtraKeywords(template.extra_keywords || [])
-    setExtraHeadings(template.extra_headings || [])
+    setExtraHeadings(typeof template.extra_headings === 'string' ? JSON.parse(template.extra_headings) : (template.extra_headings || []))
     setArticleType(template.article_type)
     setLanguage(template.language)
     setCountry(template.country)
@@ -777,7 +784,7 @@ export function ContentCalendar() {
                       <div
                         key={event.id}
                         className={cn(
-                          "p-1 rounded text-xs cursor-pointer hover:opacity-80 transition-opacity",
+                          "p-2 rounded text-xs cursor-pointer hover:opacity-80 transition-opacity bg-white border",
                           getStatusColor(event.status)
                         )}
                         onClick={(e) => {
@@ -785,21 +792,42 @@ export function ContentCalendar() {
                           handleEventClick(event)
                         }}
                       >
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(event.status)}
-                          <span className="truncate flex-1">{event.title}</span>
+                        {/* Status Badge */}
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={cn(
+                            "px-1 py-0.5 rounded text-xs font-medium",
+                            event.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                            event.status === 'generating' ? 'bg-blue-100 text-blue-800' :
+                            event.status === 'failed' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          )}>
+                            {event.status === 'completed' ? 'PUBLISHED' :
+                             event.status === 'generating' ? 'GENERATING' :
+                             event.status === 'failed' ? 'FAILED' :
+                             'SCHEDULED'}
+                          </span>
                           {event.status === 'completed' && event.generated_article_id && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleViewArticle(event)
                               }}
-                              className="ml-1 p-0.5 hover:bg-white/20 rounded"
+                              className="p-0.5 hover:bg-white/20 rounded"
                               title="Bekijk artikel"
                             >
                               <Eye className="h-3 w-3" />
                             </button>
                           )}
+                        </div>
+                        
+                        {/* Event Title */}
+                        <div className="font-medium text-gray-900 truncate mb-1">
+                          {event.title}
+                        </div>
+                        
+                        {/* Event Description/Keyword */}
+                        <div className="text-gray-600 text-xs truncate">
+                          {event.focus_keyword}
                         </div>
                       </div>
                     ))}

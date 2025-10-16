@@ -70,6 +70,29 @@ export async function POST(req: Request) {
     }
 
     // Create calendar event (schedule)
+    const eventData = {
+      company_id: companyId,
+      client_id: client_id,
+      title: title.trim(),
+      description: description?.trim() || null,
+      scheduled_date: scheduled_date,
+      scheduled_time: scheduled_time || '09:00',
+      focus_keyword: focus_keyword.trim(),
+      extra_keywords: extra_keywords || [],
+      extra_headings: JSON.stringify(extra_headings || []),
+      article_type: article_type || 'informatief',
+      language: language || 'nl',
+      country: country || 'nl',
+      website_url: website_url?.trim() || null,
+      status: 'scheduled',
+      active: true,
+      next_run_at: new Date().toISOString(),
+      interval_seconds: 86400, // Default to daily (24 hours)
+      days_of_week: [0, 1, 2, 3, 4, 5, 6] // All days of week
+    }
+    
+    console.log('📅 Creating calendar event with data:', eventData)
+    
     const events = await supabaseRest<any[]>(
       'schedules',
       {
@@ -78,30 +101,14 @@ export async function POST(req: Request) {
           'x-company-id': companyId,
           'Prefer': 'return=representation'
         },
-        body: {
-          company_id: companyId,
-          client_id: client_id,
-          created_by: userId,
-          title: title.trim(),
-          description: description?.trim() || null,
-          scheduled_date: scheduled_date,
-          scheduled_time: scheduled_time || '09:00',
-          focus_keyword: focus_keyword.trim(),
-          extra_keywords: extra_keywords || [],
-          extra_headings: extra_headings || [],
-          article_type: article_type || 'informatief',
-          language: language || 'nl',
-          country: country || 'nl',
-          website_url: website_url?.trim() || null,
-          status: 'scheduled',
-          active: true,
-          next_run_at: new Date().toISOString()
-        }
+        body: eventData
       },
     )
 
     const event = Array.isArray(events) ? events[0] : events
-
+    
+    console.log('📅 Calendar event created successfully:', event)
+    
     return NextResponse.json({ event }, { status: 201 })
   } catch (error: any) {
     console.error('Error in POST /api/calendar/events:', error)
