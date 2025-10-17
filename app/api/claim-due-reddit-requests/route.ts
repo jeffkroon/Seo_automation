@@ -88,7 +88,6 @@ export async function POST(req: Request) {
       .from('reddit_search_requests')
       .update({
         status: 'generating',
-        last_run_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .in('id', requestIds)
