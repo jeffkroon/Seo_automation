@@ -46,7 +46,6 @@ export async function POST(req: Request) {
         method: 'PATCH',
         searchParams: { id: `eq.${scheduleId}` },
         body: {
-          last_run_at: generatedAt,
           updated_at: new Date().toISOString(),
         },
         prefer: 'return=minimal',
