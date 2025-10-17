@@ -79,19 +79,7 @@ export async function POST(req: Request) {
 
     if (!redditRequests || redditRequests.length === 0) {
       console.log('📭 No due Reddit requests found')
-      return NextResponse.json({ 
-        requests: [],
-        debug: {
-          allRequests: allRequests,
-          currentTime,
-          criteria: {
-            active: true,
-            status: 'scheduled',
-            next_run_at_lte: currentTime,
-            company_id: company_id || 'any'
-          }
-        }
-      })
+      return NextResponse.json([])
     }
 
     // Update status to 'generating' for the found requests
@@ -113,10 +101,8 @@ export async function POST(req: Request) {
 
     console.log(`✅ Claimed ${redditRequests.length} Reddit requests for processing`)
 
-    return NextResponse.json({ 
-      requests: redditRequests,
-      count: redditRequests.length 
-    })
+    // Return each request as a separate item for n8n
+    return NextResponse.json(redditRequests)
 
   } catch (error: any) {
     console.error('Claim due Reddit requests API error:', error)
