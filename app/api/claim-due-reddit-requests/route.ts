@@ -19,7 +19,21 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    console.log('🔍 Claiming due Reddit requests:', { limit, company_id })
+    const currentTime = new Date().toISOString()
+    console.log('🔍 Claiming due Reddit requests:', { limit, company_id, currentTime })
+
+    // First, let's check what's in the table for debugging
+    const { data: allRequests, error: allError } = await supabase
+      .from('reddit_search_requests')
+      .select('id, active, status, next_run_at, company_id')
+      .limit(5)
+
+    console.log('📊 Sample Reddit requests:', allRequests)
+    console.log('⏰ Time comparison:', {
+      currentTime,
+      sampleNextRunAt: allRequests?.[0]?.next_run_at,
+      isDue: allRequests?.[0]?.next_run_at ? new Date(allRequests[0].next_run_at) <= new Date() : 'N/A'
+    })
 
     // Get due Reddit requests
     let query = supabase
@@ -65,7 +79,19 @@ export async function POST(req: Request) {
 
     if (!redditRequests || redditRequests.length === 0) {
       console.log('📭 No due Reddit requests found')
-      return NextResponse.json({ requests: [] })
+      return NextResponse.json({ 
+        requests: [],
+        debug: {
+          allRequests: allRequests,
+          currentTime,
+          criteria: {
+            active: true,
+            status: 'scheduled',
+            next_run_at_lte: currentTime,
+            company_id: company_id || 'any'
+          }
+        }
+      })
     }
 
     // Update status to 'generating' for the found requests
