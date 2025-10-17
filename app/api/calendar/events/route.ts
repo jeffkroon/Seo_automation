@@ -84,11 +84,7 @@ export async function POST(req: Request) {
       language: language || 'nl',
       country: country || 'nl',
       website_url: website_url?.trim() || null,
-      status: 'scheduled',
-      active: true,
-      interval_seconds: 0, // Eenmalige events: 0 = geen herhaling
-      days_of_week: [0, 1, 2, 3, 4, 5, 6], // Default days, maar wordt niet gebruikt voor eenmalige events
-      next_run_at: new Date().toISOString()
+      status: 'scheduled'
     }
     
     console.log('📅 Creating calendar event with data:', eventData)

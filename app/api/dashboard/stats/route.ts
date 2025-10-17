@@ -46,12 +46,12 @@ export async function GET(req: Request) {
         searchParams: { company_id: `eq.${companyId}` }
       }) : Promise.resolve([]),
       
-      // Active schedules (only for non-viewers)
+      // Total schedules (only for non-viewers)
       userRole !== 'viewer' ? supabaseRest<any[]>('schedules', {
         headers: { 'x-company-id': companyId },
         searchParams: { 
           company_id: `eq.${companyId}`,
-          active: 'eq.true'
+          status: 'eq.scheduled'
         }
       }) : Promise.resolve([])
     ])
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
     const totalArticles = articles?.length || 0
     const totalProjects = projects?.length || 0
     const totalClients = clients?.length || 0
-    const activeSchedules = schedules?.length || 0
+    const totalSchedules = schedules?.length || 0
 
     // Recent articles (last 10)
     const recentArticles = articles
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
         totalArticles,
         totalProjects,
         totalClients,
-        activeSchedules,
+        totalSchedules,
         articlesThisMonth
       },
       recentArticles,

@@ -2,76 +2,69 @@
 DROP FUNCTION IF EXISTS claim_due_schedules(INTEGER, DATE);
 DROP FUNCTION IF EXISTS claim_due_schedules(INTEGER);
 
--- Hybrid functie: ondersteunt zowel calendar-based als recurring schedules
-CREATE OR REPLACE FUNCTION claim_due_schedules(p_limit INTEGER DEFAULT 10, p_date DATE DEFAULT NULL)
+-- Simplified function for calendar-based schedules only
+CREATE OR REPLACE FUNCTION claim_due_schedules(p_limit INTEGER DEFAULT 10)
 RETURNS TABLE (
   id UUID,
   company_id UUID,
-  client_id UUID,
-  title VARCHAR(255),
-  description TEXT,
   focus_keyword TEXT,
   extra_keywords TEXT[],
   extra_headings TEXT[],
-  article_type TEXT,
   language TEXT,
   country TEXT,
+  company_name TEXT,
   website_url TEXT,
-  company_name TEXT
+  article_type TEXT,
+  client_id UUID,
+  scheduled_date DATE,
+  scheduled_time TIME WITHOUT TIME ZONE,
+  status TEXT,
+  title TEXT,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE
 ) 
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  current_time TIMESTAMP WITH TIME ZONE := NOW();
 BEGIN
+  -- Update schedules to 'generating' status and return them
   RETURN QUERY
   UPDATE schedules 
   SET 
     status = 'generating',
-    last_run_at = NOW(),
-    updated_at = NOW()
+    updated_at = current_time
   WHERE 
     schedules.id IN (
       SELECT s.id 
       FROM schedules s
       WHERE 
-        s.active = true 
-        AND s.status = 'scheduled'
-        AND (
-          -- Calendar-based schedules (eenmalig) - interval_seconds is NULL of 0
-          (s.scheduled_date IS NOT NULL 
-           AND (s.interval_seconds IS NULL OR s.interval_seconds = 0)
-           AND s.scheduled_date <= COALESCE(p_date, CURRENT_DATE)
-           AND s.scheduled_time <= CURRENT_TIME)
-          OR
-          -- Recurring schedules (interval-based) - heeft interval_seconds > 0
-          (s.interval_seconds IS NOT NULL 
-           AND s.interval_seconds > 0
-           AND s.next_run_at <= NOW())
-        )
-      ORDER BY 
-        CASE 
-          WHEN s.scheduled_date IS NOT NULL THEN s.scheduled_date
-          ELSE s.next_run_at::DATE
-        END ASC,
-        CASE 
-          WHEN s.scheduled_date IS NOT NULL THEN s.scheduled_time
-          ELSE s.next_run_at::TIME
-        END ASC
+        s.status IN ('scheduled', 'generating')
+        AND s.scheduled_date <= current_time::DATE
+        AND s.scheduled_time <= current_time::TIME
+      ORDER BY s.scheduled_date ASC, s.scheduled_time ASC
       LIMIT p_limit
     )
   RETURNING 
     schedules.id,
     schedules.company_id,
-    schedules.client_id,
-    schedules.title,
-    schedules.description,
     schedules.focus_keyword,
     schedules.extra_keywords,
     schedules.extra_headings,
-    schedules.article_type,
     schedules.language,
     schedules.country,
+    schedules.company_name,
     schedules.website_url,
-    schedules.company_name;
+    schedules.article_type,
+    schedules.client_id,
+    schedules.scheduled_date,
+    schedules.scheduled_time,
+    schedules.status,
+    schedules.title,
+    schedules.description,
+    schedules.created_at,
+    schedules.updated_at;
 END;
 $$;
