@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, CalendarDays, Plus, Edit, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Target, FileText, GripVertical, Eye, X, Download, Hash, MessageSquare } from "lucide-react"
+import { Calendar, CalendarDays, Plus, Edit, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Target, FileText, GripVertical, Eye, X, Download, Hash } from "lucide-react"
 import { useClientContext } from "@/hooks/use-client-context"
 import { useAuth } from "@/hooks/use-auth"
 import { apiClient } from "@/lib/api-client"
@@ -133,16 +133,6 @@ const transformMarkdown = (markdown: string): string => {
   return cleaned
 }
 
-interface RedditTemplate {
-  id: string
-  title: string
-  description?: string
-  search_type: string
-  keyword?: string
-  max_results?: number
-  date_range?: string
-  created_at: string
-}
 
 interface CalendarDay {
   date: Date
@@ -156,7 +146,6 @@ export function ContentCalendar() {
   const { user } = useAuth()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [scheduleTemplates, setScheduleTemplates] = useState<ScheduleTemplate[]>([])
-  const [redditTemplates, setRedditTemplates] = useState<RedditTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -165,7 +154,7 @@ export function ContentCalendar() {
   const [editingTemplate, setEditingTemplate] = useState<ScheduleTemplate | null>(null)
   const [selectedArticle, setSelectedArticle] = useState<any>(null)
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
-  const [draggedTemplate, setDraggedTemplate] = useState<ScheduleTemplate | RedditTemplate | null>(null)
+  const [draggedTemplate, setDraggedTemplate] = useState<ScheduleTemplate | null>(null)
   
   // Form states
   const [title, setTitle] = useState("")
@@ -182,14 +171,10 @@ export function ContentCalendar() {
   const [isSaving, setIsSaving] = useState(false)
   
   // Template type and additional fields
-  const [templateType, setTemplateType] = useState<"content" | "reddit">("content")
+  const [templateType, setTemplateType] = useState<"content">("content")
   const [newKeyword, setNewKeyword] = useState("")
   const [newHeading, setNewHeading] = useState("")
   
-  // Reddit specific fields
-  const [searchType, setSearchType] = useState("posts")
-  const [maxResults, setMaxResults] = useState(15)
-  const [dateRange, setDateRange] = useState("month")
 
   // Helper functions for keywords and headings
   const addKeyword = () => {
@@ -269,20 +254,6 @@ export function ContentCalendar() {
     }
   }
 
-  const fetchRedditTemplates = async () => {
-    if (!selectedClient) return
-    
-    try {
-      const response = await apiClient(`/api/reddit-templates?client_id=${selectedClient.id}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setRedditTemplates(data.templates || [])
-      }
-    } catch (error) {
-      console.error('Error fetching reddit templates:', error)
-    }
-  }
 
   const generateCalendarDays = (): CalendarDay[] => {
     const year = currentDate.getFullYear()
@@ -357,7 +328,7 @@ export function ContentCalendar() {
     setIsDialogOpen(true)
   }
 
-  const handleDragStart = (e: React.DragEvent, template: ScheduleTemplate | RedditTemplate) => {
+  const handleDragStart = (e: React.DragEvent, template: ScheduleTemplate) => {
     setDraggedTemplate(template)
     e.dataTransfer.effectAllowed = 'copy'
   }
@@ -376,80 +347,42 @@ export function ContentCalendar() {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     
     try {
-      // Check if it's a Reddit template or Schedule template
-      if (draggedTemplate && 'search_type' in draggedTemplate) {
-        // Reddit template - cast to RedditTemplate
-        const redditTemplate = draggedTemplate as RedditTemplate
-        const redditData = {
-          title: redditTemplate.title,
-          description: redditTemplate.description,
-          scheduled_date: dateStr,
-          scheduled_time: '09:00',
-          search_type: redditTemplate.search_type,
-          keyword: redditTemplate.keyword,
-          max_results: redditTemplate.max_results,
-          date_range: redditTemplate.date_range,
-          client_id: selectedClient.id,
-          company_id: user?.companyId
-        }
+      // Schedule template
+      const scheduleTemplate = draggedTemplate as ScheduleTemplate
+      const eventData = {
+        title: scheduleTemplate.title,
+        description: scheduleTemplate.description,
+        scheduled_date: dateStr,
+        scheduled_time: '09:00',
+        focus_keyword: scheduleTemplate.focus_keyword,
+        extra_keywords: scheduleTemplate.extra_keywords,
+        extra_headings: scheduleTemplate.extra_headings,
+        article_type: scheduleTemplate.article_type,
+        language: scheduleTemplate.language,
+        country: scheduleTemplate.country,
+        website_url: scheduleTemplate.website_url,
+        client_id: selectedClient.id,
+        company_id: user?.companyId
+      }
 
-        const response = await apiClient('/api/reddit-events', {
-          method: 'POST',
-          body: JSON.stringify(redditData)
+      const response = await apiClient('/api/calendar/events', {
+        method: 'POST',
+        body: JSON.stringify(eventData)
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Succes",
+          description: `Artikel gepland voor ${date.toLocaleDateString('nl-NL')}!`
         })
-
-        if (response.ok) {
-          toast({
-            title: "Succes",
-            description: `Reddit analyse gepland voor ${date.toLocaleDateString('nl-NL')}!`
-          })
-          fetchEvents()
-        } else {
-          const errorData = await response.json()
-          toast({
-            title: "Fout",
-            description: errorData.error || "Er ging iets mis",
-            variant: "destructive"
-          })
-        }
+        fetchEvents()
       } else {
-        // Schedule template - cast to ScheduleTemplate
-        const scheduleTemplate = draggedTemplate as ScheduleTemplate
-        const eventData = {
-          title: scheduleTemplate.title,
-          description: scheduleTemplate.description,
-          scheduled_date: dateStr,
-          scheduled_time: '09:00',
-          focus_keyword: scheduleTemplate.focus_keyword,
-          extra_keywords: scheduleTemplate.extra_keywords,
-          extra_headings: scheduleTemplate.extra_headings,
-          article_type: scheduleTemplate.article_type,
-          language: scheduleTemplate.language,
-          country: scheduleTemplate.country,
-          website_url: scheduleTemplate.website_url,
-          client_id: selectedClient.id,
-          company_id: user?.companyId
-        }
-
-        const response = await apiClient('/api/calendar/events', {
-          method: 'POST',
-          body: JSON.stringify(eventData)
+        const errorData = await response.json()
+        toast({
+          title: "Fout",
+          description: errorData.error || "Er ging iets mis",
+          variant: "destructive"
         })
-
-        if (response.ok) {
-          toast({
-            title: "Succes",
-            description: `Content event gepland voor ${date.toLocaleDateString('nl-NL')}!`
-          })
-          fetchEvents()
-        } else {
-          const errorData = await response.json()
-          toast({
-            title: "Fout",
-            description: errorData.error || "Er ging iets mis",
-            variant: "destructive"
-          })
-        }
       }
     } catch (error) {
       console.error('Error creating event from template:', error)
@@ -677,36 +610,6 @@ export function ContentCalendar() {
     }
   }
 
-  const handleDeleteRedditTemplate = async (templateId: string) => {
-    if (!confirm('Weet je zeker dat je deze Reddit template wilt verwijderen?')) return
-
-    try {
-      const response = await apiClient(`/api/reddit-templates/${templateId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Succes",
-          description: "Reddit template verwijderd!"
-        })
-        fetchRedditTemplates()
-      } else {
-        toast({
-          title: "Fout",
-          description: "Kon Reddit template niet verwijderen",
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      console.error('Error deleting Reddit template:', error)
-      toast({
-        title: "Fout",
-        description: "Er ging iets mis bij het verwijderen",
-        variant: "destructive"
-      })
-    }
-  }
 
   const handleViewArticle = async (event: CalendarEvent) => {
     try {
@@ -842,9 +745,6 @@ export function ContentCalendar() {
     setCountry("nl")
     setWebsiteUrl("")
     setTemplateType("content")
-    setSearchType("posts")
-    setMaxResults(25)
-    setDateRange("week")
   }
 
   const getStatusIcon = (status: string) => {
@@ -880,7 +780,6 @@ export function ContentCalendar() {
   useEffect(() => {
     fetchEvents()
     fetchScheduleTemplates()
-    fetchRedditTemplates()
   }, [selectedClient])
 
   // Auto-refresh events every 30 seconds to show status updates
@@ -1165,7 +1064,10 @@ export function ContentCalendar() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleTemplateClick(template)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTemplateClick(template)
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         <Edit className="h-3 w-3" />
@@ -1173,7 +1075,10 @@ export function ContentCalendar() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteTemplate(template.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteTemplate(template.id)
+                        }}
                         className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -1219,84 +1124,6 @@ export function ContentCalendar() {
         </CardContent>
       </Card>
 
-      {/* Reddit Templates */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Reddit Analyse Templates
-          </CardTitle>
-          <CardDescription>
-            Sleep templates naar de kalender om Reddit analyses te plannen
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {redditTemplates.map((template) => (
-              <Card
-                key={template.id}
-                className="cursor-move hover:shadow-md transition-shadow"
-                draggable
-                onDragStart={(e) => handleDragStart(e, template)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <CardTitle className="text-sm">{template.title}</CardTitle>
-                        <CardDescription className="text-xs">
-                          {template.description}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          // TODO: Add edit functionality for Reddit templates
-                        }}
-                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteRedditTemplate(template.id)
-                        }}
-                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <div><strong>Type:</strong> {template.search_type}</div>
-                    <div><strong>Max Results:</strong> {template.max_results}</div>
-                    <div><strong>Date Range:</strong> {template.date_range}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {redditTemplates.length === 0 && (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-sm">
-                  Geen Reddit analyse templates beschikbaar.
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Event/Template Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -1347,31 +1174,6 @@ export function ContentCalendar() {
             </div>
 
             {/* Template Type Selector - only for new templates */}
-            {!editingEvent && (
-              <div className="space-y-2">
-                <Label>Template Type *</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant={templateType === "content" ? "default" : "outline"}
-                    onClick={() => setTemplateType("content")}
-                    className="h-12 flex flex-col items-center gap-2"
-                  >
-                    <FileText className="h-5 w-5" />
-                    <span className="text-sm">Content Template</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={templateType === "reddit" ? "default" : "outline"}
-                    onClick={() => setTemplateType("reddit")}
-                    className="h-12 flex flex-col items-center gap-2"
-                  >
-                    <MessageSquare className="h-5 w-5" />
-                    <span className="text-sm">Reddit Analyse</span>
-                  </Button>
-                </div>
-              </div>
-            )}
 
             <div className="space-y-2">
               <Label htmlFor="description">Beschrijving</Label>
@@ -1455,18 +1257,6 @@ export function ContentCalendar() {
               </>
             )}
 
-            {/* Reddit specific fields */}
-            {templateType === "reddit" && !editingEvent && (
-              <div className="space-y-2">
-                <Label htmlFor="keyword">Keyword/Query *</Label>
-                <Input
-                  id="keyword"
-                  placeholder="Voer keyword/query in..."
-                  value={focusKeyword}
-                  onChange={(e) => setFocusKeyword(e.target.value)}
-                />
-              </div>
-            )}
 
             {/* Only show date/time fields for events */}
             {editingEvent && (
@@ -1494,8 +1284,8 @@ export function ContentCalendar() {
               </div>
             )}
 
-            {/* Show these fields for content templates and events, not for Reddit */}
-            {(templateType === "content" || editingEvent) && (
+            {/* Show these fields for content templates and events */}
+            {(!editingEvent || editingEvent) && (
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="article-type">Artikel Type</Label>
@@ -1546,8 +1336,8 @@ export function ContentCalendar() {
               </div>
             )}
 
-            {/* Show website URL for content templates and events, not for Reddit */}
-            {(templateType === "content" || editingEvent) && (
+            {/* Show website URL for content templates and events */}
+            {(!editingEvent || editingEvent) && (
               <div className="space-y-2">
                 <Label htmlFor="website-url">Website URL</Label>
                 <Input

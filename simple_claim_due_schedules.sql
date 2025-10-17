@@ -2,7 +2,7 @@
 DROP FUNCTION IF EXISTS claim_due_schedules(INTEGER, DATE);
 DROP FUNCTION IF EXISTS claim_due_schedules(INTEGER);
 
--- Simplified function for calendar-based schedules only
+-- Create a very simple function to test
 CREATE OR REPLACE FUNCTION claim_due_schedules(p_limit INTEGER DEFAULT 10)
 RETURNS TABLE (
   id UUID,
@@ -27,45 +27,41 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-  current_time TIMESTAMP WITH TIME ZONE := NOW();
-  current_date_only DATE := current_time::DATE;
-  current_time_only TIME := current_time::TIME;
 BEGIN
-  -- Update schedules to 'generating' status and return them
+  -- Simple approach: just return schedules that are due today
   RETURN QUERY
   UPDATE schedules 
   SET 
     status = 'generating',
-    updated_at = current_time
+    updated_at = NOW()
   WHERE 
     schedules.id IN (
       SELECT s.id 
       FROM schedules s
       WHERE 
         s.status IN ('scheduled', 'generating')
-        AND s.scheduled_date <= current_date_only
-        AND s.scheduled_time <= current_time_only
+        AND s.scheduled_date <= CURRENT_DATE
+        AND s.scheduled_time <= CURRENT_TIME
       ORDER BY s.scheduled_date ASC, s.scheduled_time ASC
       LIMIT p_limit
     )
   RETURNING 
     schedules.id,
     schedules.company_id,
-    schedules.focus_keyword,
+    schedules.focus_keyword::TEXT,
     schedules.extra_keywords,
     schedules.extra_headings,
-    schedules.language,
-    schedules.country,
-    schedules.company_name,
-    schedules.website_url,
-    schedules.article_type,
+    schedules.language::TEXT,
+    schedules.country::TEXT,
+    schedules.company_name::TEXT,
+    schedules.website_url::TEXT,
+    schedules.article_type::TEXT,
     schedules.client_id,
     schedules.scheduled_date,
     schedules.scheduled_time,
-    schedules.status,
-    schedules.title,
-    schedules.description,
+    schedules.status::TEXT,
+    schedules.title::TEXT,
+    schedules.description::TEXT,
     schedules.created_at,
     schedules.updated_at;
 END;
