@@ -60,6 +60,27 @@ export async function POST(req: Request) {
 
       if (logError) {
         console.error('Failed to log workflow status:', logError);
+      } else {
+        console.log('✅ Successfully logged workflow status to database');
+      }
+    }
+
+    // Update schedule status to completed if this is a successful execution
+    if (workflowType === 'schedule_execution' && status === 'completed' && scheduleIds?.length > 0) {
+      console.log('🔄 Updating schedule status to completed for:', scheduleIds);
+      
+      const { error: scheduleUpdateError } = await supabase
+        .from('schedules')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .in('id', scheduleIds);
+
+      if (scheduleUpdateError) {
+        console.error('Failed to update schedule status:', scheduleUpdateError);
+      } else {
+        console.log('✅ Successfully updated schedule status to completed');
       }
     }
 
