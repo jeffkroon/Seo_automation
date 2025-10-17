@@ -36,6 +36,7 @@ interface CalendarEvent {
   created_at: string
   client_id?: string
   company_id?: string
+  member_id?: string
 }
 
 interface ScheduleTemplate {
@@ -144,7 +145,21 @@ export function ContentCalendar() {
         const data = await response.json()
         console.log('📅 Events fetched:', data.events?.length || 0, 'events')
         console.log('📅 Events data:', data.events)
-        setEvents(data.events || [])
+        
+        // Ensure each event has client_id, company_id, member_id and properly formatted arrays
+        const eventsWithIds = (data.events || []).map((event: any) => ({
+          ...event,
+          client_id: event.client_id || selectedClient.id,
+          company_id: event.company_id || user?.companyId,
+          member_id: event.member_id || user?.id,
+          // Ensure arrays are properly formatted
+          extra_keywords: Array.isArray(event.extra_keywords) ? event.extra_keywords : 
+                         (typeof event.extra_keywords === 'string' ? JSON.parse(event.extra_keywords) : []),
+          additional_headings: Array.isArray(event.additional_headings) ? event.additional_headings :
+                              (typeof event.additional_headings === 'string' ? JSON.parse(event.additional_headings) : [])
+        }))
+        
+        setEvents(eventsWithIds)
       } else {
         toast({
           title: "Fout",
@@ -589,8 +604,10 @@ export function ContentCalendar() {
             country: event.country,
             language: event.language,
             article_type: event.article_type,
-            additional_keywords: event.extra_keywords || [],
-            additional_headings: event.extra_headings || [],
+            additional_keywords: Array.isArray(event.extra_keywords) ? event.extra_keywords : 
+                               (typeof event.extra_keywords === 'string' ? JSON.parse(event.extra_keywords) : []),
+            additional_headings: Array.isArray(event.extra_headings) ? event.extra_headings :
+                                (typeof event.extra_headings === 'string' ? JSON.parse(event.extra_headings) : []),
             content_article: scheduleArticle.article,
             content_faq: scheduleArticle.faqs,
             generated_at: scheduleArticle.generated_at
@@ -650,16 +667,18 @@ export function ContentCalendar() {
       const archiveResponse = await apiClient('/api/generated-articles', {
         method: 'POST',
         body: JSON.stringify({
-          company_id: user?.companyId,
-          member_id: user?.id,
+          company_id: event.company_id || user?.companyId,
+          member_id: event.member_id || user?.id,
           client_id: event.client_id,
           focus_keyword: event.focus_keyword,
           title: event.title || event.focus_keyword,
           country: event.country,
           language: event.language,
           article_type: event.article_type,
-          additional_keywords: event.extra_keywords || [],
-          additional_headings: event.extra_headings || [],
+          additional_keywords: Array.isArray(event.extra_keywords) ? event.extra_keywords : 
+                             (typeof event.extra_keywords === 'string' ? JSON.parse(event.extra_keywords) : []),
+          additional_headings: Array.isArray(event.extra_headings) ? event.extra_headings :
+                              (typeof event.extra_headings === 'string' ? JSON.parse(event.extra_headings) : []),
           content_article: scheduleArticle.article,
           content_faq: scheduleArticle.faqs,
           generated_at: scheduleArticle.generated_at || new Date().toISOString()
