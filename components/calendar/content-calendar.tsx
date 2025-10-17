@@ -146,17 +146,12 @@ export function ContentCalendar() {
         console.log('📅 Events fetched:', data.events?.length || 0, 'events')
         console.log('📅 Events data:', data.events)
         
-        // Ensure each event has client_id, company_id, member_id and properly formatted arrays
+        // Ensure each event has client_id, company_id, and member_id
         const eventsWithIds = (data.events || []).map((event: any) => ({
           ...event,
           client_id: event.client_id || selectedClient.id,
           company_id: event.company_id || user?.companyId,
-          member_id: event.member_id || user?.id,
-          // Ensure arrays are properly formatted
-          extra_keywords: Array.isArray(event.extra_keywords) ? event.extra_keywords : 
-                         (typeof event.extra_keywords === 'string' ? JSON.parse(event.extra_keywords) : []),
-          additional_headings: Array.isArray(event.additional_headings) ? event.additional_headings :
-                              (typeof event.additional_headings === 'string' ? JSON.parse(event.additional_headings) : [])
+          member_id: event.member_id || user?.id
         }))
         
         setEvents(eventsWithIds)
@@ -245,7 +240,7 @@ export function ContentCalendar() {
     setScheduledTime(event.scheduled_time)
     setFocusKeyword(event.focus_keyword)
     setExtraKeywords(event.extra_keywords || [])
-    setExtraHeadings(typeof event.extra_headings === 'string' ? JSON.parse(event.extra_headings) : (event.extra_headings || []))
+    setExtraHeadings(event.extra_headings || [])
     setArticleType(event.article_type)
     setLanguage(event.language)
     setCountry(event.country)
@@ -259,7 +254,7 @@ export function ContentCalendar() {
     setDescription(template.description || "")
     setFocusKeyword(template.focus_keyword)
     setExtraKeywords(template.extra_keywords || [])
-    setExtraHeadings(typeof template.extra_headings === 'string' ? JSON.parse(template.extra_headings) : (template.extra_headings || []))
+    setExtraHeadings(template.extra_headings || [])
     setArticleType(template.article_type)
     setLanguage(template.language)
     setCountry(template.country)
@@ -604,10 +599,8 @@ export function ContentCalendar() {
             country: event.country,
             language: event.language,
             article_type: event.article_type,
-            additional_keywords: Array.isArray(event.extra_keywords) ? event.extra_keywords : 
-                               (typeof event.extra_keywords === 'string' ? JSON.parse(event.extra_keywords) : []),
-            additional_headings: Array.isArray(event.extra_headings) ? event.extra_headings :
-                                (typeof event.extra_headings === 'string' ? JSON.parse(event.extra_headings) : []),
+            additional_keywords: event.extra_keywords || [],
+            additional_headings: event.extra_headings || [],
             content_article: scheduleArticle.article,
             content_faq: scheduleArticle.faqs,
             generated_at: scheduleArticle.generated_at
@@ -675,10 +668,8 @@ export function ContentCalendar() {
           country: event.country,
           language: event.language,
           article_type: event.article_type,
-          additional_keywords: Array.isArray(event.extra_keywords) ? event.extra_keywords : 
-                             (typeof event.extra_keywords === 'string' ? JSON.parse(event.extra_keywords) : []),
-          additional_headings: Array.isArray(event.extra_headings) ? event.extra_headings :
-                              (typeof event.extra_headings === 'string' ? JSON.parse(event.extra_headings) : []),
+          additional_keywords: event.extra_keywords || [],
+          additional_headings: event.extra_headings || [],
           content_article: scheduleArticle.article,
           content_faq: scheduleArticle.faqs,
           generated_at: scheduleArticle.generated_at || new Date().toISOString()

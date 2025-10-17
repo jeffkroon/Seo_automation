@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       scheduled_time: scheduled_time || '09:00',
       focus_keyword: focus_keyword.trim(),
       extra_keywords: extra_keywords || [],
-      extra_headings: JSON.stringify(extra_headings || []),
+      extra_headings: extra_headings || [],
       article_type: article_type || 'informatief',
       language: language || 'nl',
       country: country || 'nl',

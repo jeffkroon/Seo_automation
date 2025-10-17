@@ -52,7 +52,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
           scheduled_time: scheduled_time,
           focus_keyword: focus_keyword.trim(),
           extra_keywords: extra_keywords || [],
-          extra_headings: JSON.stringify(extra_headings || []),
+          extra_headings: extra_headings || [],
           article_type: article_type || 'informatief',
           language: language || 'nl',
           country: country || 'nl',

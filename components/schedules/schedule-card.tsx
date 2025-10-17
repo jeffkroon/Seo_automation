@@ -62,21 +62,8 @@ export function ScheduleCard({ schedule, onRefresh }: ScheduleCardProps) {
   const preparedFaqMarkdown = transformMarkdown(latest?.faqs)
   const containsHtml = /<\/?[a-z][\s\S]*>/i.test(preparedMarkdown)
   const faqContainsHtml = /<\/?[a-z][\s\S]*>/i.test(preparedFaqMarkdown)
-  const extraKeywords: string[] = Array.isArray(schedule.extra_keywords)
-    ? schedule.extra_keywords
-    : typeof schedule.extra_keywords === 'string'
-      ? schedule.extra_keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
-      : []
-  
-  const extraHeadings: string[] = Array.isArray(schedule.extra_headings)
-    ? schedule.extra_headings.filter(Boolean)
-    : typeof schedule.extra_headings === 'string'
-      ? schedule.extra_headings
-          .replace(/^\[|\]$/g, '') // Remove outer brackets
-          .split(/",\s*"/) // Split on ", " pattern
-          .map((h: string) => h.replace(/^"|"$/g, '').trim()) // Remove quotes and trim
-          .filter(Boolean)
-      : []
+  const extraKeywords: string[] = schedule.extra_keywords || []
+  const extraHeadings: string[] = schedule.extra_headings || []
 
   const markdownClass = useMemo(
     () => cn(
