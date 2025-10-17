@@ -5,6 +5,7 @@ import { useClientContext } from "@/hooks/use-client-context"
 import { apiClient } from "@/lib/api-client"
 import { SchedulerStats } from "@/components/scheduler/scheduler-stats"
 import { CreateSchedulerDialog } from "@/components/scheduler/create-scheduler-dialog"
+import { WorkflowMonitor } from "@/components/scheduler/workflow-monitor"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -720,6 +721,11 @@ export default function SchedulersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Workflow Monitor */}
+      <div className="mt-6">
+        <WorkflowMonitor />
+      </div>
 
       <CreateSchedulerDialog 
         open={showCreateDialog} 
