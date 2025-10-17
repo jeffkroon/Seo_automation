@@ -31,7 +31,11 @@ export async function POST(req: Request) {
       stats // { found: number, processed: number, failed: number }
     } = body;
     
-    const supabase = createClient();
+    // Create service role client for bypassing RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Log de status update
     console.log(`📊 Workflow Status: ${workflowType} - ${status}`, {
