@@ -356,6 +356,14 @@ export function ContentCalendar() {
   }
 
   const handleSave = async () => {
+    console.log('🔍 handleSave called with:', {
+      selectedClient,
+      title,
+      focusKeyword,
+      editingEvent,
+      editingTemplate
+    });
+    
     if (!selectedClient) {
       toast({
         title: "Geen client geselecteerd",

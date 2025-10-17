@@ -37,14 +37,15 @@ BEGIN
         s.active = true 
         AND s.status = 'scheduled'
         AND (
-          -- Calendar-based schedules (eenmalig) - alleen als er GEEN interval is
+          -- Calendar-based schedules (eenmalig) - interval_seconds is NULL of 0
           (s.scheduled_date IS NOT NULL 
-           AND s.interval_seconds IS NULL
+           AND (s.interval_seconds IS NULL OR s.interval_seconds = 0)
            AND s.scheduled_date <= COALESCE(p_date, CURRENT_DATE)
            AND s.scheduled_time <= CURRENT_TIME)
           OR
-          -- Recurring schedules (interval-based) - heeft interval_seconds
+          -- Recurring schedules (interval-based) - heeft interval_seconds > 0
           (s.interval_seconds IS NOT NULL 
+           AND s.interval_seconds > 0
            AND s.next_run_at <= NOW())
         )
       ORDER BY 
