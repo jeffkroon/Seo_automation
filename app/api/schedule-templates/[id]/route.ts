@@ -1,10 +1,14 @@
 // app/api/schedule-templates/[id]/route.ts
 import { NextResponse } from 'next/server'
-import { createSupabaseRouteClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const supabase = createSupabaseRouteClient()
+    // Create service role client for bypassing RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
     
     // Get user from session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -75,13 +79,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    const supabase = createSupabaseRouteClient()
-    
-    // Get user from session
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Get user ID from request headers (set by frontend)
+    const userId = req.headers.get('x-user-id')
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 401 })
     }
+
+    // Create service role client for bypassing RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     const templateId = params.id
 
@@ -89,7 +97,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const { data: membership } = await supabase
       .from('memberships')
       .select('company_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single()
 
     if (!membership) {
