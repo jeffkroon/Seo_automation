@@ -580,27 +580,14 @@ export function ContentCalendar() {
   }
 
   const handleDeleteTemplate = async (templateId: string) => {
-    console.log('🗑️ Delete template clicked for ID:', templateId)
-    
-    if (!confirm('Weet je zeker dat je deze template wilt verwijderen?')) {
-      console.log('❌ User cancelled deletion')
-      return
-    }
-
-    console.log('✅ User confirmed deletion, proceeding...')
+    if (!confirm('Weet je zeker dat je deze template wilt verwijderen?')) return
 
     try {
-      console.log('📡 Making DELETE request to:', `/api/schedule-templates/${templateId}`)
-      
       const response = await apiClient(`/api/schedule-templates/${templateId}`, {
         method: 'DELETE'
       })
 
-      console.log('📡 DELETE response status:', response.status)
-      console.log('📡 DELETE response ok:', response.ok)
-
       if (response.ok) {
-        console.log('✅ Template deleted successfully')
         toast({
           title: "Succes",
           description: "Template verwijderd!"
@@ -608,7 +595,6 @@ export function ContentCalendar() {
         fetchScheduleTemplates()
       } else {
         const errorData = await response.json()
-        console.error('❌ Delete failed:', errorData)
         toast({
           title: "Fout",
           description: errorData.error || "Kon template niet verwijderen",
@@ -616,7 +602,7 @@ export function ContentCalendar() {
         })
       }
     } catch (error) {
-      console.error('❌ Error deleting template:', error)
+      console.error('Error deleting template:', error)
       toast({
         title: "Fout",
         description: "Er ging iets mis bij het verwijderen",
@@ -1091,9 +1077,7 @@ export function ContentCalendar() {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
-                          console.log('🔴 Delete button clicked!')
                           e.stopPropagation()
-                          console.log('🔴 Calling handleDeleteTemplate with ID:', template.id)
                           handleDeleteTemplate(template.id)
                         }}
                         className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
