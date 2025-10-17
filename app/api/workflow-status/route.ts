@@ -28,7 +28,8 @@ export async function POST(req: Request) {
       scheduleIds, // array van UUIDs
       message,
       error,
-      stats // { found: number, processed: number, failed: number }
+      stats, // { found: number, processed: number, failed: number }
+      generatedArticleId // UUID van het gegenereerde artikel
     } = body;
     
     // Create service role client for bypassing RLS
@@ -69,12 +70,22 @@ export async function POST(req: Request) {
     if (workflowType === 'schedule_execution' && status === 'completed' && scheduleIds?.length > 0) {
       console.log('🔄 Updating schedule status to completed for:', scheduleIds);
       
+      const updateData: any = { 
+        status: 'completed',
+        updated_at: new Date().toISOString()
+      };
+      
+      // Add generated_article_id if provided
+      if (generatedArticleId) {
+        updateData.generated_article_id = generatedArticleId;
+        console.log('📝 Using provided generated article ID:', generatedArticleId);
+      } else {
+        console.log('⚠️ No generated_article_id provided in workflow status update');
+      }
+      
       const { error: scheduleUpdateError } = await supabase
         .from('schedules')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .in('id', scheduleIds);
 
       if (scheduleUpdateError) {

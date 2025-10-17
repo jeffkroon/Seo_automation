@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,8 @@ interface CalendarEvent {
   generated_article_id?: string
   generation_error?: string
   created_at: string
+  client_id?: string
+  company_id?: string
 }
 
 interface ScheduleTemplate {
@@ -570,22 +573,37 @@ export function ContentCalendar() {
   }
 
   const handleViewArticle = async (event: CalendarEvent) => {
-    if (!event.generated_article_id) {
-      toast({
-        title: "Geen artikel gevonden",
-        description: "Dit event heeft nog geen gegenereerd artikel",
-        variant: "destructive"
-      })
-      return
-    }
-
     try {
-      // Fetch the article details
-      const response = await apiClient(`/api/articles/${event.generated_article_id}`)
+      // Fetch the article details from schedule_articles table using the schedule ID
+      const response = await apiClient(`/api/schedule-articles?schedule_id=${event.id}`)
       if (response.ok) {
-        const article = await response.json()
-        setSelectedArticle(article)
-        setSidePanelOpen(true)
+        const data = await response.json()
+        const scheduleArticle = data.articles?.[0]
+        
+        if (scheduleArticle) {
+          // Transform schedule_articles data to match expected format
+          const article = {
+            id: scheduleArticle.id,
+            focus_keyword: event.focus_keyword,
+            title: event.title || event.focus_keyword,
+            country: event.country,
+            language: event.language,
+            article_type: event.article_type,
+            additional_keywords: event.extra_keywords || [],
+            additional_headings: event.extra_headings || [],
+            content_article: scheduleArticle.article,
+            content_faq: scheduleArticle.faqs,
+            generated_at: scheduleArticle.generated_at
+          }
+          setSelectedArticle(article)
+          setSidePanelOpen(true)
+        } else {
+          toast({
+            title: "Geen artikel gevonden",
+            description: "Geen artikel gevonden in schedule_articles voor deze schedule",
+            variant: "destructive"
+          })
+        }
       } else {
         toast({
           title: "Fout",
@@ -598,6 +616,74 @@ export function ContentCalendar() {
       toast({
         title: "Fout",
         description: "Er ging iets mis bij het laden van het artikel",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleSaveToArchive = async (event: CalendarEvent) => {
+    try {
+      // Fetch the article details from schedule_articles table using the schedule ID
+      const response = await apiClient(`/api/schedule-articles?schedule_id=${event.id}`)
+      if (!response.ok) {
+        toast({
+          title: "Fout",
+          description: "Kon artikel niet laden uit schedule_articles",
+          variant: "destructive"
+        })
+        return
+      }
+
+      const data = await response.json()
+      const scheduleArticle = data.articles?.[0]
+      
+      if (!scheduleArticle) {
+        toast({
+          title: "Geen artikel gevonden",
+          description: "Geen artikel gevonden in schedule_articles voor deze schedule",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      // Create a new article in the archive (generated_articles table)
+      const archiveResponse = await apiClient('/api/generated-articles', {
+        method: 'POST',
+        body: JSON.stringify({
+          company_id: user?.companyId,
+          member_id: user?.id,
+          client_id: event.client_id,
+          focus_keyword: event.focus_keyword,
+          title: event.title || event.focus_keyword,
+          country: event.country,
+          language: event.language,
+          article_type: event.article_type,
+          additional_keywords: event.extra_keywords || [],
+          additional_headings: event.extra_headings || [],
+          content_article: scheduleArticle.article,
+          content_faq: scheduleArticle.faqs,
+          generated_at: scheduleArticle.generated_at || new Date().toISOString()
+        })
+      })
+
+      if (archiveResponse.ok) {
+        toast({
+          title: "Succes",
+          description: "Artikel opgeslagen in content archief!"
+        })
+      } else {
+        const errorData = await archiveResponse.json()
+        toast({
+          title: "Fout",
+          description: errorData.error || "Kon artikel niet opslaan",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error saving to archive:', error)
+      toast({
+        title: "Fout",
+        description: "Er ging iets mis bij het opslaan",
         variant: "destructive"
       })
     }
@@ -658,6 +744,47 @@ export function ContentCalendar() {
   useEffect(() => {
     fetchEvents()
     fetchScheduleTemplates()
+  }, [selectedClient])
+
+  // Auto-refresh events every 30 seconds to show status updates
+  useEffect(() => {
+    if (!selectedClient) return
+
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing calendar events...')
+      fetchEvents()
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [selectedClient])
+
+  // Real-time updates for schedules
+  useEffect(() => {
+    if (!selectedClient) return
+
+    console.log('🔔 Setting up real-time subscription for schedules...')
+    
+    const subscription = supabase
+      .channel('schedules-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public', 
+          table: 'schedules',
+          filter: `client_id=eq.${selectedClient.id}`
+        }, 
+        (payload) => {
+          console.log('📡 Real-time schedule update received:', payload)
+          // Refresh events when schedules change
+          fetchEvents()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      console.log('🔕 Cleaning up real-time subscription...')
+      subscription.unsubscribe()
+    }
   }, [selectedClient])
 
   const calendarDays = generateCalendarDays()
@@ -814,17 +941,35 @@ export function ContentCalendar() {
                              event.status === 'failed' ? 'FAILED' :
                              'SCHEDULED'}
                           </span>
-                          {event.status === 'completed' && event.generated_article_id && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleViewArticle(event)
-                              }}
-                              className="p-0.5 hover:bg-white/20 rounded"
-                              title="Bekijk artikel"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </button>
+                          {event.status === 'completed' && (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewArticle(event)
+                                }}
+                                className="p-0.5 hover:bg-white/20 rounded"
+                                title="Bekijk artikel"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSaveToArchive(event)
+                                }}
+                                className="p-0.5 hover:bg-white/20 rounded"
+                                title="Opslaan in archief"
+                              >
+                                <Download className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                          {/* Debug info */}
+                          {process.env.NODE_ENV === 'development' && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Status: {event.status} | Article ID: {event.generated_article_id || 'none'}
+                            </div>
                           )}
                         </div>
                         
