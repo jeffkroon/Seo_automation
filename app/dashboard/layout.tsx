@@ -23,7 +23,6 @@ import {
   Users,
   Building2,
   Folder,
-  Clock,
 } from "lucide-react"
 import { Suspense } from "react"
 import { ClientSwitcher } from "@/components/client-switcher"
@@ -37,7 +36,6 @@ const navigation = [
   { name: "Content Archief", href: "/dashboard/archive", icon: FileText },
   { name: "Projecten", href: "/dashboard/projects", icon: Folder },
   { name: "Content Kalender", href: "/dashboard/calendar", icon: Calendar, hideForViewer: true },
-  { name: "Schedulers", href: "/dashboard/schedulers", icon: Clock, hideForViewer: true },
   { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp, hideForViewer: true },
   { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresAdmin: true },
   { name: "Gebruikers", href: "/dashboard/admin", icon: Users, requiresAdmin: true },
