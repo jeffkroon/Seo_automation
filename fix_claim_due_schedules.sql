@@ -12,7 +12,7 @@ RETURNS TABLE (
   description TEXT,
   focus_keyword TEXT,
   extra_keywords TEXT[],
-  extra_headings TEXT,
+  extra_headings TEXT[],
   article_type TEXT,
   language TEXT,
   country TEXT,

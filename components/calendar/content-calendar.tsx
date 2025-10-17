@@ -16,6 +16,9 @@ import { useAuth } from "@/hooks/use-auth"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
+import type { Components } from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface CalendarEvent {
   id: string
@@ -51,6 +54,83 @@ interface ScheduleTemplate {
   country: string
   website_url?: string
   created_at: string
+}
+
+// Markdown components (same as schedulers page)
+const markdownComponents: Components = {
+  h1: ({ node, className, ...props }: any) => (
+    <h1 {...props} className={cn("text-2xl font-bold mb-4 text-foreground", className)} />
+  ),
+  h2: ({ node, className, ...props }: any) => (
+    <h2 {...props} className={cn("text-xl font-semibold mb-3 text-foreground", className)} />
+  ),
+  h3: ({ node, className, ...props }: any) => (
+    <h3 {...props} className={cn("text-lg font-medium mb-2 text-foreground", className)} />
+  ),
+  h4: ({ node, className, ...props }: any) => (
+    <h4 {...props} className={cn("text-base font-medium mb-2 text-foreground", className)} />
+  ),
+  p: ({ node, className, ...props }: any) => (
+    <p {...props} className={cn("mb-4 text-foreground leading-relaxed", className)} />
+  ),
+  ul: ({ node, className, ...props }: any) => (
+    <ul {...props} className={cn("list-disc list-inside mb-4 space-y-1", className)} />
+  ),
+  ol: ({ node, className, ...props }: any) => (
+    <ol {...props} className={cn("list-decimal list-inside mb-4 space-y-1", className)} />
+  ),
+  li: ({ node, className, ...props }: any) => (
+    <li {...props} className={cn("text-foreground", className)} />
+  ),
+  blockquote: ({ node, className, ...props }: any) => (
+    <blockquote {...props} className={cn("border-l-4 border-primary pl-4 italic mb-4 text-muted-foreground", className)} />
+  ),
+  strong: ({ node, className, ...props }: any) => (
+    <strong {...props} className={cn("font-semibold text-foreground", className)} />
+  ),
+  em: ({ node, className, ...props }: any) => (
+    <em {...props} className={cn("italic text-foreground", className)} />
+  ),
+  a: ({ node, className, ...props }: any) => (
+    <a {...props} className={cn("text-primary hover:underline", className)} />
+  ),
+  code: ({ node, className, children, ...props }: any) => {
+    const isInline = !className?.includes('language-')
+    return isInline ? (
+      <code {...props} className={cn("bg-muted px-1 py-0.5 rounded text-sm font-mono", className)}>
+        {children}
+      </code>
+    ) : (
+      <code {...props} className={cn("block bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto", className)}>
+        {children}
+      </code>
+    )
+  },
+  pre: ({ node, className, ...props }: any) => (
+    <pre {...props} className={cn("bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto mb-4", className)} />
+  ),
+  table: ({ node, className, ...props }: any) => (
+    <table {...props} className={cn("w-full border-collapse border border-border mb-4", className)} />
+  ),
+  th: ({ node, className, ...props }: any) => (
+    <th {...props} className={cn("border border-border px-4 py-2 bg-muted font-semibold text-left", className)} />
+  ),
+  td: ({ node, className, ...props }: any) => (
+    <td {...props} className={cn("border border-border px-4 py-2", className)} />
+  ),
+}
+
+// Helper function to transform markdown (same as schedulers page)
+const transformMarkdown = (markdown: string): string => {
+  let cleaned = markdown.replace(/^\s*DO NOT wrap in ```html```\s*/i, "").trim()
+  const fenceMatch = cleaned.match(/^```(\w+)?\n([\s\S]*)\n```$/)
+  if (fenceMatch) {
+    const language = fenceMatch[1]?.toLowerCase()
+    if (language === 'html' || language === 'markdown') {
+      cleaned = fenceMatch[2].trim()
+    }
+  }
+  return cleaned
 }
 
 interface RedditTemplate {
@@ -189,6 +269,21 @@ export function ContentCalendar() {
     }
   }
 
+  const fetchRedditTemplates = async () => {
+    if (!selectedClient) return
+    
+    try {
+      const response = await apiClient(`/api/reddit-templates?client_id=${selectedClient.id}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setRedditTemplates(data.templates || [])
+      }
+    } catch (error) {
+      console.error('Error fetching reddit templates:', error)
+    }
+  }
+
   const generateCalendarDays = (): CalendarDay[] => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -262,7 +357,7 @@ export function ContentCalendar() {
     setIsDialogOpen(true)
   }
 
-  const handleDragStart = (e: React.DragEvent, template: ScheduleTemplate) => {
+  const handleDragStart = (e: React.DragEvent, template: ScheduleTemplate | RedditTemplate) => {
     setDraggedTemplate(template)
     e.dataTransfer.effectAllowed = 'copy'
   }
@@ -582,6 +677,37 @@ export function ContentCalendar() {
     }
   }
 
+  const handleDeleteRedditTemplate = async (templateId: string) => {
+    if (!confirm('Weet je zeker dat je deze Reddit template wilt verwijderen?')) return
+
+    try {
+      const response = await apiClient(`/api/reddit-templates/${templateId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Succes",
+          description: "Reddit template verwijderd!"
+        })
+        fetchRedditTemplates()
+      } else {
+        toast({
+          title: "Fout",
+          description: "Kon Reddit template niet verwijderen",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting Reddit template:', error)
+      toast({
+        title: "Fout",
+        description: "Er ging iets mis bij het verwijderen",
+        variant: "destructive"
+      })
+    }
+  }
+
   const handleViewArticle = async (event: CalendarEvent) => {
     try {
       // Fetch the article details from schedule_articles table using the schedule ID
@@ -754,6 +880,7 @@ export function ContentCalendar() {
   useEffect(() => {
     fetchEvents()
     fetchScheduleTemplates()
+    fetchRedditTemplates()
   }, [selectedClient])
 
   // Auto-refresh events every 30 seconds to show status updates
@@ -1092,6 +1219,85 @@ export function ContentCalendar() {
         </CardContent>
       </Card>
 
+      {/* Reddit Templates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Reddit Analyse Templates
+          </CardTitle>
+          <CardDescription>
+            Sleep templates naar de kalender om Reddit analyses te plannen
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {redditTemplates.map((template) => (
+              <Card
+                key={template.id}
+                className="cursor-move hover:shadow-md transition-shadow"
+                draggable
+                onDragStart={(e) => handleDragStart(e, template)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <CardTitle className="text-sm">{template.title}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {template.description}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // TODO: Add edit functionality for Reddit templates
+                        }}
+                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteRedditTemplate(template.id)
+                        }}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div><strong>Type:</strong> {template.search_type}</div>
+                    <div><strong>Max Results:</strong> {template.max_results}</div>
+                    <div><strong>Date Range:</strong> {template.date_range}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {redditTemplates.length === 0 && (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">
+                  Geen Reddit analyse templates beschikbaar.
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Event/Template Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
         setIsDialogOpen(open)
@@ -1424,8 +1630,10 @@ export function ContentCalendar() {
                   <div className="space-y-3">
                     <h4 className="font-medium">Artikel Content</h4>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="prose max-w-none">
-                        {selectedArticle.content_article}
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                          {transformMarkdown(selectedArticle.content_article)}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   </div>
@@ -1435,8 +1643,10 @@ export function ContentCalendar() {
                   <div className="space-y-3">
                     <h4 className="font-medium">FAQ Content</h4>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="prose max-w-none">
-                        {selectedArticle.content_faq}
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                          {transformMarkdown(selectedArticle.content_faq)}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   </div>

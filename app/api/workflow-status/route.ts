@@ -23,9 +23,10 @@ export async function POST(req: Request) {
     console.log(JSON.stringify(body, null, 2));
     
     const { 
-      workflowType, // 'schedule_processor' | 'schedule_execution' | 'schedule_completion'
+      workflowType, // 'schedule_processor' | 'schedule_execution' | 'schedule_completion' | 'reddit_analysis'
       status, // 'started' | 'processing' | 'completed' | 'error'
-      scheduleIds, // array van UUIDs
+      scheduleIds, // array van UUIDs (voor schedules)
+      redditRequestIds, // array van UUIDs (voor Reddit analyses)
       message,
       error,
       stats, // { found: number, processed: number, failed: number }
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
     // Log de status update
     console.log(`📊 Workflow Status: ${workflowType} - ${status}`, {
       scheduleIds,
+      redditRequestIds,
       message,
       stats
     });
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
         .insert({
           workflow_type: workflowType,
           status: status,
-          schedule_ids: scheduleIds,
+          schedule_ids: scheduleIds || redditRequestIds, // Use either scheduleIds or redditRequestIds
           message: message,
           error: error,
           stats: stats,
@@ -92,6 +94,27 @@ export async function POST(req: Request) {
         console.error('Failed to update schedule status:', scheduleUpdateError);
       } else {
         console.log('✅ Successfully updated schedule status to completed');
+      }
+    }
+
+    // Update Reddit analysis status to completed if this is a successful execution
+    if (workflowType === 'reddit_analysis' && status === 'completed' && redditRequestIds?.length > 0) {
+      console.log('🔄 Updating Reddit analysis status to completed for:', redditRequestIds);
+      
+      const updateData = { 
+        status: 'completed',
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error: redditUpdateError } = await supabase
+        .from('reddit_search_requests')
+        .update(updateData)
+        .in('id', redditRequestIds);
+
+      if (redditUpdateError) {
+        console.error('Failed to update Reddit analysis status:', redditUpdateError);
+      } else {
+        console.log('✅ Successfully updated Reddit analysis status to completed');
       }
     }
 
