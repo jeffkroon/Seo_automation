@@ -25,14 +25,16 @@ export async function POST(req: Request) {
     // First, let's check what's in the table for debugging
     const { data: allRequests, error: allError } = await supabase
       .from('reddit_search_requests')
-      .select('id, active, status, next_run_at, company_id')
+      .select('id, status, scheduled_date, scheduled_time, company_id')
       .limit(5)
 
     console.log('📊 Sample Reddit requests:', allRequests)
     console.log('⏰ Time comparison:', {
       currentTime,
-      sampleNextRunAt: allRequests?.[0]?.next_run_at,
-      isDue: allRequests?.[0]?.next_run_at ? new Date(allRequests[0].next_run_at) <= new Date() : 'N/A'
+      sampleScheduledDate: allRequests?.[0]?.scheduled_date,
+      sampleScheduledTime: allRequests?.[0]?.scheduled_time,
+      isDue: allRequests?.[0]?.scheduled_date && allRequests?.[0]?.scheduled_time ? 
+        new Date(allRequests[0].scheduled_date + ' ' + allRequests[0].scheduled_time) <= new Date() : 'N/A'
     })
 
     // Get due Reddit requests
@@ -47,22 +49,19 @@ export async function POST(req: Request) {
         max_results,
         date_range,
         search_status,
-        interval_seconds,
-        days_of_week,
-        time_window,
-        active,
-        last_run_at,
-        next_run_at,
-        title,
-        description,
         scheduled_date,
         scheduled_time,
-        status
+        status,
+        title,
+        description,
+        created_at,
+        updated_at
       `)
-      .eq('active', true)
-      .eq('status', 'scheduled')
-      .lte('next_run_at', new Date().toISOString())
-      .order('next_run_at', { ascending: true })
+      .in('status', ['scheduled', 'generating'])
+      .lte('scheduled_date', new Date().toISOString().split('T')[0])
+      .lte('scheduled_time', new Date().toTimeString().split(' ')[0])
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true })
       .limit(limit)
 
     // Add company filter if provided
