@@ -149,7 +149,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 bg-slate-900 text-slate-400">
+      <footer className="py-8 px-4 bg-gradient-to-r from-primary/90 to-primary/80 text-white">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-6 h-6 bg-gradient-to-r from-primary to-primary/80 rounded flex items-center justify-center">
@@ -157,7 +157,7 @@ export default function HomePage() {
             </div>
             <span className="text-white font-semibold">MarketingCompanion</span>
           </div>
-          <p>&copy; 2024 MarketingCompanion. All rights reserved.</p>
+          <p className="text-white/80">&copy; 2025 Dunion MarketingCompanion. All rights reserved.</p>
         </div>
       </footer>
     </div>
