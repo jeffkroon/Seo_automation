@@ -18,6 +18,7 @@ interface DashboardStats {
   totalClients: number
   activeSchedules: number
   articlesThisMonth: number
+  scheduledArticlesThisMonth: number
 }
 
 interface RecentArticle {
@@ -405,7 +406,7 @@ export default function DashboardPage() {
               <ScrambleText text={(stats?.activeSchedules || 0).toString()} speed={[4, 12]} delay={850} />
             </div>
             <p className="text-xs text-muted-foreground">
-              <ScrambleText text={`${stats?.articlesThisMonth || 0} deze maand`} speed={[4, 10]} delay={950} />
+              <ScrambleText text={`${stats?.scheduledArticlesThisMonth || 0} deze maand`} speed={[4, 10]} delay={950} />
             </p>
           </CardContent>
         </Card>

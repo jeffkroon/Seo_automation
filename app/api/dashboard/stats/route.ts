@@ -96,13 +96,20 @@ export async function GET(req: Request) {
       new Date(article.created_at) >= firstDayOfMonth
     ).length || 0
 
+    // Scheduled articles this month (per client)
+    const scheduledArticlesThisMonth = schedules?.filter((schedule: any) => {
+      const scheduleDate = new Date(schedule.scheduled_date)
+      return scheduleDate >= firstDayOfMonth && scheduleDate < new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    }).length || 0
+
     return NextResponse.json({
       stats: {
         totalArticles,
         totalProjects,
         totalClients,
         activeSchedules: totalSchedules, // Rename for frontend compatibility
-        articlesThisMonth
+        articlesThisMonth,
+        scheduledArticlesThisMonth // New KPI for scheduled articles this month
       },
       recentArticles,
       articlesByMonth,
