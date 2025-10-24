@@ -783,44 +783,91 @@ export function ContentCalendar() {
     fetchScheduleTemplates()
   }, [selectedClient])
 
-  // Auto-refresh events every 30 seconds to show status updates
+  // Real-time updates for schedules - Supabase real-time
   useEffect(() => {
     if (!selectedClient) return
 
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing calendar events...')
-      fetchEvents()
-    }, 30000) // 30 seconds
+    console.log('🔄 Setting up real-time updates for client:', selectedClient.id)
 
-    return () => clearInterval(interval)
-  }, [selectedClient])
-
-  // Real-time updates for schedules
-  useEffect(() => {
-    if (!selectedClient) return
-
-    console.log('🔔 Setting up real-time subscription for schedules...')
-    
-    const subscription = supabase
-      .channel('schedules-changes')
-      .on('postgres_changes', 
-        { 
+    // Subscribe to schedule changes
+    const scheduleChannel = supabase
+      .channel('schedule-updates')
+      .on(
+        'postgres_changes',
+        {
           event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
-          schema: 'public', 
+          schema: 'public',
           table: 'schedules',
           filter: `client_id=eq.${selectedClient.id}`
-        }, 
+        },
         (payload) => {
-          console.log('📡 Real-time schedule update received:', payload)
-          // Refresh events when schedules change
-          fetchEvents()
+          console.log('📅 Schedule change detected:', payload)
+          fetchEvents() // Refresh calendar when schedules change
         }
       )
       .subscribe()
 
+    // Subscribe to workflow status changes
+    const workflowChannel = supabase
+      .channel('workflow-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'workflow_logs',
+          filter: `client_id=eq.${selectedClient.id}`
+        },
+        (payload) => {
+          console.log('⚙️ Workflow update detected:', payload)
+          fetchEvents() // Refresh calendar when workflow status changes
+        }
+      )
+      .subscribe()
+
+    // Subscribe to schedule template changes
+    const templateChannel = supabase
+      .channel('template-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'schedule_templates',
+          filter: `client_id=eq.${selectedClient.id}`
+        },
+        (payload) => {
+          console.log('📋 Template change detected:', payload)
+          fetchScheduleTemplates() // Refresh templates when they change
+        }
+      )
+      .subscribe()
+
+    // Subscribe to generated articles changes
+    const articlesChannel = supabase
+      .channel('articles-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'generated_articles',
+          filter: `client_id=eq.${selectedClient.id}`
+        },
+        (payload) => {
+          console.log('📄 Article change detected:', payload)
+          fetchEvents() // Refresh calendar when articles change
+        }
+      )
+      .subscribe()
+
+    // Cleanup function
     return () => {
-      console.log('🔕 Cleaning up real-time subscription...')
-      subscription.unsubscribe()
+      console.log('🧹 Cleaning up real-time subscriptions')
+      supabase.removeChannel(scheduleChannel)
+      supabase.removeChannel(workflowChannel)
+      supabase.removeChannel(templateChannel)
+      supabase.removeChannel(articlesChannel)
     }
   }, [selectedClient])
 
