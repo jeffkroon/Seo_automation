@@ -70,7 +70,7 @@ export default function DashboardLayout({
       <Suspense fallback={<div>Loading...</div>}>
         <div
           className={cn(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-50 w-68 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -183,7 +183,7 @@ export default function DashboardLayout({
       </Suspense>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-68">
         {/* Mobile header */}
         <div className="sticky top-0 z-30 flex h-16 items-center gap-x-4 border-b border-border bg-background px-4 shadow-sm lg:hidden">
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)}>
