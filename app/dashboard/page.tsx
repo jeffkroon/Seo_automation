@@ -396,7 +396,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              <ScrambleText text="Actieve Schedulers" speed={[5, 15]} delay={750} />
+              <ScrambleText text="Geplande Content" speed={[5, 15]} delay={750} />
             </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -405,7 +405,7 @@ export default function DashboardPage() {
               <ScrambleText text={(stats?.activeSchedules || 0).toString()} speed={[4, 12]} delay={850} />
             </div>
             <p className="text-xs text-muted-foreground">
-              <ScrambleText text="Geplande taken" speed={[4, 10]} delay={950} />
+              <ScrambleText text={`${stats?.articlesThisMonth || 0} deze maand`} speed={[4, 10]} delay={950} />
             </p>
           </CardContent>
         </Card>

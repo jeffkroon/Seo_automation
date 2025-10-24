@@ -34,10 +34,10 @@ export async function GET(req: Request) {
         searchParams: baseParams
       }),
       
-      // Total projects
+      // Total projects (per client if clientId provided)
       supabaseRest<any[]>('projects', {
         headers: { 'x-company-id': companyId },
-        searchParams: userRole === 'viewer' && clientId ? { ...baseParams } : { company_id: `eq.${companyId}` }
+        searchParams: clientId ? { ...baseParams } : { company_id: `eq.${companyId}` }
       }),
       
       // Total clients (only for non-viewers)
@@ -46,14 +46,17 @@ export async function GET(req: Request) {
         searchParams: { company_id: `eq.${companyId}` }
       }) : Promise.resolve([]),
       
-      // Total schedules (only for non-viewers)
-      userRole !== 'viewer' ? supabaseRest<any[]>('schedules', {
+      // Total schedules (per client if clientId provided)
+      supabaseRest<any[]>('schedules', {
         headers: { 'x-company-id': companyId },
-        searchParams: { 
+        searchParams: clientId ? { 
+          ...baseParams,
+          status: 'eq.scheduled'
+        } : { 
           company_id: `eq.${companyId}`,
           status: 'eq.scheduled'
         }
-      }) : Promise.resolve([])
+      })
     ])
 
     // Calculate statistics
@@ -98,7 +101,7 @@ export async function GET(req: Request) {
         totalArticles,
         totalProjects,
         totalClients,
-        totalSchedules,
+        activeSchedules: totalSchedules, // Rename for frontend compatibility
         articlesThisMonth
       },
       recentArticles,
