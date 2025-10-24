@@ -14,14 +14,14 @@ const activities = [
     message: "New content draft created for 'keyword research'",
     time: "1 hour ago",
     icon: FileText,
-    color: "text-blue-600",
+    color: "text-orange-600",
   },
   {
     type: "keyword",
     message: "Added 15 new keywords to tracking",
     time: "3 hours ago",
     icon: Target,
-    color: "text-purple-600",
+    color: "text-orange-600",
   },
   {
     type: "rank_update",

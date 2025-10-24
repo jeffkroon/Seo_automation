@@ -91,7 +91,7 @@ export function EmailConfirm() {
       <CardHeader className="text-center">
         <div className="mx-auto mb-4">
           {status === 'loading' && (
-            <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
+            <Loader2 className="h-12 w-12 text-orange-500 animate-spin" />
           )}
           {status === 'success' && (
             <CheckCircle className="h-12 w-12 text-green-500" />

@@ -753,7 +753,7 @@ export function ContentCalendar() {
       case 'completed':
         return <CheckCircle className="h-3 w-3 text-green-600" />
       case 'generating':
-        return <Clock className="h-3 w-3 text-blue-600" />
+        return <Clock className="h-3 w-3 text-orange-600" />
       case 'failed':
         return <XCircle className="h-3 w-3 text-red-600" />
       case 'cancelled':
@@ -768,7 +768,7 @@ export function ContentCalendar() {
       case 'completed':
         return 'bg-green-100 text-green-800'
       case 'generating':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-orange-100 text-orange-800'
       case 'failed':
         return 'bg-red-100 text-red-800'
       case 'cancelled':
@@ -969,7 +969,7 @@ export function ContentCalendar() {
                           <span className={cn(
                             "px-1 py-0.5 rounded text-xs font-medium",
                             event.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                            event.status === 'generating' ? 'bg-blue-100 text-blue-800' :
+                            event.status === 'generating' ? 'bg-orange-100 text-orange-800' :
                             event.status === 'failed' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
                           )}>

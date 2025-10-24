@@ -79,11 +79,11 @@ export function SerpResults() {
             <div key={result.position} className="border border-slate-200 rounded-lg p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                  <div className="flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-800 rounded-full text-sm font-semibold">
                     {result.position}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-slate-900 hover:text-blue-600 cursor-pointer">{result.title}</h3>
+                    <h3 className="font-medium text-slate-900 hover:text-orange-600 cursor-pointer">{result.title}</h3>
                     <div className="flex items-center space-x-2 mt-1">
                       <span className="text-sm text-green-600">{result.domain}</span>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">

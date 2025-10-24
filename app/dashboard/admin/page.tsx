@@ -451,8 +451,8 @@ export default function AdminUsersPage() {
 
           {/* Show invitation link if created */}
           {copiedLink && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm text-blue-700 mb-2">
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
+              <p className="text-sm text-orange-700 mb-2">
                 <strong>Uitnodigingslink aangemaakt!</strong> Kopieer deze link en stuur hem naar de gebruiker:
               </p>
               <div className="flex gap-2">

@@ -438,7 +438,7 @@ export default function ArchivePage() {
                       </div>
                     )}
                     {article.content_faq && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                      <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium">
                         <FileText className="h-3 w-3" />
                         FAQ
                       </div>
@@ -553,7 +553,7 @@ export default function ArchivePage() {
         {selectedArticle.content_faq && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-lg font-semibold">
-              <div className="h-3 w-3 rounded-full bg-blue-500" />
+              <div className="h-3 w-3 rounded-full bg-orange-500" />
               <span>FAQ Content</span>
             </div>
             <div className="bg-white/50 p-6 rounded-lg border">

@@ -113,8 +113,8 @@ export function RegisterForm() {
       </CardHeader>
       <CardContent>
         {isInvited && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-700">
+          <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
+            <p className="text-sm text-orange-700">
               <strong>Invitation Details:</strong><br />
               Email: {invitationData?.email}<br />
               Company: {invitationData?.company_name}<br />
@@ -176,7 +176,7 @@ export function RegisterForm() {
         </form>
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-blue-600 hover:underline">
+          <Link href="/auth/login" className="text-orange-600 hover:underline">
             Sign in
           </Link>
         </div>

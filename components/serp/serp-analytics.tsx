@@ -115,9 +115,9 @@ export function SerpAnalytics() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm font-medium text-blue-900">Featured Snippet Opportunity</p>
-              <p className="text-xs text-blue-700 mt-1">Target FAQ format to compete for position 0</p>
+            <div className="p-3 bg-orange-50 rounded-lg">
+              <p className="text-sm font-medium text-orange-900">Featured Snippet Opportunity</p>
+              <p className="text-xs text-orange-700 mt-1">Target FAQ format to compete for position 0</p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
               <p className="text-sm font-medium text-green-900">Video Content Gap</p>

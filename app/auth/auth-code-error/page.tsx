@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 
 export default function AuthCodeError() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-orange-50">
       <div className="max-w-md w-full mx-auto p-6">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="mb-6">

@@ -810,7 +810,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
         {selectedArticle.content_faq && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-lg font-semibold">
-              <div className="h-3 w-3 rounded-full bg-blue-500" />
+              <div className="h-3 w-3 rounded-full bg-orange-500" />
               <span>FAQ Content</span>
             </div>
             <div className="bg-white/50 p-6 rounded-lg border">

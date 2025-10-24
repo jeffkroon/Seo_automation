@@ -11,13 +11,13 @@
   --card-foreground: oklch(0.25 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.25 0 0);
-  --primary: #6A60D9; /* Purple accent matching copywriter button */
+  --primary: #DF8330; /* Orange accent matching copywriter button */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.5 0 0); /* Medium gray */
   --secondary-foreground: oklch(1 0 0);
   --muted: oklch(0.99 0 0);
   --muted-foreground: oklch(0.4 0 0);
-  --accent: #6A60D9;
+  --accent: #DF8330;
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.6 0.2 25);
   --destructive-foreground: oklch(1 0 0);
@@ -32,7 +32,7 @@
   --radius: 0.5rem;
   --sidebar: oklch(0.98 0 0);
   --sidebar-foreground: oklch(0.25 0 0);
-  --sidebar-primary: #6A60D9;
+  --sidebar-primary: #DF8330;
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.5 0.2 260);
   --sidebar-accent-foreground: oklch(1 0 0);
@@ -47,7 +47,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: #6A60D9;
+  --primary: #DF8330;
   --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
