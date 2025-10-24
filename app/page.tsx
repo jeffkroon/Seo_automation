@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, BarChart3, Search, Target, Zap, Users, Clock } from "lucide-react"
+import { BarChart3, Search, Target, Zap, Users, Clock } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function HomePage() {
   return (
@@ -11,8 +12,14 @@ export default function HomePage() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
-              <Search className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden">
+              <Image 
+                src="/dunion-logo.png" 
+                alt="Dunion Logo" 
+                width={32} 
+                height={32}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-xl font-bold text-slate-900">MarketingCompanion</span>
           </div>
@@ -25,7 +32,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-gradient-to-r from-primary/15 to-primary/8">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10">
             Professional SEO Automation Platform
@@ -133,18 +140,12 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-primary to-primary/80">
+      <section className="py-16 px-4 bg-gradient-to-r from-primary/10 to-primary/5">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-3xl font-bold text-slate-50 mb-4">Ready to Scale Your SEO Operations?</h2>
-          <p className="text-slate-100 mb-8 text-lg">
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">Ready to Scale Your SEO Operations?</h2>
+          <p className="text-slate-600 mb-8 text-lg">
             Join thousands of SEO professionals who trust MarketingCompanion to automate their workflows
           </p>
-          <Link href="/auth/register">
-            <Button size="lg" className="bg-white text-primary hover:bg-slate-50 hover:text-primary/80 font-semibold">
-              Start Your Free Trial
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </Link>
         </div>
       </section>
 
@@ -152,8 +153,14 @@ export default function HomePage() {
       <footer className="py-8 px-4 bg-gradient-to-r from-primary/90 to-primary/80 text-white">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-6 h-6 bg-gradient-to-r from-primary to-primary/80 rounded flex items-center justify-center">
-              <Search className="w-3 h-3 text-white" />
+            <div className="w-6 h-6 rounded overflow-hidden">
+              <Image 
+                src="/dunion-logo.png" 
+                alt="Dunion Logo" 
+                width={24} 
+                height={24}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-white font-semibold">MarketingCompanion</span>
           </div>

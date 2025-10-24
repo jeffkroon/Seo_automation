@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -77,8 +78,14 @@ export default function DashboardLayout({
             {/* Logo */}
             <div className="flex h-16 items-center justify-between px-6 border-b border-sidebar-border">
               <Link href="/dashboard" className="flex items-center space-x-2">
-                <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Search className="h-5 w-5 text-primary-foreground" />
+                <div className="h-8 w-8 rounded-lg overflow-hidden">
+                  <Image 
+                    src="/dunion-logo.png" 
+                    alt="Dunion Logo" 
+                    width={32} 
+                    height={32}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <span className="text-lg font-semibold text-sidebar-foreground">
                   <ScrambleText text="MarketingCompanion" speed={[6, 16]} delay={600} />
@@ -183,8 +190,14 @@ export default function DashboardLayout({
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center space-x-2">
-            <div className="h-6 w-6 bg-primary rounded flex items-center justify-center">
-              <Search className="h-4 w-4 text-primary-foreground" />
+            <div className="h-6 w-6 rounded overflow-hidden">
+              <Image 
+                src="/dunion-logo.png" 
+                alt="Dunion Logo" 
+                width={24} 
+                height={24}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="font-semibold text-foreground">MarketingCompanion</span>
           </div>
