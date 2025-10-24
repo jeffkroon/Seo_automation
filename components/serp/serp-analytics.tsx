@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts"
 
 const competitorData = [
-  { name: "example.com", value: 25, color: "#3b82f6" },
+  { name: "example.com", value: 25, color: "#DF8330" },
   { name: "competitor.com", value: 20, color: "#10b981" },
   { name: "seotools.com", value: 15, color: "#f59e0b" },
   { name: "Others", value: 40, color: "#6b7280" },
@@ -102,7 +102,7 @@ export function SerpAnalytics() {
               <XAxis type="number" hide />
               <YAxis dataKey="feature" type="category" width={80} fontSize={12} />
               <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="count" fill="#DF8330" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

@@ -26,7 +26,7 @@ export function RankingChart() {
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="avgRank" stroke="#3b82f6" strokeWidth={2} name="Avg Rank" />
+            <Line type="monotone" dataKey="avgRank" stroke="#DF8330" strokeWidth={2} name="Avg Rank" />
             <Line type="monotone" dataKey="topTen" stroke="#10b981" strokeWidth={2} name="Top 10 Count" />
           </LineChart>
         </ResponsiveContainer>

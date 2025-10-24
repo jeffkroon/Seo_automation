@@ -117,7 +117,7 @@ export async function POST(req: Request) {
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
             </head>
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <div style="background: linear-gradient(135deg, #DF8330 0%, #B86B1A 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
                 <h1 style="color: white; margin: 0; font-size: 28px;">MarketingCompanion</h1>
               </div>
               
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
                 
                 <div style="text-align: center; margin: 30px 0;">
                   <a href="${invitationLink}" 
-                     style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                     style="background: linear-gradient(135deg, #DF8330 0%, #B86B1A 100%); 
                             color: white; 
                             padding: 14px 32px; 
                             text-decoration: none; 

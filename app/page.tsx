@@ -11,7 +11,7 @@ export default function HomePage() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-orange-600 to-orange-700 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
               <Search className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold text-slate-900">MarketingCompanion</span>
@@ -27,12 +27,12 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge className="mb-4 bg-orange-100 text-orange-700 hover:bg-orange-100">
+          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10">
             Professional SEO Automation Platform
           </Badge>
           <h1 className="text-5xl font-bold text-slate-900 mb-6 text-balance">
             Automate Your SEO Workflow with{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-orange-700">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">
               AI-Powered Insights
             </span>
           </h1>
@@ -61,8 +61,8 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                  <BarChart3 className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="w-6 h-6 text-primary" />
                 </div>
                 <CardTitle>Rank Tracking</CardTitle>
                 <CardDescription>
@@ -85,8 +85,8 @@ export default function HomePage() {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                  <Target className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  <Target className="w-6 h-6 text-primary" />
                 </div>
                 <CardTitle>Copywriter</CardTitle>
                 <CardDescription>
@@ -97,8 +97,8 @@ export default function HomePage() {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-primary" />
                 </div>
                 <CardTitle>Content Optimization</CardTitle>
                 <CardDescription>
@@ -133,14 +133,14 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-orange-600 to-orange-700">
+      <section className="py-16 px-4 bg-gradient-to-r from-primary to-primary/80">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl font-bold text-slate-50 mb-4">Ready to Scale Your SEO Operations?</h2>
           <p className="text-slate-100 mb-8 text-lg">
             Join thousands of SEO professionals who trust MarketingCompanion to automate their workflows
           </p>
           <Link href="/auth/register">
-            <Button size="lg" className="bg-white text-orange-700 hover:bg-slate-50 hover:text-orange-800 font-semibold">
+            <Button size="lg" className="bg-white text-primary hover:bg-slate-50 hover:text-primary/80 font-semibold">
               Start Your Free Trial
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
@@ -152,7 +152,7 @@ export default function HomePage() {
       <footer className="py-8 px-4 bg-slate-900 text-slate-400">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-6 h-6 bg-gradient-to-r from-orange-600 to-orange-700 rounded flex items-center justify-center">
+            <div className="w-6 h-6 bg-gradient-to-r from-primary to-primary/80 rounded flex items-center justify-center">
               <Search className="w-3 h-3 text-white" />
             </div>
             <span className="text-white font-semibold">MarketingCompanion</span>

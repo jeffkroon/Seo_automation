@@ -294,9 +294,18 @@ export default function DashboardPage() {
       <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
         <CardContent className="pt-6">
           {isLoadingGreeting ? (
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-              <p className="text-lg text-muted-foreground">Persoonlijke boodschap aan het genereren...</p>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary/20"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent absolute top-0 left-0" style={{animationDirection: 'reverse', animationDuration: '0.8s'}}></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-lg font-medium text-foreground">AI aan het werk...</p>
+                <p className="text-sm text-muted-foreground">Je persoonlijke dashboard wordt voorbereid</p>
+              </div>
             </div>
           ) : aiGreeting ? (
             <div className="space-y-4">
