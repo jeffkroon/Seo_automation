@@ -895,11 +895,11 @@ export function ContentCalendar() {
       )
       .subscribe()
 
-    // Fallback polling (als real-time niet werkt)
-    const fallbackInterval = setInterval(() => {
-      console.log('🔄 Fallback polling - checking for updates...')
-      fetchEvents()
-    }, 10000) // 10 seconden fallback
+    // Real-time werkt! Geen fallback polling nodig
+    // const fallbackInterval = setInterval(() => {
+    //   console.log('🔄 Fallback polling - checking for updates...')
+    //   fetchEvents()
+    // }, 10000) // 10 seconden fallback
 
     // Cleanup function
     return () => {
@@ -908,7 +908,7 @@ export function ContentCalendar() {
       supabase.removeChannel(workflowChannel)
       supabase.removeChannel(templateChannel)
       supabase.removeChannel(articlesChannel)
-      clearInterval(fallbackInterval)
+      // clearInterval(fallbackInterval) // Niet meer nodig
     }
   }, [selectedClient])
 
