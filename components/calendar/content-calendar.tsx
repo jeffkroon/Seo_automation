@@ -614,6 +614,12 @@ export function ContentCalendar() {
 
   const handleViewArticle = async (event: CalendarEvent) => {
     try {
+      // Show immediate feedback
+      toast({
+        title: "Laden...",
+        description: "Artikel wordt geladen",
+      })
+
       // Fetch the article details from schedule_articles table using the schedule ID
       const response = await apiClient(`/api/schedule-articles?schedule_id=${event.id}`)
       if (response.ok) {
@@ -637,6 +643,12 @@ export function ContentCalendar() {
           }
           setSelectedArticle(article)
           setSidePanelOpen(true)
+          
+          // Show success feedback
+          toast({
+            title: "✅ Artikel geladen!",
+            description: "Artikel wordt nu getoond",
+          })
         } else {
           toast({
             title: "Geen artikel gevonden",
@@ -663,6 +675,12 @@ export function ContentCalendar() {
 
   const handleSaveToArchive = async (event: CalendarEvent) => {
     try {
+      // Show immediate feedback
+      toast({
+        title: "Opslaan...",
+        description: "Artikel wordt opgeslagen in archief",
+      })
+
       // Fetch the article details from schedule_articles table using the schedule ID
       const response = await apiClient(`/api/schedule-articles?schedule_id=${event.id}`)
       if (!response.ok) {
@@ -708,8 +726,8 @@ export function ContentCalendar() {
 
       if (archiveResponse.ok) {
         toast({
-          title: "Succes",
-          description: "Artikel opgeslagen in content archief!"
+          title: "✅ Succesvol opgeslagen!",
+          description: "Artikel is opgeslagen in content archief",
         })
       } else {
         const errorData = await archiveResponse.json()
@@ -802,10 +820,18 @@ export function ContentCalendar() {
         },
         (payload) => {
           console.log('📅 Schedule change detected:', payload)
+          console.log('📅 Payload details:', {
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+            table: payload.table
+          })
           fetchEvents() // Refresh calendar when schedules change
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📅 Schedule subscription status:', status)
+      })
 
     // Subscribe to workflow status changes
     const workflowChannel = supabase
@@ -820,10 +846,18 @@ export function ContentCalendar() {
         },
         (payload) => {
           console.log('⚙️ Workflow update detected:', payload)
+          console.log('⚙️ Workflow payload details:', {
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+            table: payload.table
+          })
           fetchEvents() // Refresh calendar when workflow status changes
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('⚙️ Workflow subscription status:', status)
+      })
 
     // Subscribe to schedule template changes
     const templateChannel = supabase
@@ -861,6 +895,12 @@ export function ContentCalendar() {
       )
       .subscribe()
 
+    // Fallback polling (als real-time niet werkt)
+    const fallbackInterval = setInterval(() => {
+      console.log('🔄 Fallback polling - checking for updates...')
+      fetchEvents()
+    }, 10000) // 10 seconden fallback
+
     // Cleanup function
     return () => {
       console.log('🧹 Cleaning up real-time subscriptions')
@@ -868,6 +908,7 @@ export function ContentCalendar() {
       supabase.removeChannel(workflowChannel)
       supabase.removeChannel(templateChannel)
       supabase.removeChannel(articlesChannel)
+      clearInterval(fallbackInterval)
     }
   }, [selectedClient])
 
@@ -1032,20 +1073,20 @@ export function ContentCalendar() {
                                   e.stopPropagation()
                                   handleViewArticle(event)
                                 }}
-                                className="p-0.5 hover:bg-white/20 rounded"
+                                className="p-1.5 hover:bg-primary/20 rounded-md transition-all duration-200 hover:scale-105 group"
                                 title="Bekijk artikel"
                               >
-                                <Eye className="h-3 w-3" />
+                                <Eye className="h-3 w-3 text-primary group-hover:text-primary/80" />
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleSaveToArchive(event)
                                 }}
-                                className="p-0.5 hover:bg-white/20 rounded"
+                                className="p-1.5 hover:bg-primary/20 rounded-md transition-all duration-200 hover:scale-105 group"
                                 title="Opslaan in archief"
                               >
-                                <Download className="h-3 w-3" />
+                                <Download className="h-3 w-3 text-primary group-hover:text-primary/80" />
                               </button>
                             </div>
                           )}
@@ -1427,10 +1468,23 @@ export function ContentCalendar() {
               >
                 Annuleren
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? 'Opslaan...' : 
-                 editingEvent ? 'Bijwerken' : 
-                 editingTemplate ? 'Bijwerken' : 'Aanmaken'}
+              <Button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                className="bg-primary hover:bg-primary/90 text-white font-medium px-6 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Opslaan...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {editingEvent ? 'Bijwerken' : 
+                     editingTemplate ? 'Bijwerken' : 'Aanmaken'}
+                  </>
+                )}
               </Button>
             </div>
           </DialogFooter>
