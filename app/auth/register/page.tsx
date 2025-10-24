@@ -18,7 +18,7 @@ export default function RegisterPage() {
         </div>
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Get Started</h1>
-          <p className="text-slate-600">Create your SearchFactory account</p>
+          <p className="text-slate-600">Create your MarketingCompanion account</p>
         </div>
         <Suspense fallback={<div className="text-center">Loading...</div>}>
           <RegisterForm />

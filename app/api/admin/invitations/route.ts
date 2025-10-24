@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || 'noreply@lionfish-app-es8ks.ondigitalocean.app',
         to: email,
-        subject: 'Uitnodiging voor SearchFactory',
+        subject: 'Uitnodiging voor MarketingCompanion',
         html: `
           <!DOCTYPE html>
           <html>
@@ -118,14 +118,14 @@ export async function POST(req: Request) {
             </head>
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">SearchFactory</h1>
+                <h1 style="color: white; margin: 0; font-size: 28px;">MarketingCompanion</h1>
               </div>
               
               <div style="background: #ffffff; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
                 <h2 style="color: #333; margin-top: 0;">Je bent uitgenodigd! 🎉</h2>
                 
                 <p style="font-size: 16px; color: #555;">
-                  Je bent uitgenodigd om lid te worden van een team op <strong>SearchFactory</strong>, 
+                  Je bent uitgenodigd om lid te worden van een team op <strong>MarketingCompanion</strong>, 
                   het professionele SEO automation platform.
                 </p>
                 
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
               </div>
               
               <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-                <p>© 2024 SearchFactory. All rights reserved.</p>
+                <p>© 2024 MarketingCompanion. All rights reserved.</p>
               </div>
             </body>
           </html>

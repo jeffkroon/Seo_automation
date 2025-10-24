@@ -14,7 +14,7 @@ export default function HomePage() {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
               <Search className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900">SearchFactory</span>
+            <span className="text-xl font-bold text-slate-900">MarketingCompanion</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/auth/login">
@@ -137,7 +137,7 @@ export default function HomePage() {
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl font-bold text-slate-50 mb-4">Ready to Scale Your SEO Operations?</h2>
           <p className="text-slate-100 mb-8 text-lg">
-            Join thousands of SEO professionals who trust SearchFactory to automate their workflows
+            Join thousands of SEO professionals who trust MarketingCompanion to automate their workflows
           </p>
           <Link href="/auth/register">
             <Button size="lg" className="bg-white text-blue-700 hover:bg-slate-50 hover:text-blue-800 font-semibold">
@@ -155,9 +155,9 @@ export default function HomePage() {
             <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded flex items-center justify-center">
               <Search className="w-3 h-3 text-white" />
             </div>
-            <span className="text-white font-semibold">SearchFactory</span>
+            <span className="text-white font-semibold">MarketingCompanion</span>
           </div>
-          <p>&copy; 2024 SearchFactory. All rights reserved.</p>
+          <p>&copy; 2024 MarketingCompanion. All rights reserved.</p>
         </div>
       </footer>
     </div>

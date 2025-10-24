@@ -15,7 +15,7 @@ export function DashboardHeader() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
             <Link href="/dashboard" className="text-xl font-bold text-slate-900">
-              SearchFactory
+              MarketingCompanion
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
               <Link href="/dashboard" className="text-sm text-slate-600 hover:text-slate-900">

@@ -62,7 +62,7 @@ export function ClientSwitcher() {
 
       {/* Simple Dropdown */}
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-primary/20 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-background border border-primary/20 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
           <Command>
             <CommandInput placeholder="Zoek client..." className="border-0" />
             <CommandList>
