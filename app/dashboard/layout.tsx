@@ -17,7 +17,6 @@ import {
   Download,
   Menu,
   X,
-  Settings,
   LogOut,
   Home,
   Users,
@@ -36,7 +35,6 @@ const navigation = [
   { name: "Content Archief", href: "/dashboard/archive", icon: FileText },
   { name: "Projecten", href: "/dashboard/projects", icon: Folder },
   { name: "Content Kalender", href: "/dashboard/calendar", icon: Calendar, hideForViewer: true },
-  { name: "SERP Analysis", href: "/dashboard/serp", icon: TrendingUp, hideForViewer: true },
   { name: "Clients", href: "/dashboard/admin/clients", icon: Building2, requiresAdmin: true },
   { name: "Gebruikers", href: "/dashboard/admin", icon: Users, requiresAdmin: true },
 ]
@@ -162,10 +160,6 @@ export default function DashboardLayout({
                 </div>
               </div>
               <div className="space-y-1">
-                <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
