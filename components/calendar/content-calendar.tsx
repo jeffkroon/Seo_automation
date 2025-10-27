@@ -439,6 +439,7 @@ export function ContentCalendar() {
         country,
         website_url: websiteUrl.trim(),
         client_id: selectedClient.id,
+        client_name: selectedClient.naam, // Add client name
         company_id: user?.companyId
       }
 
