@@ -290,10 +290,7 @@ function ContentPieceForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="nl">Netherlands</SelectItem>
-              <SelectItem value="be">Belgium</SelectItem>
-              <SelectItem value="de">Germany</SelectItem>
-              <SelectItem value="fr">France</SelectItem>
-              <SelectItem value="gb">United Kingdom</SelectItem>
+              <SelectItem value="uk">United Kingdom</SelectItem>
               <SelectItem value="us">United States</SelectItem>
             </SelectContent>
           </Select>
@@ -310,9 +307,6 @@ function ContentPieceForm({
             <SelectContent>
               <SelectItem value="nl">Dutch</SelectItem>
               <SelectItem value="en">English</SelectItem>
-              <SelectItem value="de">German</SelectItem>
-              <SelectItem value="fr">French</SelectItem>
-              <SelectItem value="es">Spanish</SelectItem>
             </SelectContent>
           </Select>
         </div>
