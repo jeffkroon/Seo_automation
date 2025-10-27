@@ -25,7 +25,8 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
       article_type, 
       language, 
       country, 
-      website_url 
+      website_url,
+      client_name 
     } = body
 
     if (!title || !focus_keyword) {
@@ -57,6 +58,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
           language: language || 'nl',
           country: country || 'nl',
           website_url: website_url?.trim() || null,
+          client_name: client_name || null, // Add client name on update
           updated_at: new Date().toISOString()
         }
       },

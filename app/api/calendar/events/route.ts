@@ -62,7 +62,8 @@ export async function POST(req: Request) {
       language, 
       country, 
       website_url, 
-      client_id 
+      client_id,
+      client_name 
     } = body
 
     if (!title || !focus_keyword || !client_id) {
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
     const eventData = {
       company_id: companyId,
       client_id: client_id,
+      client_name: client_name || null, // Add client name
       title: title.trim(),
       description: description?.trim() || null,
       scheduled_date: scheduled_date,
