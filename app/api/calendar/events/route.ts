@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     const eventData = {
       company_id: companyId,
       client_id: client_id,
-      client_name: client_name || null, // Add client name
+      client_name: client_name, // Add client name (no null fallback to preserve actual values)
       title: title.trim(),
       description: description?.trim() || null,
       scheduled_date: scheduled_date,
@@ -90,6 +90,8 @@ export async function POST(req: Request) {
     }
     
     console.log('📅 Creating calendar event with data:', eventData)
+    console.log('📅 Client name in request:', client_name)
+    console.log('📅 Full body received:', body)
     
     const events = await supabaseRest<any[]>(
       'schedules',

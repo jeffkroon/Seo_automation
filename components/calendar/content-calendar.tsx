@@ -362,6 +362,7 @@ export function ContentCalendar() {
         country: scheduleTemplate.country,
         website_url: scheduleTemplate.website_url,
         client_id: selectedClient.id,
+        client_name: selectedClient.naam, // Add client name
         company_id: user?.companyId
       }
 
