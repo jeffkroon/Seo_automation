@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { BatchContentForm } from "@/components/batch-content-form"
 import { ArticleResults } from "@/components/article-results"
 import { LoadingState } from "@/components/loading-state"
+import { useClientContext } from "@/hooks/use-client-context"
 
 type SectionKind = "article" | "faq" | "meta"
 
@@ -38,6 +39,7 @@ interface ContentPiece {
 }
 
 export default function KeywordsPage() {
+  const { selectedClient } = useClientContext()
   const createEmptyPiece = (): ContentPiece => ({
     id: Math.random().toString(36).substr(2, 9),
     title: "",
@@ -126,6 +128,8 @@ export default function KeywordsPage() {
           "Aanvullende Zoekwoorden": contentPiece.additionalKeywords.join(", "),
           "Aanvullende Headings": contentPiece.additionalHeadings.join(", "),
           "Soort Artikel": contentPiece.articleType,
+          "Client ID": selectedClient?.id,
+          "Client Naam": selectedClient?.naam,
         }),
       })
 
