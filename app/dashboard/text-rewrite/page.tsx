@@ -1,15 +1,13 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import type { Components } from "react-markdown"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Calendar, FileText, Filter, RefreshCw, ArrowLeft, Loader2, X, Save } from "lucide-react"
-import { ArticleResults } from "@/components/article-results"
-import { LoadingState } from "@/components/loading-state"
-import type { Components } from "react-markdown"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import HtmlSection from "@/components/HtmlSection"
@@ -62,7 +60,71 @@ export default function TextRewritePage() {
   const [selectedRewriteResult, setSelectedRewriteResult] = useState<ArticleSection[] | null>(null)
   const [selectedArticle, setSelectedArticle] = useState<ArticleForRewrite | null>(null)
   const [rewriteResults, setRewriteResults] = useState<Map<string, ArticleSection[]>>(new Map())
-  const [jobToArticleId, setJobToArticleId] = useState<Map<string, string>>(new Map()) // jobId -> article.id mapping
+  const [jobToArticleId, setJobToArticleId] = useState<Map<string, string>>(new Map())
+
+  // Markdown components - exact zoals archive page
+  const markdownComponents = useMemo<Components>(() => ({
+    h1: ({ node, className, ...props }) => (
+      <h1 {...props} className={cn("text-2xl font-bold mb-4 text-foreground", className)} />
+    ),
+    h2: ({ node, className, ...props }) => (
+      <h2 {...props} className={cn("text-xl font-semibold mb-3 mt-6 text-foreground", className)} />
+    ),
+    h3: ({ node, className, ...props }) => (
+      <h3 {...props} className={cn("text-lg font-semibold mb-2 mt-4 text-foreground", className)} />
+    ),
+    h4: ({ node, className, ...props }) => (
+      <h4 {...props} className={cn("text-base font-semibold mb-2 mt-4 text-foreground", className)} />
+    ),
+    p: ({ node, className, ...props }) => (
+      <p {...props} className={cn("mb-4 leading-relaxed text-foreground", className)} />
+    ),
+    ul: ({ node, className, ...props }) => (
+      <ul {...props} className={cn("mb-4 ml-6 list-disc space-y-2 text-foreground", className)} />
+    ),
+    ol: ({ node, className, ...props }) => (
+      <ol {...props} className={cn("mb-4 ml-6 list-decimal space-y-2 text-foreground", className)} />
+    ),
+    li: ({ node, className, ...props }) => (
+      <li {...props} className={cn("leading-relaxed text-foreground", className)} />
+    ),
+    blockquote: ({ node, className, ...props }) => (
+      <blockquote {...props} className={cn("border-l-4 border-primary/40 pl-4 italic text-muted-foreground mb-4", className)} />
+    ),
+    strong: ({ node, className, ...props }) => (
+      <strong {...props} className={cn("font-semibold text-foreground", className)} />
+    ),
+    em: ({ node, className, ...props }) => (
+      <em {...props} className={cn("italic text-foreground", className)} />
+    ),
+    a: ({ node, className, ...props }) => (
+      <a {...props} className={cn("text-primary underline decoration-primary/50 underline-offset-2 hover:text-primary/80 hover:decoration-primary", className)} target={props.target ?? "_blank"} rel={props.rel ?? "noopener noreferrer"} />
+    ),
+    code: ({ node, className, ...props }) => {
+      const isInline = !className?.includes('language-')
+      return isInline ? (
+        <code {...props} className={cn("bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground", className)} />
+      ) : (
+        <code {...props} className={cn("block bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono text-foreground", className)} />
+      )
+    },
+    pre: ({ node, className, ...props }) => (
+      <pre {...props} className={cn("bg-muted p-4 rounded-lg overflow-x-auto mb-4", className)} />
+    ),
+    table: ({ node, className, ...props }) => (
+      <div className="overflow-x-auto mb-4">
+        <table {...props} className={cn("min-w-full border-collapse border border-border", className)} />
+      </div>
+    ),
+    th: ({ node, className, ...props }) => (
+      <th {...props} className={cn("border border-border bg-muted px-4 py-2 text-left font-semibold text-foreground", className)} />
+    ),
+    td: ({ node, className, ...props }) => (
+      <td {...props} className={cn("border border-border px-4 py-2 text-foreground", className)} />
+    ),
+  }), [])
+
+  const markdownClass = "prose prose-sm max-w-none dark:prose-invert" // jobId -> article.id mapping
 
   useEffect(() => {
     if (selectedClient) {
@@ -656,12 +718,21 @@ export default function TextRewritePage() {
                   {!rewritingIds.has(article.id) && !rewriteResults.has(article.id) && (
                     <Button
                       onClick={() => handleRewrite(article)}
-                      disabled={!article.content_article}
+                      disabled={!article.content_article || rewritingIds.has(article.id)}
                       className="w-full h-10 font-medium"
                       variant="outline"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Herschrijf met AI
+                      {rewritingIds.has(article.id) ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Aan het herschrijven...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Herschrijf met AI
+                        </>
+                      )}
                     </Button>
                   )}
                 </CardContent>
@@ -718,8 +789,8 @@ export default function TextRewritePage() {
                       {/<\/?[a-z][\s\S]*>/i.test(section.html) ? (
                         <HtmlSection html={section.html} className="prose max-w-none" />
                       ) : (
-                        <div className="prose max-w-none dark:prose-invert">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        <div className={markdownClass}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                             {section.html}
                           </ReactMarkdown>
                         </div>
