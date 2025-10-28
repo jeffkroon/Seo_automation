@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server'
 import { createJob } from '@/lib/jobs'
 
+export const dynamic = 'force-dynamic'
+
 const REWRITE_WEBHOOK_URL = 'https://dunion.app.n8n.cloud/webhook/4aa92885-8d23-4667-9827-c2db20944256'
 
 export async function POST(req: Request) {

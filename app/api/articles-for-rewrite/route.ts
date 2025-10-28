@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseRest } from '@/lib/supabase-rest'
 
+export const dynamic = 'force-dynamic'
+
 interface ArticleWithAge {
   id: string
   title: string
