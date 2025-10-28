@@ -710,7 +710,7 @@ export default function TextRewritePage() {
                         className="w-full h-9 text-sm"
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        Bekijk
+                        Bekijk artikel
                       </Button>
                       <Button
                         size="sm"
@@ -726,6 +726,31 @@ export default function TextRewritePage() {
                         Opslaan
                       </Button>
                     </div>
+                  )}
+
+                  {/* View article button - show if content exists and no rewrite results */}
+                  {article.content_article && !rewriteResults.has(article.id) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Create a pseudo-section for the original content
+                        const originalSections: ArticleSection[] = [{
+                          id: `${article.id}-original`,
+                          html: article.content_article || '',
+                          title: article.title,
+                          kind: 'article',
+                          sequence: 1
+                        }]
+                        setSelectedRewriteResult(originalSections)
+                        setSelectedArticle(article)
+                        setSidePanelOpen(true)
+                      }}
+                      className="w-full h-9 text-sm"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Bekijk artikel
+                    </Button>
                   )}
 
                   {/* Rewrite Button - only show if not rewriting and no results yet */}
