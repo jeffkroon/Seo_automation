@@ -212,6 +212,12 @@ export default function TextRewritePage() {
             description: `Het artikel "${article.title}" wordt nu herschreven door AI.`,
           })
         } else {
+          // No jobId - remove loading state
+          setRewritingIds(prev => {
+            const next = new Set(prev)
+            next.delete(article.id)
+            return next
+          })
           toast({
             title: "Herschrijven gestart",
             description: `Het artikel "${article.title}" wordt nu herschreven.`,
@@ -222,18 +228,20 @@ export default function TextRewritePage() {
         throw new Error(errorData.error || 'Fout bij herschrijven')
       }
     } catch (error: any) {
-      toast({
-        title: "Herschrijven mislukt",
-        description: error.message || "Er is een fout opgetreden bij het herschrijven.",
-        variant: "destructive",
-      })
-    } finally {
+      // Remove loading state on error
       setRewritingIds(prev => {
         const next = new Set(prev)
         next.delete(article.id)
         return next
       })
+      toast({
+        title: "Herschrijven mislukt",
+        description: error.message || "Er is een fout opgetreden bij het herschrijven.",
+        variant: "destructive",
+      })
     }
+    // Note: we don't remove loading state in finally block
+    // Loading state will be removed by pollForRewriteResults when polling completes
   }
 
   const pollForRewriteResults = async (jobId: string, articleId: string) => {
