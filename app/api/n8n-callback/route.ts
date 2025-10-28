@@ -38,7 +38,16 @@ export async function POST(req: Request) {
     const { jobId, status, html, generatedAt, error, message, error_code, output, id } = body;
     
     // Try to get jobId from different possible sources
-    const actualJobId = jobId || id || body.job_id || body.jobID || jobIdFromUrl || jobIdFromHeader;
+    let actualJobId = jobId || id || body.job_id || body.jobID || jobIdFromUrl || jobIdFromHeader;
+    
+    // Log original jobId before cleaning
+    console.log('🔍 Original jobId from body:', jobId || id || body.job_id || body.jobID || jobIdFromUrl || jobIdFromHeader);
+    
+    // Clean jobId (remove = prefix if present, like in n8n responses)
+    if (actualJobId && typeof actualJobId === 'string' && actualJobId.startsWith('=')) {
+      actualJobId = actualJobId.substring(1);
+      console.log('🧹 Cleaned jobId (removed = prefix):', actualJobId);
+    }
     
     console.log('Parsed callback data:', { 
       jobId: actualJobId, 

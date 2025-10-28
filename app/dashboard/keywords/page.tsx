@@ -5,6 +5,7 @@ import { BatchContentForm } from "@/components/batch-content-form"
 import { ArticleResults } from "@/components/article-results"
 import { LoadingState } from "@/components/loading-state"
 import { useClientContext } from "@/hooks/use-client-context"
+import { toast } from "@/hooks/use-toast"
 
 type SectionKind = "article" | "faq" | "meta"
 
@@ -169,7 +170,11 @@ export default function KeywordsPage() {
         }
       }
 
-      alert(errorMessage)
+      toast({
+        title: "Content generatie mislukt",
+        description: errorMessage,
+        variant: "destructive",
+      })
       setLoadingPieceIds(prev => {
         const next = new Set(prev)
         next.delete(contentPiece.id)
@@ -264,7 +269,11 @@ export default function KeywordsPage() {
           isPolling = false
           
           // Show error to user
-          alert(`❌ Content generatie mislukt:\n\n${job.error || "Onbekende fout van de workflow"}`)
+          toast({
+            title: "Content generatie mislukt",
+            description: job.error || "Onbekende fout van de workflow",
+            variant: "destructive",
+          })
           return
         }
 
@@ -349,7 +358,11 @@ export default function KeywordsPage() {
         
       } catch (error) {
         console.error("Error polling for results:", error)
-        alert(`Error: ${error instanceof Error ? error.message : "Onbekende fout"}`)
+        toast({
+          title: "Polling error",
+          description: error instanceof Error ? error.message : "Onbekende fout",
+          variant: "destructive",
+        })
         removeActiveJob(jobId)
         setLoadingPieceIds(prev => {
           const next = new Set(prev)
