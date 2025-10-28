@@ -46,12 +46,32 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const articleId = params.id
     const body = await req.json()
 
+    // First, fetch the article to verify it belongs to the company
+    const article = await supabaseRest<any[]>('generated_articles', {
+      method: 'GET',
+      headers: { 'x-company-id': companyId },
+      searchParams: {
+        id: `eq.${articleId}`,
+        select: '*',
+      },
+    })
+
+    const articleData = Array.isArray(article) ? article[0] : article
+
+    if (!articleData) {
+      return NextResponse.json({ error: 'Article not found' }, { status: 404 })
+    }
+
+    if (articleData.company_id !== companyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
     // Update the article
     const result = await supabaseRest<any>('generated_articles', {
       method: 'PATCH',
+      headers: { 'x-company-id': companyId },
       searchParams: {
         id: `eq.${articleId}`,
-        company_id: `eq.${companyId}`,
         select: '*',
       },
       body: {
