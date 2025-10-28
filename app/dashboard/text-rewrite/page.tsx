@@ -176,9 +176,9 @@ export default function TextRewritePage() {
   }
 
   const handleRewrite = async (article: ArticleForRewrite) => {
-    if (!article.content_article) {
+    if (!article.content_article && !article.content_faq) {
       toast({
-        title: "Geen artikel content",
+        title: "Geen content",
         description: "Dit artikel heeft geen content om te herschrijven.",
         variant: "destructive",
       })
@@ -192,6 +192,7 @@ export default function TextRewritePage() {
         method: 'POST',
         body: JSON.stringify({
           article: article.content_article,
+          faq: article.content_faq,
           keyword: article.focus_keyword,
           article_type: article.article_type || 'informatief'
         })

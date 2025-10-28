@@ -12,9 +12,16 @@ export async function POST(req: Request) {
     console.log('Rewrite payload:', payload)
     console.log('Rewrite webhook URL:', REWRITE_WEBHOOK_URL)
 
-    if (!payload.article || !payload.keyword) {
+    if (!payload.article && !payload.faq) {
       return NextResponse.json(
-        { error: 'Artikel en keyword zijn verplicht' },
+        { error: 'Minimaal artikel of FAQ is verplicht' },
+        { status: 400 }
+      )
+    }
+
+    if (!payload.keyword) {
+      return NextResponse.json(
+        { error: 'Keyword is verplicht' },
         { status: 400 }
       )
     }
@@ -26,6 +33,7 @@ export async function POST(req: Request) {
     // Prepare n8n payload with callback URL
     const n8nPayload = {
       article: payload.article,
+      faq: payload.faq,
       keyword: payload.keyword,
       article_type: payload.article_type || 'informatief',
       callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/n8n-callback`,
