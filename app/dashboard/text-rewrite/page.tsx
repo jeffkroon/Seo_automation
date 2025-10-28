@@ -250,9 +250,6 @@ export default function TextRewritePage() {
           if (sections.length > 0) {
             // Store results
             setRewriteResults(prev => new Map(prev).set(articleId, sections))
-            setSelectedRewriteResult(sections)
-            setSelectedArticle(articles.find(a => a.id === articleId) || null)
-            setSidePanelOpen(true)
             
             // Stop loading
             setRewritingIds(prev => {
@@ -316,6 +313,13 @@ export default function TextRewritePage() {
         toast({
           title: "Artikel overschreven!",
           description: `Het artikel "${article.title}" is succesvol bijgewerkt met de herschreven versie.`,
+        })
+        
+        // Remove rewrite results for this article
+        setRewriteResults(prev => {
+          const next = new Map(prev)
+          next.delete(article.id)
+          return next
         })
         
         // Refresh articles
@@ -605,25 +609,61 @@ export default function TextRewritePage() {
                     )}
                   </div>
 
-                  {/* Rewrite Button */}
-                  <Button
-                    onClick={() => handleRewrite(article)}
-                    disabled={rewritingIds.has(article.id) || !article.content_article}
-                    className="w-full h-10 font-medium"
-                    variant="outline"
-                  >
-                    {rewritingIds.has(article.id) ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Aan het herschrijven...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Herschrijf met AI
-                      </>
-                    )}
-                  </Button>
+                  {/* Loading state during rewrite */}
+                  {rewritingIds.has(article.id) && (
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-sm font-medium text-primary">Artikel wordt herschreven...</span>
+                    </div>
+                  )}
+
+                  {/* Result buttons when rewrite is complete */}
+                  {rewriteResults.has(article.id) && !rewritingIds.has(article.id) && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const results = rewriteResults.get(article.id)
+                          if (results) {
+                            setSelectedRewriteResult(results)
+                            setSelectedArticle(article)
+                            setSidePanelOpen(true)
+                          }
+                        }}
+                        className="w-full h-9 text-sm"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Bekijk
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const results = rewriteResults.get(article.id)
+                          if (results && results[0]) {
+                            handleSaveRewrite(article, results[0].html)
+                          }
+                        }}
+                        className="w-full h-9 text-sm"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Opslaan
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Rewrite Button - only show if not rewriting and no results yet */}
+                  {!rewritingIds.has(article.id) && !rewriteResults.has(article.id) && (
+                    <Button
+                      onClick={() => handleRewrite(article)}
+                      disabled={!article.content_article}
+                      className="w-full h-10 font-medium"
+                      variant="outline"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Herschrijf met AI
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )
