@@ -370,12 +370,17 @@ export default function TextRewritePage() {
     poll()
   }
 
-  const handleSaveRewrite = async (article: ArticleForRewrite, newContent: string) => {
+  const handleSaveRewrite = async (article: ArticleForRewrite, sections: ArticleSection[]) => {
     try {
+      // Extract article and FAQ content
+      const articleSection = sections.find(s => s.kind === 'article')
+      const faqSection = sections.find(s => s.kind === 'faq')
+      
       const response = await apiClient(`/api/articles/${article.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          content_article: newContent,
+          content_article: articleSection?.html || null,
+          content_faq: faqSection?.html || null,
           updated_at: new Date().toISOString()
         })
       })
@@ -711,8 +716,8 @@ export default function TextRewritePage() {
                         size="sm"
                         onClick={() => {
                           const results = rewriteResults.get(article.id)
-                          if (results && results[0]) {
-                            handleSaveRewrite(article, results[0].html)
+                          if (results) {
+                            handleSaveRewrite(article, results)
                           }
                         }}
                         className="w-full h-9 text-sm"
@@ -821,7 +826,7 @@ export default function TextRewritePage() {
                     Sluiten
                   </Button>
                   <Button
-                    onClick={() => handleSaveRewrite(selectedArticle!, selectedRewriteResult[0].html)}
+                    onClick={() => handleSaveRewrite(selectedArticle!, selectedRewriteResult)}
                     className="flex-1"
                   >
                     <Save className="h-4 w-4 mr-2" />

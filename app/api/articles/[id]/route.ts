@@ -58,7 +58,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         select: '*',
       },
       body: {
-        content_article: body.content_article,
+        ...(body.content_article && { content_article: body.content_article }),
+        ...(body.content_faq !== undefined && { content_faq: body.content_faq }),
         updated_at: new Date().toISOString(),
         generated_at: new Date().toISOString()
       },
