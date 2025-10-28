@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Calendar, FileText, Filter, RefreshCw, ArrowLeft, Loader2, X } from "lucide-react"
+import { Search, Calendar, FileText, Filter, RefreshCw, ArrowLeft, Loader2, X, Save } from "lucide-react"
 import { ArticleResults } from "@/components/article-results"
 import { LoadingState } from "@/components/loading-state"
 import type { Components } from "react-markdown"
@@ -20,6 +20,16 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
+
+type SectionKind = "article" | "faq" | "meta"
+
+interface ArticleSection {
+  id: string
+  html: string
+  title: string
+  kind: SectionKind
+  sequence: number
+}
 
 interface ArticleForRewrite {
   id: string
@@ -292,6 +302,40 @@ export default function TextRewritePage() {
     poll()
   }
 
+  const handleSaveRewrite = async (article: ArticleForRewrite, newContent: string) => {
+    try {
+      const response = await apiClient(`/api/articles/${article.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          content_article: newContent,
+          updated_at: new Date().toISOString()
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Artikel overschreven!",
+          description: `Het artikel "${article.title}" is succesvol bijgewerkt met de herschreven versie.`,
+        })
+        
+        // Refresh articles
+        fetchArticles()
+        
+        // Close side panel
+        setSidePanelOpen(false)
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Fout bij opslaan')
+      }
+    } catch (error: any) {
+      toast({
+        title: "Opslaan mislukt",
+        description: error.message || "Er is een fout opgetreden bij het overschrijven.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const getAgeColor = (category: string) => {
     switch (category) {
       case 'fresh':
@@ -464,14 +508,15 @@ export default function TextRewritePage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredArticles.map((article) => {
-            const borderColorClass = getAgeColor(article.age_category)
-            
             return (
-              <Card key={article.id} className={`group hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-l-4 ${borderColorClass}`}>
+              <Card key={article.id} className="group hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
                 <CardHeader className="pb-4">
                   {/* Age Badge */}
                   <div className="flex items-center justify-between gap-3 mb-4">
-                    {getAgeBadge(article.age_category)}
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${getAgeColor(article.age_category)}`} />
+                      {getAgeBadge(article.age_category)}
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                       <Calendar className="h-3 w-3" />
                       {article.age_days} dagen geleden
@@ -642,6 +687,27 @@ export default function TextRewritePage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-6 border-t bg-muted/30">
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSidePanelOpen(false)}
+                    className="flex-1"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Sluiten
+                  </Button>
+                  <Button
+                    onClick={() => handleSaveRewrite(selectedArticle!, selectedRewriteResult[0].html)}
+                    className="flex-1"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Overschrijf artikel
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
