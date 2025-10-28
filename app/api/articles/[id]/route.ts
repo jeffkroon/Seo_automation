@@ -46,6 +46,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const articleId = params.id
     const body = await req.json()
 
+    console.log('🔍 PATCH article:', { articleId, companyId })
+
     // First, fetch the article to verify it belongs to the company
     const article = await supabaseRest<any[]>('generated_articles', {
       method: 'GET',
@@ -58,7 +60,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const articleData = Array.isArray(article) ? article[0] : article
 
+    console.log('📄 Fetched article:', { articleData, isArray: Array.isArray(article) })
+
     if (!articleData) {
+      console.error('❌ Article not found')
       return NextResponse.json({ error: 'Article not found' }, { status: 404 })
     }
 
