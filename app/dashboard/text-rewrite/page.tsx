@@ -315,6 +315,16 @@ export default function TextRewritePage() {
               })
             }
 
+            if (result?.faqs || result?.faq) {
+              entries.push({
+                id: `${jobId}-${index}-faq`,
+                html: String(result.faqs || result.faq).trim(),
+                title: `FAQ - ${result.metaTitle?.trim() || 'Herschreven FAQ'}`,
+                kind: "faq",
+                sequence: 1,
+              })
+            }
+
             return entries
           })
 

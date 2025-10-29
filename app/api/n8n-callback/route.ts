@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     } else {
       entries.push({
         article: body.article,
-        faqs: body.faqs,
+        faqs: body.faqs ?? body.faq,
         metaTitle: body.metaTitle ?? body.meta_title,
         metaDescription: body.metaDescription ?? body.meta_description,
         generatedAt: generatedAt || new Date().toISOString(),
