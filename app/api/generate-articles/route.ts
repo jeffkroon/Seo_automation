@@ -18,29 +18,35 @@ export async function POST(req: Request) {
     }
 
     // Get sitemap_url from client if client_id is provided
-    let sitemapUrl = payload['Sitemap URL'] || ''
-    if (!sitemapUrl && payload['Client ID']) {
+    let sitemapUrl = ''
+    if (payload['Client ID']) {
       try {
-        const companyId = req.headers.get('x-company-id')
-        if (companyId) {
-          console.log('🔍 Fetching sitemap_url for client:', payload['Client ID'])
-          const clients = await supabaseRest<any[]>(
-            'clients',
-            {
-              headers: { 'x-company-id': companyId },
-              searchParams: {
-                id: `eq.${payload['Client ID']}`,
-                company_id: `eq.${companyId}`
-              }
-            },
-          )
-          const client = Array.isArray(clients) ? clients[0] : clients
-          sitemapUrl = client?.sitemap_url || ''
-          console.log('📍 Retrieved sitemap_url from client:', sitemapUrl || '(geen)')
+        // Use Supabase directly to get client (same approach as other routes)
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('sitemap_url, naam')
+          .eq('id', payload['Client ID'])
+          .single()
+        
+        if (clientError) {
+          console.error('❌ Error fetching client:', clientError)
+        } else if (clientData) {
+          sitemapUrl = clientData.sitemap_url || ''
+          console.log('📍 Retrieved sitemap_url from client:', clientData.naam, '->', sitemapUrl || '(geen)')
+        } else {
+          console.log('⚠️ Client not found for ID:', payload['Client ID'])
         }
       } catch (error) {
-        console.error('Error fetching client sitemap_url:', error)
+        console.error('❌ Error fetching client sitemap_url:', error)
       }
+    } else {
+      console.log('ℹ️ No Client ID in payload, skipping sitemap_url lookup')
     }
 
     // Add sitemap_url to payload if found
@@ -49,6 +55,7 @@ export async function POST(req: Request) {
       'Sitemap URL': sitemapUrl
     }
     console.log('📤 Sending to webhook with sitemap_url:', sitemapUrl || '(geen)')
+    console.log('📋 Full enriched payload being sent:', JSON.stringify(enrichedPayload, null, 2))
 
     const r = await fetch(process.env.N8N_WEBHOOK_URL, {
       method: 'POST',

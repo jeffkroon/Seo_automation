@@ -1,7 +1,6 @@
 // app/api/rewrite-article/route.ts
 import { NextResponse } from 'next/server'
 import { createJob } from '@/lib/jobs'
-import { supabaseRest } from '@/lib/supabase-rest'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,29 +27,35 @@ export async function POST(req: Request) {
     }
 
     // Get sitemap_url from client
-    let sitemapUrl = payload.sitemap_url || ''
-    if (!sitemapUrl && payload.client_id) {
+    let sitemapUrl = ''
+    if (payload.client_id) {
       try {
-        const companyId = req.headers.get('x-company-id')
-        if (companyId) {
-          console.log('🔍 Fetching sitemap_url for client:', payload.client_id)
-          const clients = await supabaseRest<any[]>(
-            'clients',
-            {
-              headers: { 'x-company-id': companyId },
-              searchParams: {
-                id: `eq.${payload.client_id}`,
-                company_id: `eq.${companyId}`
-              }
-            },
-          )
-          const client = Array.isArray(clients) ? clients[0] : clients
-          sitemapUrl = client?.sitemap_url || ''
-          console.log('📍 Retrieved sitemap_url from client:', sitemapUrl || '(geen)')
+        // Use Supabase directly to get client (same approach as other routes)
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('sitemap_url, naam')
+          .eq('id', payload.client_id)
+          .single()
+        
+        if (clientError) {
+          console.error('❌ Error fetching client:', clientError)
+        } else if (clientData) {
+          sitemapUrl = clientData.sitemap_url || ''
+          console.log('📍 Retrieved sitemap_url from client:', clientData.naam, '->', sitemapUrl || '(geen)')
+        } else {
+          console.log('⚠️ Client not found for ID:', payload.client_id)
         }
       } catch (error) {
-        console.error('Error fetching client sitemap_url:', error)
+        console.error('❌ Error fetching client sitemap_url:', error)
       }
+    } else {
+      console.log('ℹ️ No client_id in payload, skipping sitemap_url lookup')
     }
 
     // Generate jobId and create job

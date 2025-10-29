@@ -6,6 +6,7 @@ import { ArticleResults } from "@/components/article-results"
 import { LoadingState } from "@/components/loading-state"
 import { useClientContext } from "@/hooks/use-client-context"
 import { toast } from "@/hooks/use-toast"
+import { apiClient } from "@/lib/api-client"
 
 type SectionKind = "article" | "faq" | "meta"
 
@@ -115,11 +116,8 @@ export default function KeywordsPage() {
     setLoadingPieceIds(prev => new Set(prev).add(contentPiece.id))
     
     try {
-      const response = await fetch("/api/generate-articles", {
+      const response = await apiClient("/api/generate-articles", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           "Focus Keyword": contentPiece.focusKeyword,
           Country: contentPiece.country,

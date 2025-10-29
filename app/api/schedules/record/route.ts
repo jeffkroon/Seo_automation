@@ -35,27 +35,30 @@ export async function POST(req: Request) {
     const schedules = Array.isArray(scheduleResponse) ? scheduleResponse : [scheduleResponse]
     const schedule = schedules?.[0]
     
-    // Get sitemap_url from client
+    // Get sitemap_url from client using Supabase directly (same approach as other routes)
     let sitemapUrl = null
     if (schedule?.client_id) {
       try {
-        const companyId = req.headers.get('x-company-id') || schedule.company_id
-        if (companyId) {
-          const clients = await supabaseRest<any[]>(
-            'clients',
-            {
-              headers: { 'x-company-id': companyId },
-              searchParams: {
-                id: `eq.${schedule.client_id}`,
-                company_id: `eq.${companyId}`
-              }
-            },
-          )
-          const client = Array.isArray(clients) ? clients[0] : clients
-          sitemapUrl = client?.sitemap_url || null
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('sitemap_url, naam')
+          .eq('id', schedule.client_id)
+          .single()
+        
+        if (clientError) {
+          console.error('❌ Error fetching client sitemap_url:', clientError)
+        } else if (clientData) {
+          sitemapUrl = clientData.sitemap_url || null
+          console.log('📍 Retrieved sitemap_url for schedule article:', clientData.naam, '->', sitemapUrl || '(geen)')
         }
       } catch (error) {
-        console.error('Error fetching client sitemap_url:', error)
+        console.error('❌ Error fetching client sitemap_url:', error)
       }
     }
 
