@@ -734,14 +734,29 @@ export default function TextRewritePage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        // Create a pseudo-section for the original content
-                        const originalSections: ArticleSection[] = [{
-                          id: `${article.id}-original`,
-                          html: article.content_article || '',
-                          title: article.title,
-                          kind: 'article',
-                          sequence: 1
-                        }]
+                        // Create sections for both article and FAQ
+                        const originalSections: ArticleSection[] = []
+                        
+                        if (article.content_article) {
+                          originalSections.push({
+                            id: `${article.id}-original-article`,
+                            html: article.content_article,
+                            title: article.title,
+                            kind: 'article',
+                            sequence: 1
+                          })
+                        }
+                        
+                        if (article.content_faq) {
+                          originalSections.push({
+                            id: `${article.id}-original-faq`,
+                            html: article.content_faq,
+                            title: `FAQ - ${article.title}`,
+                            kind: 'faq',
+                            sequence: 1
+                          })
+                        }
+                        
                         setSelectedRewriteResult(originalSections)
                         setSelectedArticle(article)
                         setSidePanelOpen(true)
