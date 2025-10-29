@@ -1,6 +1,7 @@
 // app/api/generate-articles/route.ts
 import { NextResponse } from 'next/server';
 import { createJob } from '@/lib/jobs';
+import { supabaseRest } from '@/lib/supabase-rest';
 
 export async function POST(req: Request) {
   try {
@@ -16,10 +17,43 @@ export async function POST(req: Request) {
       );
     }
 
+    // Get sitemap_url from client if client_id is provided
+    let sitemapUrl = payload['Sitemap URL'] || ''
+    if (!sitemapUrl && payload['Client ID']) {
+      try {
+        const companyId = req.headers.get('x-company-id')
+        if (companyId) {
+          console.log('🔍 Fetching sitemap_url for client:', payload['Client ID'])
+          const clients = await supabaseRest<any[]>(
+            'clients',
+            {
+              headers: { 'x-company-id': companyId },
+              searchParams: {
+                id: `eq.${payload['Client ID']}`,
+                company_id: `eq.${companyId}`
+              }
+            },
+          )
+          const client = Array.isArray(clients) ? clients[0] : clients
+          sitemapUrl = client?.sitemap_url || ''
+          console.log('📍 Retrieved sitemap_url from client:', sitemapUrl || '(geen)')
+        }
+      } catch (error) {
+        console.error('Error fetching client sitemap_url:', error)
+      }
+    }
+
+    // Add sitemap_url to payload if found
+    const enrichedPayload = {
+      ...payload,
+      'Sitemap URL': sitemapUrl
+    }
+    console.log('📤 Sending to webhook with sitemap_url:', sitemapUrl || '(geen)')
+
     const r = await fetch(process.env.N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(enrichedPayload),
     });
 
     const rawData = await r.json();

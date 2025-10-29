@@ -1,6 +1,7 @@
 // app/api/rewrite-article/route.ts
 import { NextResponse } from 'next/server'
 import { createJob } from '@/lib/jobs'
+import { supabaseRest } from '@/lib/supabase-rest'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,32 @@ export async function POST(req: Request) {
       )
     }
 
+    // Get sitemap_url from client
+    let sitemapUrl = payload.sitemap_url || ''
+    if (!sitemapUrl && payload.client_id) {
+      try {
+        const companyId = req.headers.get('x-company-id')
+        if (companyId) {
+          console.log('🔍 Fetching sitemap_url for client:', payload.client_id)
+          const clients = await supabaseRest<any[]>(
+            'clients',
+            {
+              headers: { 'x-company-id': companyId },
+              searchParams: {
+                id: `eq.${payload.client_id}`,
+                company_id: `eq.${companyId}`
+              }
+            },
+          )
+          const client = Array.isArray(clients) ? clients[0] : clients
+          sitemapUrl = client?.sitemap_url || ''
+          console.log('📍 Retrieved sitemap_url from client:', sitemapUrl || '(geen)')
+        }
+      } catch (error) {
+        console.error('Error fetching client sitemap_url:', error)
+      }
+    }
+
     // Generate jobId and create job
     const jobId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     createJob(jobId)
@@ -36,9 +63,12 @@ export async function POST(req: Request) {
       faq: payload.faq,
       keyword: payload.keyword,
       article_type: payload.article_type || 'informatief',
+      sitemap_url: sitemapUrl,
       callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/n8n-callback`,
       jobId: jobId
     }
+
+    console.log('📤 Sending to rewrite webhook with sitemap_url:', sitemapUrl || '(geen)')
 
     const r = await fetch(REWRITE_WEBHOOK_URL, {
       method: 'POST',

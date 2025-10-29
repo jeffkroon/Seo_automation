@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       article_type, 
       language, 
       country, 
-      website_url, 
+      website_url,
       client_id,
       client_name 
     } = body

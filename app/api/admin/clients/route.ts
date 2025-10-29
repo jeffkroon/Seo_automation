@@ -22,7 +22,7 @@ export async function GET(req: Request) {
           headers: { 'x-company-id': companyId },
           searchParams: {
             user_id: `eq.${userId}`,
-            select: 'client_id,clients(id,naam,website_url,notities)'
+            select: 'client_id,clients(id,naam,website_url,sitemap_url,notities)'
           }
         }
       )
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { naam, website_url, notities } = body
+    const { naam, website_url, sitemap_url, notities } = body
 
     if (!naam || !naam.trim()) {
       return NextResponse.json({ error: 'Naam is verplicht' }, { status: 400 })
@@ -91,6 +91,7 @@ export async function POST(req: Request) {
           company_id: companyId,
           naam: naam.trim(),
           website_url: website_url?.trim() || null,
+          sitemap_url: sitemap_url?.trim() || null,
           notities: notities?.trim() || null,
           created_by: userId
         }
@@ -121,7 +122,7 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json()
-    const { id, naam, website_url, notities } = body
+    const { id, naam, website_url, sitemap_url, notities } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Client ID is verplicht' }, { status: 400 })
@@ -147,6 +148,7 @@ export async function PATCH(req: Request) {
         body: {
           naam: naam.trim(),
           website_url: website_url?.trim() || null,
+          sitemap_url: sitemap_url?.trim() || null,
           notities: notities?.trim() || null,
           updated_at: new Date().toISOString()
         }

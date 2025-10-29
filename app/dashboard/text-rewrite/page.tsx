@@ -235,7 +235,8 @@ export default function TextRewritePage() {
           article: article.content_article,
           faq: article.content_faq,
           keyword: article.focus_keyword,
-          article_type: article.article_type || 'informatief'
+          article_type: article.article_type || 'informatief',
+          client_id: selectedClient?.id
         })
       })
 

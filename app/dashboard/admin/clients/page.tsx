@@ -16,6 +16,7 @@ interface Client {
   id: string
   naam: string
   website_url: string | null
+  sitemap_url: string | null
   notities: string | null
   created_at: string
   updated_at: string | null
@@ -36,6 +37,7 @@ export default function AdminClientsPage() {
   // Form states
   const [naam, setNaam] = useState("")
   const [websiteUrl, setWebsiteUrl] = useState("")
+  const [sitemapUrl, setSitemapUrl] = useState("")
   const [notities, setNotities] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
@@ -63,6 +65,7 @@ export default function AdminClientsPage() {
     setCurrentClient(null)
     setNaam("")
     setWebsiteUrl("")
+    setSitemapUrl("")
     setNotities("")
     setIsDialogOpen(true)
   }
@@ -72,6 +75,7 @@ export default function AdminClientsPage() {
     setCurrentClient(client)
     setNaam(client.naam)
     setWebsiteUrl(client.website_url || "")
+    setSitemapUrl(client.sitemap_url || "")
     setNotities(client.notities || "")
     setIsDialogOpen(true)
   }
@@ -89,8 +93,8 @@ export default function AdminClientsPage() {
 
       const method = isEditing ? 'PATCH' : 'POST'
       const body = isEditing
-        ? { id: currentClient?.id, naam, website_url: websiteUrl, notities }
-        : { naam, website_url: websiteUrl, notities }
+        ? { id: currentClient?.id, naam, website_url: websiteUrl, sitemap_url: sitemapUrl, notities }
+        : { naam, website_url: websiteUrl, sitemap_url: sitemapUrl, notities }
 
       const response = await apiClient('/api/admin/clients', {
         method,
@@ -252,6 +256,20 @@ export default function AdminClientsPage() {
                       </div>
                     )}
 
+                    {client.sitemap_url && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <FileText className="h-4 w-4" />
+                        <a 
+                          href={client.sitemap_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:text-primary hover:underline truncate"
+                        >
+                          Sitemap
+                        </a>
+                      </div>
+                    )}
+
                     {client.notities && (
                       <div className="flex items-start gap-2 text-sm text-muted-foreground">
                         <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -320,6 +338,17 @@ export default function AdminClientsPage() {
                 placeholder="https://bakkerijjansen.nl"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sitemap">Sitemap URL</Label>
+              <Input
+                id="sitemap"
+                type="url"
+                placeholder="https://bakkerijjansen.nl/sitemap.xml"
+                value={sitemapUrl}
+                onChange={(e) => setSitemapUrl(e.target.value)}
               />
             </div>
 
