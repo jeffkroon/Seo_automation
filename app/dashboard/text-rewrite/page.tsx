@@ -316,9 +316,18 @@ export default function TextRewritePage() {
             }
 
             if (result?.faqs || result?.faq) {
+              // Clean FAQ content - remove markdown code blocks if present
+              let faqContent = String(result.faqs || result.faq).trim()
+              
+              // Remove markdown code blocks (```markdown ... ```)
+              faqContent = faqContent.replace(/^```markdown\s*/i, '')
+              faqContent = faqContent.replace(/^```\s*/i, '')
+              faqContent = faqContent.replace(/\s*```$/i, '')
+              faqContent = faqContent.trim()
+              
               entries.push({
                 id: `${jobId}-${index}-faq`,
-                html: String(result.faqs || result.faq).trim(),
+                html: faqContent,
                 title: `FAQ - ${result.metaTitle?.trim() || 'Herschreven FAQ'}`,
                 kind: "faq",
                 sequence: 1,
