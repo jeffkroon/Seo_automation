@@ -126,6 +126,21 @@ export default function TextRewritePage() {
 
   const markdownClass = "prose prose-sm max-w-none dark:prose-invert" // jobId -> article.id mapping
 
+  // Transform markdown - same as ArticleResults component
+  const transformMarkdown = (markdown: string): string => {
+    let cleaned = markdown.replace(/^\s*DO NOT wrap in ```html```\s*/i, "").trim()
+
+    const fenceMatch = cleaned.match(/^```(\w+)?\n([\s\S]*)\n```$/)
+    if (fenceMatch) {
+      const language = fenceMatch[1]?.toLowerCase()
+      if (!language || ["markdown", "md", "html"].includes(language)) {
+        cleaned = fenceMatch[2].trim()
+      }
+    }
+
+    return cleaned
+  }
+
   useEffect(() => {
     if (selectedClient) {
       fetchArticles()
@@ -316,14 +331,8 @@ export default function TextRewritePage() {
             }
 
             if (result?.faqs || result?.faq) {
-              // Clean FAQ content - remove markdown code blocks if present
-              let faqContent = String(result.faqs || result.faq).trim()
-              
-              // Remove markdown code blocks (```markdown ... ```)
-              faqContent = faqContent.replace(/^```markdown\s*/i, '')
-              faqContent = faqContent.replace(/^```\s*/i, '')
-              faqContent = faqContent.replace(/\s*```$/i, '')
-              faqContent = faqContent.trim()
+              // Clean FAQ content using same transformMarkdown as ArticleResults
+              const faqContent = transformMarkdown(String(result.faqs || result.faq))
               
               entries.push({
                 id: `${jobId}-${index}-faq`,
