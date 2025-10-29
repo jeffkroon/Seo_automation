@@ -144,8 +144,34 @@ export default function TextRewritePage() {
   useEffect(() => {
     if (selectedClient) {
       fetchArticles()
+      
+      // Load rewrite results from localStorage
+      const savedResults = localStorage.getItem(`rewrite-results-${selectedClient.id}`)
+      if (savedResults) {
+        try {
+          const parsed = JSON.parse(savedResults)
+          const resultsMap = new Map<string, ArticleSection[]>()
+          Object.entries(parsed).forEach(([articleId, sections]: [string, any]) => {
+            resultsMap.set(articleId, sections as ArticleSection[])
+          })
+          setRewriteResults(resultsMap)
+        } catch (error) {
+          console.error('Failed to load rewrite results from localStorage:', error)
+        }
+      }
     }
   }, [selectedClient])
+
+  // Save rewrite results to localStorage whenever they change
+  useEffect(() => {
+    if (selectedClient && rewriteResults.size > 0) {
+      const resultsObj = Object.fromEntries(rewriteResults)
+      localStorage.setItem(`rewrite-results-${selectedClient.id}`, JSON.stringify(resultsObj))
+    } else if (selectedClient && rewriteResults.size === 0) {
+      // Clear localStorage if no results
+      localStorage.removeItem(`rewrite-results-${selectedClient.id}`)
+    }
+  }, [rewriteResults, selectedClient])
 
   useEffect(() => {
     filterArticles()
@@ -723,36 +749,62 @@ export default function TextRewritePage() {
 
                   {/* Result buttons when rewrite is complete */}
                   {rewriteResults.has(article.id) && !rewritingIds.has(article.id) && (
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const results = rewriteResults.get(article.id)
-                          if (results) {
-                            setSelectedRewriteResult(results)
-                            setSelectedArticle(article)
-                            setSidePanelOpen(true)
-                          }
-                        }}
-                        className="w-full h-9 text-sm"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Bekijk artikel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          const results = rewriteResults.get(article.id)
-                          if (results) {
-                            handleSaveRewrite(article, results)
-                          }
-                        }}
-                        className="w-full h-9 text-sm"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Opslaan
-                      </Button>
+                    <div className="space-y-2 pt-2 border-t">
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">
+                          Herschreven versie beschikbaar
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const results = rewriteResults.get(article.id)
+                              if (results) {
+                                setSelectedRewriteResult(results)
+                                setSelectedArticle(article)
+                                setSidePanelOpen(true)
+                              }
+                            }}
+                            className="w-full h-9 text-sm"
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Bekijk
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const results = rewriteResults.get(article.id)
+                              if (results) {
+                                handleSaveRewrite(article, results)
+                              }
+                            }}
+                            className="w-full h-9 text-sm bg-green-600 hover:bg-green-700"
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            Opslaan
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setRewriteResults(prev => {
+                                const next = new Map(prev)
+                                next.delete(article.id)
+                                return next
+                              })
+                              toast({
+                                title: "Herschreven versie afgewezen",
+                                description: "De herschreven versie is verwijderd.",
+                              })
+                            }}
+                            className="w-full h-9 text-sm"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Afwijzen
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
 
